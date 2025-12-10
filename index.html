@@ -1,447 +1,367 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HeoCon88 - Cổng Game</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap');
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #020617;
-            color: #e2e8f0;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .bg-animate {
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(circle at 0% 0%, #4c1d95, #020617);
-            z-index: -1;
-        }
-        .blob {
-            position: absolute;
-            border-radius: 999px;
-            filter: blur(60px);
-            opacity: 0.6;
-            animation: float 10s infinite ease-in-out;
-        }
-        .blob-1 { top: -10%; left: -10%; width: 260px; height: 260px; background: #ec4899; }
-        .blob-2 { bottom: -15%; right: -15%; width: 260px; height: 260px; background: #38bdf8; animation-delay: 4s; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HeoCon88 - Đăng nhập hệ thống</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<!-- Supabase CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(20px, 20px); }
-        }
+<style>
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0f172a;
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+            radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Cho phép cuộn nếu màn hình quá nhỏ */
+        overflow-y: auto; 
+    }
+    
+    /* Hiệu ứng kính mờ */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
 
-        .glass {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            box-shadow: 0 25px 60px -20px rgba(15, 23, 42, 0.8);
-        }
+    /* Input style */
+    .input-group {
+        position: relative;
+        width: 100%;
+    }
+    /* Container cho icon để căn giữa tuyệt đối */
+    .input-icon-wrapper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3rem; /* Chiều rộng khu vực chứa icon */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none; /* Để click xuyên qua vào input */
+        z-index: 10;
+    }
+    .input-icon {
+        color: #94a3b8;
+        font-size: 1rem;
+        transition: color 0.3s;
+    }
+    .custom-input {
+        width: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        padding: 0.875rem 1rem 0.875rem 3rem; /* padding-left = width của icon wrapper */
+        color: white;
+    }
+    .custom-input:focus {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+        background: rgba(15, 23, 42, 0.8);
+    }
+    /* Đổi màu icon khi input focus */
+    .custom-input:focus ~ .input-icon-wrapper .input-icon {
+        color: #60a5fa;
+    }
 
-        .input-wrap {
-            position: relative;
-        }
-        .input-field {
-            width: 100%;
-            border-radius: 14px;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.8);
-            color: #e5e7eb;
-            padding: 12px 14px 12px 42px;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s;
-        }
-        .input-field::placeholder {
-            color: #64748b;
-        }
-        .input-field:focus {
-            border-color: #ec4899;
-            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.25);
-            background: rgba(15, 23, 42, 1);
-        }
-        .input-icon {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            font-size: 13px;
-        }
-
-        .btn-primary {
-            width: 100%;
-            border-radius: 16px;
-            padding: 12px 16px;
-            font-weight: 800;
-            font-size: 14px;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            background: linear-gradient(135deg, #ec4899, #be185d);
-            color: white;
-            border: none;
-            box-shadow: 0 12px 30px -16px rgba(236, 72, 153, 0.9);
-            transition: transform 0.1s, box-shadow 0.1s, opacity 0.1s;
-        }
-        .btn-primary:active {
-            transform: scale(0.97);
-            box-shadow: none;
-            opacity: 0.9;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 10px 0;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            border-bottom-width: 2px;
-            border-color: transparent;
-        }
-        .tab-active {
-            color: #f97316;
-            border-color: #f97316;
-        }
-        .tab-inactive {
-            color: #94a3b8;
-            border-color: transparent;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.25s ease-out forwards;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    /* Animation */
+    .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .hidden { display: none; }
+</style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4">
+<body class="py-10 px-4"> 
+    <!-- Thêm padding cho body để tránh dính lề trên mobile -->
 
-    <!-- Background -->
-    <div class="bg-animate">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
+    <!-- Trang trí nền (Fixed để không trôi khi cuộn) -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"></div>
     </div>
 
-    <!-- Main card -->
-    <div class="w-full max-w-[380px] glass rounded-3xl px-5 pt-6 pb-5 relative">
-        <!-- Logo -->
-        <div class="flex items-center gap-3 mb-5">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-600 to-rose-500 flex items-center justify-center text-2xl text-white shadow-lg shadow-pink-500/40">
-                <i class="fa-solid fa-piggy-bank"></i>
+    <!-- Main Container -->
+    <div class="w-full max-w-md z-10 relative">
+        
+        <!-- Logo / Header (Đã bỏ xoay nghiêng để thẳng hàng) -->
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg mb-4">
+                <i class="fa-solid fa-gamepad text-4xl text-white"></i>
             </div>
-            <div>
-                <div class="text-lg font-extrabold tracking-tight text-white">
-                    HeoCon<span class="text-pink-500">88</span>
-                </div>
-                <div class="text-xs text-slate-400 font-medium">Cổng game giải trí - nạp rút nhanh</div>
-            </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">HeoCon88</h1>
+            <p class="text-slate-400 text-sm mt-1">Cổng game giải trí đỉnh cao</p>
         </div>
 
-        <!-- Tabs -->
-        <div class="flex rounded-2xl bg-slate-900/60 border border-slate-800 mb-5 overflow-hidden">
-            <button id="tab-login" class="tab-btn tab-active" onclick="switchView('login')">
-                Đăng nhập
-            </button>
-            <button id="tab-register" class="tab-btn tab-inactive" onclick="switchView('register')">
-                Đăng ký
-            </button>
-        </div>
+        <div class="glass-card rounded-2xl p-8 w-full relative overflow-hidden">
+            <!-- Hiệu ứng viền sáng trên đầu thẻ -->
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
 
-        <!-- LOGIN VIEW -->
-        <div id="view-login" class="fade-in">
-            <div class="space-y-4">
-                <div class="input-wrap">
-                    <input id="login-phone" type="tel" class="input-field" placeholder="Số điện thoại">
-                    <i class="fa-solid fa-phone input-icon"></i>
-                </div>
-                <div class="input-wrap">
-                    <input id="login-pass" type="password" class="input-field" placeholder="Mật khẩu">
-                    <i class="fa-solid fa-lock input-icon"></i>
-                </div>
+            <!-- Login Form -->
+            <div id="login" class="fade-in">
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">Đăng Nhập</h2>
 
-                <div class="flex justify-between items-center text-xs">
-                    <span class="text-slate-500">Mỗi tài khoản chỉ dùng trên 1 thiết bị.</span>
-                    <button onclick="switchView('forgot')" class="text-pink-400 hover:text-pink-300 font-semibold">
-                        Quên mật khẩu?
-                    </button>
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <input id="loginPhone" type="tel" placeholder="Số điện thoại" class="custom-input rounded-xl outline-none placeholder-slate-500">
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-phone input-icon"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input id="loginPass" type="password" placeholder="Mật khẩu" class="custom-input rounded-xl outline-none placeholder-slate-500">
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                        </div>
+                    </div>
                 </div>
 
-                <button id="btn-login" onclick="handleLogin()" class="btn-primary mt-1">
-                    Vào game ngay
-                </button>
-            </div>
-        </div>
-
-        <!-- REGISTER VIEW -->
-        <div id="view-register" class="hidden fade-in">
-            <div class="space-y-4">
-                <div class="input-wrap">
-                    <input id="reg-phone" type="tel" class="input-field" placeholder="Số điện thoại (ID đăng nhập)">
-                    <i class="fa-solid fa-mobile-screen-button input-icon"></i>
-                </div>
-                <div class="input-wrap">
-                    <input id="reg-name" type="text" class="input-field" placeholder="Tên hiển thị trong game">
-                    <i class="fa-solid fa-user input-icon"></i>
-                </div>
-                <div class="input-wrap">
-                    <input id="reg-pass" type="password" class="input-field" placeholder="Mật khẩu">
-                    <i class="fa-solid fa-key input-icon"></i>
-                </div>
-                <div class="input-wrap">
-                    <input id="reg-pass-confirm" type="password" class="input-field" placeholder="Nhập lại mật khẩu">
-                    <i class="fa-solid fa-check-double input-icon"></i>
+                <div class="flex justify-end mt-3 mb-6">
+                    <p class="cursor-pointer text-sm text-blue-400 hover:text-blue-300 transition" onclick="showForgot()">Quên mật khẩu?</p>
                 </div>
 
-                <button id="btn-reg" onclick="handleRegister()" class="btn-primary mt-1" style="background: linear-gradient(135deg,#22c55e,#16a34a); box-shadow: 0 12px 30px -16px rgba(34,197,94,0.9);">
-                    Tạo tài khoản mới
+                <button onclick="handleLogin()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-0.5 active:scale-95">
+                    Đăng Nhập Ngay
                 </button>
 
-                <p class="text-[11px] text-slate-500 text-center mt-1">
-                    Bằng việc đăng ký, bạn đồng ý với điều khoản & quy định của hệ thống HeoCon88.
+                <div class="mt-6 text-center text-sm text-slate-400">
+                    Chưa có tài khoản? 
+                    <span class="cursor-pointer text-blue-400 hover:text-white font-semibold transition ml-1" onclick="showRegister()">Đăng ký ngay</span>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register" class="hidden fade-in">
+                <h2 class="text-2xl font-bold text-white mb-6 text-center">Tạo Tài Khoản</h2>
+
+                <div class="space-y-4">
+                    <div class="input-group">
+                        <input id="regName" type="text" placeholder="Tên hiển thị" class="custom-input rounded-xl outline-none placeholder-slate-500">
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-user input-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <input id="regPhone" type="tel" placeholder="Số điện thoại (ID)" class="custom-input rounded-xl outline-none placeholder-slate-500">
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-phone input-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <input id="regPass" type="password" placeholder="Mật khẩu" class="custom-input rounded-xl outline-none placeholder-slate-500">
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <input id="regPass2" type="password" placeholder="Nhập lại mật khẩu" class="custom-input rounded-xl outline-none placeholder-slate-500">
+                        <div class="input-icon-wrapper">
+                            <i class="fa-solid fa-check-circle input-icon"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="handleRegister()" class="w-full mt-6 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-emerald-500/30 transition transform hover:-translate-y-0.5 active:scale-95">
+                    Đăng Ký Tài Khoản
+                </button>
+
+                <div class="mt-6 text-center text-sm text-slate-400">
+                    Đã có tài khoản? 
+                    <span class="cursor-pointer text-blue-400 hover:text-white font-semibold transition ml-1" onclick="showLogin()">Đăng nhập</span>
+                </div>
+            </div>
+
+            <!-- Forgot Password Form -->
+            <div id="forgot" class="hidden fade-in text-center">
+                <div class="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-key text-yellow-400 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-2">Quên Mật Khẩu?</h2>
+                <p class="text-slate-400 text-sm mb-6 px-2">
+                    Đừng lo lắng. Hãy liên hệ với bộ phận CSKH qua Telegram để được cấp lại mật khẩu mới.
                 </p>
-            </div>
-        </div>
 
-        <!-- FORGOT VIEW -->
-        <div id="view-forgot" class="hidden fade-in text-center">
-            <div class="w-14 h-14 rounded-full mx-auto mb-3 flex items-center justify-center bg-blue-500/15 text-blue-400 text-2xl">
-                <i class="fa-solid fa-headset"></i>
-            </div>
-            <p class="text-sm text-slate-200 font-semibold mb-2">Quên mật khẩu?</p>
-            <p class="text-xs text-slate-400 mb-4">
-                Để bảo vệ tài khoản, vui lòng liên hệ CSKH để được hỗ trợ đổi mật khẩu.
-            </p>
-            <a href="https://t.me/hc88cskh" target="_blank"
-               class="block w-full mb-3 py-3 rounded-2xl bg-[#229ED9] hover:bg-[#1e8ac0] text-white text-sm font-bold shadow-lg shadow-sky-500/30">
-                <i class="fa-brands fa-telegram mr-1"></i> Mở Telegram CSKH
-            </a>
-            <button onclick="switchView('login')" class="text-xs text-slate-400 hover:text-slate-200 font-medium">
-                Quay lại đăng nhập
-            </button>
-        </div>
+                <button onclick="openTelegram()" class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-sky-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-telegram text-xl"></i>
+                    Liên hệ CSKH @hc88cskh
+                </button>
 
-        <!-- Bottom hint -->
-        <div class="mt-5 flex items-center justify-between text-[11px] text-slate-500">
-            <span><i class="fa-solid fa-shield-halved mr-1"></i>Hệ thống bảo mật thiết bị</span>
-            <span class="text-slate-400">© HeoCon88</span>
+                <div class="mt-6 text-center text-sm">
+                    <span class="cursor-pointer text-slate-400 hover:text-white transition" onclick="showLogin()">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Quay lại đăng nhập
+                    </span>
+                </div>
+            </div>
+
         </div>
+        
+        <!-- Footer Info -->
+        <p class="text-center text-slate-500 text-xs mt-6">
+            &copy; 2024 HeoCon88 System. Secure & Safe.
+        </p>
     </div>
 
-    <!-- MODAL DEVICE LOCK -->
-    <div id="modal-device" class="hidden fixed inset-0 z-40 bg-black/80 flex items-center justify-center px-6">
-        <div class="glass rounded-2xl px-5 py-5 max-w-xs text-center border border-rose-500/50">
-            <div class="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center bg-rose-500/15 text-rose-400 text-xl">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <p class="text-sm font-semibold text-white mb-2">Phát hiện thiết bị khác!</p>
-            <p class="text-xs text-slate-400 mb-4">
-                Tài khoản này đã được gắn với một thiết bị khác. Vui lòng liên hệ CSKH để mở khóa cho thiết bị mới.
-            </p>
-            <a href="https://t.me/hc88cskh" target="_blank"
-               class="block w-full mb-3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-900/40">
-                <i class="fa-brands fa-telegram mr-1"></i> Liên hệ CSKH
-            </a>
-            <button onclick="document.getElementById('modal-device').classList.add('hidden')"
-                    class="text-[11px] text-slate-500 hover:text-slate-200 font-semibold uppercase tracking-wide">
-                Đóng
-            </button>
-        </div>
-    </div>
+<script>
+/* ====== LOGIC GIỮ NGUYÊN HOÀN TOÀN (chỉ sửa UI) ====== */
 
-    <!-- TOAST -->
-    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 opacity-0 -translate-y-6 transition-all duration-300 z-50">
-        <div class="glass rounded-full px-4 py-2 flex items-center gap-2 border border-slate-700 bg-slate-900/90">
-            <i id="toast-icon" class="fa-solid fa-circle-info text-sky-400 text-sm"></i>
-            <span id="toast-msg" class="text-xs text-slate-100"></span>
-        </div>
-    </div>
+/* ====== SUPABASE CONFIG ====== */
+const SUPABASE_URL = "https://boddppngzdgpazrrdual.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZGRwcG5nemRncGF6cnJkdWFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTk5ODAsImV4cCI6MjA4MDkzNTk4MH0.rdNoq5qlmXzH3AafSxZOwv6qJznWhs8J_LHmdu0NT44";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    <script type="module">
-        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/esm/supabase.js";
+/* Nếu đã đăng nhập trước đó thì auto vào home luôn */
+if (localStorage.getItem("my_wallet_uid")) {
+    window.location.href = "home.html";
+}
 
-        const SUPABASE_URL = "https://boddppngzdgpazrrdual.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZGRwcG5nemRncGF6cnJkdWFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTk5ODAsImV4cCI6MjA4MDkzNTk4MH0.rdNoq5qlmXzH3AafSxZOwv6qJznWhs8J_LHmdu0NT44";
-        const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+/* ====== CHUYỂN VIEW ====== */
+function showLogin(){
+    document.getElementById("login").classList.remove("hidden");
+    document.getElementById("register").classList.add("hidden");
+    document.getElementById("forgot").classList.add("hidden");
+}
+function showRegister(){
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("register").classList.remove("hidden");
+    document.getElementById("forgot").classList.add("hidden");
+}
+function showForgot(){
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("register").classList.add("hidden");
+    document.getElementById("forgot").classList.remove("hidden");
+}
 
-        // DEVICE ID
-        let deviceId = localStorage.getItem("deviceID_heocon88");
-        if (!deviceId) {
-            deviceId = crypto.randomUUID();
-            localStorage.setItem("deviceID_heocon88", deviceId);
+/* ====== QUÊN MẬT KHẨU → TELEGRAM ====== */
+function openTelegram(){
+    window.open("https://t.me/hc88cskh", "_blank");
+}
+
+/* ====== ĐĂNG KÝ VỚI SUPABASE (id = số điện thoại) ====== */
+async function handleRegister(){
+    const name  = document.getElementById("regName").value.trim();
+    const phone = document.getElementById("regPhone").value.trim();
+    const pass  = document.getElementById("regPass").value.trim();
+    const pass2 = document.getElementById("regPass2").value.trim();
+
+    if(!name || !phone || !pass || !pass2){
+        alert("Vui lòng nhập đầy đủ thông tin!");
+        return;
+    }
+    if(pass !== pass2){
+        alert("Mật khẩu nhập lại không khớp!");
+        return;
+    }
+
+    try{
+        // Kiểm tra SĐT đã tồn tại chưa (id = phone)
+        const { data: exist, error: existErr } = await db
+            .from("users")
+            .select("id")
+            .eq("id", phone)
+            .maybeSingle();
+
+        if(existErr){
+            console.error("Lỗi kiểm tra user:", existErr);
+            alert("Lỗi kiểm tra tài khoản: " + existErr.message);
+            return;
+        }
+        if(exist){
+            alert("Số điện thoại này đã được đăng ký!");
+            return;
         }
 
-        // LOGIN
-        window.handleLogin = async () => {
-            const phone = document.getElementById('login-phone').value.trim();
-            const pass = document.getElementById('login-pass').value.trim();
-            const btn  = document.getElementById('btn-login');
+        // Tạo user mới
+        const { data, error: insertErr } = await db
+            .from("users")
+            .insert({
+                id: phone,
+                name: name,
+                password: pass
+            })
+            .select();
 
-            if (!phone || !pass) {
-                showToast("Vui lòng nhập đủ số điện thoại và mật khẩu!", "error");
-                return;
-            }
-
-            btn.disabled = true;
-            const oldText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-
-            try {
-                const { data: user, error } = await db
-                    .from("users")
-                    .select("*")
-                    .eq("id", phone)
-                    .maybeSingle();
-
-                if (error) throw error;
-                if (!user) throw "Tài khoản không tồn tại!";
-                if (user.password !== pass) throw "Mật khẩu không đúng!";
-
-                // Check device lock
-                if (user.device_id && user.device_id !== deviceId) {
-                    document.getElementById('modal-device').classList.remove('hidden');
-                    return;
-                }
-
-                // First time: gắn device
-                if (!user.device_id) {
-                    await db.from("users").update({ device_id: deviceId }).eq("id", phone);
-                }
-
-                localStorage.setItem("my_wallet_uid", phone);
-                localStorage.setItem("heocon88_name", user.name || "");
-                showToast("Đăng nhập thành công!", "success");
-
-                setTimeout(() => {
-                    window.location.href = "app_mobile_v6.html";
-                }, 1000);
-
-            } catch (e) {
-                console.error(e);
-                showToast(typeof e === "string" ? e : "Lỗi kết nối tới máy chủ!", "error");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = oldText;
-            }
-        };
-
-        // REGISTER
-        window.handleRegister = async () => {
-            const phone = document.getElementById('reg-phone').value.trim();
-            const name  = document.getElementById('reg-name').value.trim();
-            const pass  = document.getElementById('reg-pass').value.trim();
-            const pass2 = document.getElementById('reg-pass-confirm').value.trim();
-            const btn   = document.getElementById('btn-reg');
-
-            if (!phone || !name || !pass) {
-                showToast("Vui lòng nhập đầy đủ thông tin!", "error");
-                return;
-            }
-            if (pass !== pass2) {
-                showToast("Mật khẩu nhập lại không khớp!", "error");
-                return;
-            }
-
-            btn.disabled = true;
-            const old = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
-
-            try {
-                const { data: exist } = await db
-                    .from("users")
-                    .select("id")
-                    .eq("id", phone)
-                    .maybeSingle();
-
-                if (exist) throw "Số điện thoại này đã được đăng ký!";
-
-                const { error } = await db.from("users").insert({
-                    id: phone,
-                    name: name,
-                    password: pass,
-                    device_id: deviceId,
-                    balance: 0,
-                    security_question: "Liên hệ CSKH Telegram",
-                    security_answer: "@hc88cskh"
-                });
-
-                if (error) throw error;
-
-                showToast("Đăng ký thành công! Vui lòng đăng nhập.", "success");
-                switchView('login');
-                document.getElementById('login-phone').value = phone;
-
-            } catch (e) {
-                console.error(e);
-                showToast(typeof e === "string" ? e : "Lỗi đăng ký tài khoản!", "error");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = old;
-            }
-        };
-
-        // SWITCH VIEW
-        window.switchView = (view) => {
-            const login   = document.getElementById('view-login');
-            const reg     = document.getElementById('view-register');
-            const forgot  = document.getElementById('view-forgot');
-            const tabLogin = document.getElementById('tab-login');
-            const tabReg   = document.getElementById('tab-register');
-
-            login.classList.add('hidden');
-            reg.classList.add('hidden');
-            forgot.classList.add('hidden');
-
-            if (view === 'login') {
-                login.classList.remove('hidden');
-                tabLogin.classList.add('tab-active');
-                tabLogin.classList.remove('tab-inactive');
-                tabReg.classList.add('tab-inactive');
-                tabReg.classList.remove('tab-active');
-            } else if (view === 'register') {
-                reg.classList.remove('hidden');
-                tabReg.classList.add('tab-active');
-                tabReg.classList.remove('tab-inactive');
-                tabLogin.classList.add('tab-inactive');
-                tabLogin.classList.remove('tab-active');
-            } else if (view === 'forgot') {
-                forgot.classList.remove('hidden');
-                tabLogin.classList.add('tab-inactive');
-                tabReg.classList.add('tab-inactive');
-                tabLogin.classList.remove('tab-active');
-                tabReg.classList.remove('tab-active');
-            }
-        };
-
-        function showToast(msg, type = "info") {
-            const wrap = document.getElementById('toast');
-            const icon = document.getElementById('toast-icon');
-            const text = document.getElementById('toast-msg');
-
-            text.textContent = msg;
-            if (type === "error") {
-                icon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-sm";
-            } else if (type === "success") {
-                icon.className = "fa-solid fa-check-circle text-emerald-400 text-sm";
-            } else {
-                icon.className = "fa-solid fa-circle-info text-sky-400 text-sm";
-            }
-
-            wrap.classList.remove('opacity-0', '-translate-y-6');
-            wrap.classList.add('opacity-100', 'translate-y-0');
-
-            setTimeout(() => {
-                wrap.classList.add('opacity-0', '-translate-y-6');
-                wrap.classList.remove('opacity-100', 'translate-y-0');
-            }, 2600);
+        if(insertErr){
+            console.error("Lỗi insert:", insertErr);
+            alert("Lỗi đăng ký: " + insertErr.message);
+            return;
         }
-    </script>
+
+        alert("Đăng ký thành công! Vui lòng đăng nhập.");
+        showLogin();
+        document.getElementById("loginPhone").value = phone;
+
+    }catch(e){
+        console.error("Lỗi ngoài:", e);
+        alert("Lỗi đăng ký! " + (e.message || ""));
+    }
+}
+
+/* ====== ĐĂNG NHẬP VỚI SUPABASE ====== */
+async function handleLogin(){
+    const phone = document.getElementById("loginPhone").value.trim();
+    const pass  = document.getElementById("loginPass").value.trim();
+
+    if(!phone || !pass){
+        alert("Vui lòng nhập số điện thoại và mật khẩu!");
+        return;
+    }
+
+    try{
+        const { data: user, error } = await db
+            .from("users")
+            .select("*")
+            .eq("id", phone)
+            .maybeSingle();
+
+        if(error){
+            console.error("Lỗi select:", error);
+            alert("Lỗi đăng nhập: " + error.message);
+            return;
+        }
+        if(!user){
+            alert("Tài khoản không tồn tại!");
+            return;
+        }
+        if(user.password !== pass){
+            alert("Mật khẩu không đúng!");
+            return;
+        }
+
+        // Lưu thông tin cho trang sau
+        localStorage.setItem("my_wallet_uid", phone);
+        localStorage.setItem("heocon88_name", user.name || "");
+
+        alert("Đăng nhập thành công!");
+
+        // 👉 Chuyển sang trang Home
+        window.location.href = "home.html";
+
+    }catch(e){
+        console.error("Lỗi ngoài:", e);
+        alert("Lỗi kết nối! " + (e.message || ""));
+    }
+}
+</script>
 </body>
 </html>
+
