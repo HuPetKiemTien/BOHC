@@ -1,288 +1,253 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HeoCon88 - Trang Chủ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&display=swap');
-        body { font-family: 'Outfit', sans-serif; background-color: #0f172a; color: white; }
-        .tab-active { background:#1e293b; color:#38bdf8; font-weight:700; }
-        .content { display:none; }
-        .content.active { display:block; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HeoCon88 - Trang chủ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        font-family: 'Outfit', sans-serif;
+        background-color: #0f172a;
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+            radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+        color: #e2e8f0;
+        min-height: 100vh;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Glassmorphism */
+    .glass-nav {
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Card Gradient (ATM style) */
+    .credit-card {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    .credit-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: radial-gradient(circle at top right, rgba(255,255,255,0.3), transparent 60%);
+        pointer-events: none;
+    }
+
+    /* Animations */
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-up {
+        animation: slideUp 0.5s ease-out forwards;
+    }
+    
+    .menu-item {
+        transition: transform 0.2s, background 0.2s;
+    }
+    .menu-item:active {
+        transform: scale(0.96);
+        background: rgba(255,255,255,0.1);
+    }
+</style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="flex flex-col pb-20">
 
-<!-- ====== APP CHÍNH: TRANG CHỦ 2 TAB ====== -->
-<div id="appMain" class="flex-1 flex flex-col">
-
-  <!-- Header -->
-  <header class="p-4 text-xl font-bold bg-slate-900 shadow-md flex justify-between items-center">
-    <div>
-      <span>🐷 HeoCon88</span>
-      <div class="text-xs text-slate-400" id="userEmailLabel"></div>
-    </div>
-    <div class="flex items-center gap-2">
-      <!-- Nút sang trang tài khoản bạn đã có -->
-      <button class="text-sm bg-slate-700 px-3 py-1 rounded-lg"
-              onclick="window.location.href='tai-khoan.html'">
-        <i class="fa-solid fa-wallet"></i> Tài khoản
-      </button>
-      <button class="text-red-400 text-sm font-semibold flex items-center gap-1"
-              onclick="logoutSupabase()">
-        <i class="fa-solid fa-right-from-bracket"></i> Thoát
-      </button>
-    </div>
-  </header>
-
-  <!-- Tabs -->
-  <div class="grid grid-cols-2 text-center text-lg">
-    <button id="tabDauTu" class="p-3 tab-active" onclick="switchMainTab('dautu')">💰 Đầu tư</button>
-    <button id="tabTroChoi" class="p-3" onclick="switchMainTab('trochoi')">🎮 Trò chơi</button>
-  </div>
-
-  <!-- Nội dung -->
-  <div class="p-4 flex-1 overflow-y-auto">
-
-    <!-- ĐẦU TƯ -->
-    <div id="content_dautu" class="content active">
-      <h2 class="text-xl font-bold mb-3">💰 Danh mục đầu tư</h2>
-
-      <!-- Khối Hũ sinh lời (demo) -->
-      <div class="bg-slate-800 p-4 rounded-lg mb-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="font-semibold text-lg">Hũ sinh lời</p>
-            <p class="text-xs text-gray-300">
-              Lãi suất cơ bản: 1%/năm · Gửi tối thiểu 30.000
-            </p>
-          </div>
-          <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded-full">
-            Đang phát triển
-          </span>
-        </div>
-        <p class="mt-2 text-xs text-gray-400">
-          Logic lãi theo phút, nhiệm vụ tăng lãi,... sẽ code sau.
-        </p>
-      </div>
-
-      <!-- Trạng thái load gói đầu tư -->
-      <div id="investmentLoading" class="text-sm text-slate-400 mb-2">
-        Đang tải gói đầu tư từ hệ thống...
-      </div>
-      <div id="investmentError" class="text-sm text-red-400 mb-2 hidden"></div>
-
-      <!-- Danh sách gói đầu tư -->
-      <div id="investmentList" class="space-y-3">
-        <!-- Card gói đầu tư sẽ được render bằng JS -->
-      </div>
-    </div>
-
-    <!-- TRÒ CHƠI -->
-    <div id="content_trochoi" class="content">
-      <h2 class="text-xl font-bold mb-3">🎮 Trung tâm trò chơi</h2>
-
-      <div class="bg-slate-800 p-4 rounded-lg mb-3 flex justify-between items-center">
-        <div>
-          <p class="font-semibold text-lg">Game Tài Xỉu</p>
-          <p class="text-sm text-gray-300">Realtime (sẽ gắn link sau)</p>
-        </div>
-        <button class="bg-purple-500 px-3 py-2 rounded text-sm">Chơi</button>
-      </div>
-
-      <div class="bg-slate-800 p-4 rounded-lg mb-3 flex justify-between items-center">
-        <div>
-          <p class="font-semibold text-lg">Nông Trại MMO</p>
-          <p class="text-sm text-gray-300">Trồng cây - thu hoạch</p>
-        </div>
-        <button class="bg-green-500 px-3 py-2 rounded text-sm">Vào game</button>
-      </div>
-    </div>
-
-  </div>
+<!-- BACKGROUND DECORATION -->
+<div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
+    <div class="absolute top-[-10%] right-[-20%] w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-[20%] left-[-10%] w-60 h-60 bg-blue-500/20 rounded-full blur-3xl"></div>
 </div>
 
-<script>
-/* ===== Supabase config – SỬA CHO ĐÚNG ===== */
-const SUPABASE_URL = "https://boddppngzdgpazrrdual.supabase.co";  // URL project của bạn
-const SUPABASE_ANON_KEY = "DÁN_ANON_KEY_CỦA_BẠN_VÀO_ĐÂY";         // anon public key
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/* Biến global */
-let currentUserId = null;
-let investmentPackages = [];
-
-/* ===== Tabs phần TRANG CHỦ ===== */
-function switchMainTab(tab) {
-  document.getElementById("content_dautu").classList.remove("active");
-  document.getElementById("content_trochoi").classList.remove("active");
-  document.getElementById("tabDauTu").classList.remove("tab-active");
-  document.getElementById("tabTroChoi").classList.remove("tab-active");
-
-  if (tab === "dautu") {
-    document.getElementById("content_dautu").classList.add("active");
-    document.getElementById("tabDauTu").classList.add("tab-active");
-  } else {
-    document.getElementById("content_trochoi").classList.add("active");
-    document.getElementById("tabTroChoi").classList.add("tab-active");
-  }
-}
-
-/* ===== Đăng xuất ===== */
-async function logoutSupabase() {
-  await supabaseClient.auth.signOut();
-  // Sau khi logout, đưa về trang đăng nhập bạn đã có sẵn
-  window.location.href = 'login.html'; // sửa thành file đăng nhập của bạn
-}
-
-/* ===== Format tiền ===== */
-function formatCurrency(num) {
-  if (num == null) return "0";
-  return num.toLocaleString('vi-VN');
-}
-
-/* ===== Load gói đầu tư từ Supabase (bảng packages) ===== */
-async function loadInvestmentPackages() {
-  const loadingEl = document.getElementById('investmentLoading');
-  const errorEl = document.getElementById('investmentError');
-  const listEl = document.getElementById('investmentList');
-
-  loadingEl.style.display = 'block';
-  errorEl.classList.add('hidden');
-  listEl.innerHTML = '';
-
-  const { data, error } = await supabaseClient
-    .from('packages')
-    .select('id, name, description, min_amount, max_amount, profit_percent, duration_hours, active')
-    .eq('active', true)
-    .order('id', { ascending: true });
-
-  loadingEl.style.display = 'none';
-
-  if (error) {
-    console.error(error);
-    errorEl.classList.remove('hidden');
-    errorEl.textContent = "Không tải được gói đầu tư: " + error.message;
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    listEl.innerHTML = '<p class="text-sm text-slate-400">Chưa có gói đầu tư nào. Hãy tạo dữ liệu trong bảng <b>packages</b>.</p>';
-    return;
-  }
-
-  investmentPackages = data;
-  data.forEach(pkg => {
-    const minFmt = formatCurrency(pkg.min_amount);
-    const maxFmt = formatCurrency(pkg.max_amount);
-    const card = document.createElement('div');
-    card.className = "bg-slate-800 p-4 rounded-lg mb-2 border border-slate-700";
-    card.innerHTML = `
-      <div class="flex justify-between items-center mb-2">
-        <div>
-          <p class="font-semibold text-lg">${pkg.name}</p>
-          <p class="text-xs text-gray-300">${pkg.description || ''}</p>
+<!-- HEADER -->
+<header class="glass-nav sticky top-0 z-50 px-5 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
+            <i class="fa-solid fa-piggy-bank text-white text-lg"></i>
         </div>
-        <span class="text-xs bg-sky-500/20 text-sky-300 px-2 py-1 rounded-full">
-          +${pkg.profit_percent}% · ${pkg.duration_hours}h
-        </span>
-      </div>
-      <p class="text-xs text-gray-400 mb-2">
-        Hạn mức: ${minFmt} – ${maxFmt} VNĐ
-      </p>
-      <button class="mt-2 bg-yellow-500 hover:bg-yellow-600 w-full p-2 rounded text-sm font-semibold"
-              onclick="openInvestPrompt(${pkg.id})">
-        Đầu tư ngay
-      </button>
-    `;
-    listEl.appendChild(card);
-  });
+        <div>
+            <h1 class="font-bold text-lg leading-tight text-white">HeoCon88</h1>
+            <p class="text-[11px] text-slate-400">Welcome back!</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-3">
+        <button onclick="goNotice()" class="w-9 h-9 rounded-full bg-slate-800/50 flex items-center justify-center hover:bg-slate-700 transition relative">
+            <i class="fa-regular fa-bell text-slate-300"></i>
+            <span class="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-slate-900"></span>
+        </button>
+        <button onclick="logout()" class="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 transition text-red-400">
+            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+        </button>
+    </div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="flex-1 p-5 space-y-6 animate-slide-up">
+
+    <!-- USER GREETING & ID -->
+    <div class="flex justify-between items-end px-1">
+        <div>
+            <p class="text-slate-400 text-xs mb-1">Tài khoản thành viên</p>
+            <p id="userLabel" class="font-mono text-sm font-semibold text-white tracking-wide">ID: Loading...</p>
+        </div>
+        <div class="bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+            <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+            </span>
+        </div>
+    </div>
+
+    <!-- BALANCE CARD (ATM STYLE) -->
+    <div class="credit-card rounded-2xl p-6 text-white shadow-2xl">
+        <div class="flex justify-between items-start mb-6">
+            <i class="fa-solid fa-wifi rotate-90 opacity-70"></i>
+            <i class="fa-brands fa-cc-mastercard text-2xl opacity-80"></i>
+        </div>
+        
+        <div>
+            <p class="text-xs opacity-80 mb-1">Tổng số dư khả dụng</p>
+            <div class="flex items-baseline gap-1">
+                <h2 id="balance" class="text-3xl font-bold tracking-tight">0</h2>
+                <span class="text-sm font-medium opacity-80">Coin</span>
+            </div>
+        </div>
+
+        <div class="mt-6 flex justify-between items-end">
+            <p class="font-mono text-sm opacity-70">**** **** **** 8888</p>
+            <p class="text-[10px] opacity-70">HEOCON88 WALLET</p>
+        </div>
+    </div>
+
+    <!-- WALLET ACCESS BUTTON (New Design) -->
+    <div class="mt-2">
+        <button onclick="goAccount()" class="w-full glass-card p-4 rounded-xl flex items-center justify-between hover:bg-white/10 transition group border-l-4 border-l-blue-500">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                    <i class="fa-solid fa-wallet text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <p class="font-bold text-white text-sm">Quản Lý Ví Chính</p>
+                    <p class="text-[11px] text-slate-400">Nạp tiền, Rút tiền & Lịch sử GD</p>
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-white transition"></i>
+        </button>
+    </div>
+
+    <!-- FEATURE GRID -->
+    <div>
+        <h3 class="text-sm font-bold text-white mb-3 pl-1 border-l-4 border-purple-500 pl-2">Tiện ích giải trí</h3>
+        <div class="grid grid-cols-2 gap-4">
+            
+            <!-- Hũ sinh lời -->
+            <button onclick="goSaving()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition duration-300">
+                    <i class="fa-solid fa-piggy-bank text-6xl text-yellow-400"></i>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-3 text-yellow-400">
+                    <i class="fa-solid fa-vault text-2xl"></i>
+                </div>
+                <p class="font-bold text-base text-white">Hũ Sinh Lời</p>
+                <p class="text-[11px] text-yellow-400 mt-1 font-medium">Lãi suất 12%/năm</p>
+            </button>
+
+            <!-- Game Center -->
+            <button onclick="goGames()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition duration-300">
+                    <i class="fa-solid fa-gamepad text-6xl text-pink-400"></i>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center mb-3 text-pink-400">
+                    <i class="fa-solid fa-gamepad text-2xl"></i>
+                </div>
+                <p class="font-bold text-base text-white">Kho Game</p>
+                <p class="text-[11px] text-pink-400 mt-1 font-medium">Chơi hay nhận thưởng</p>
+            </button>
+
+            <!-- CSKH -->
+            <button onclick="goSupport()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center mb-3 text-sky-400">
+                    <i class="fa-solid fa-headset text-xl"></i>
+                </div>
+                <p class="font-bold text-sm text-white">Hỗ trợ 24/7</p>
+                <p class="text-[10px] text-slate-400 mt-1">Giải đáp thắc mắc</p>
+            </button>
+
+            <!-- Cài đặt -->
+            <button onclick="goSetting()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
+                <div class="w-10 h-10 rounded-xl bg-slate-500/20 flex items-center justify-center mb-3 text-slate-300">
+                    <i class="fa-solid fa-gear text-xl"></i>
+                </div>
+                <p class="font-bold text-sm text-white">Cài đặt</p>
+                <p class="text-[10px] text-slate-400 mt-1">Bảo mật tài khoản</p>
+            </button>
+        </div>
+    </div>
+
+</main>
+
+<script>
+/* ================= LOGIC GIỮ NGUYÊN ================= */
+const db = supabase.createClient(
+    "https://boddppngzdgpazrrdual.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZGRwcG5nemRncGF6cnJkdWFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTk5ODAsImV4cCI6MjA4MDkzNTk4MH0.rdNoq5qlmXzH3AafSxZOwv6qJznWhs8J_LHmdu0NT44"
+);
+
+let uid = localStorage.getItem("my_wallet_uid");
+
+/* ================= Load dữ liệu ví ================= */
+async function loadBalance(){
+    if(!uid) return backLogin();
+    const {data} = await db.from("users").select("balance,name").eq("id",uid).maybeSingle();
+    if(!data) return backLogin();
+
+    document.getElementById("userLabel").innerText = `ID: ${uid}`;
+    // Format số dư đẹp hơn
+    document.getElementById("balance").innerText = Number(data.balance||0).toLocaleString('vi-VN');
 }
 
-/* ===== Prompt số tiền đầu tư & insert vào bảng investments ===== */
-async function openInvestPrompt(packageId) {
-  if (!currentUserId) {
-    alert("Bạn cần đăng nhập trước.");
-    // Có thể redirect sang trang đăng nhập nếu muốn
-    return;
-  }
-  const pkg = investmentPackages.find(p => p.id === packageId);
-  if (!pkg) {
-    alert("Không tìm thấy gói đầu tư.");
-    return;
-  }
+/* ================== Điều hướng ================== */
+function goAccount(){location.href="taikhoan.html";} // Link sang file ví
+function goSaving(){location.href="husinhloi.html";}
+function goGames(){location.href="games.html";} 
+function goNotice(){alert("Hiện chưa có thông báo mới.");}
+function goSupport(){window.open("https://t.me/hc88cskh", "_blank");} 
+function goSetting(){alert("Tính năng đang được phát triển.");}
 
-  const min = pkg.min_amount || 0;
-  const max = pkg.max_amount || 0;
-  const input = prompt(
-    `Nhập số tiền muốn đầu tư vào "${pkg.name}" (VNĐ)\nTối thiểu: ${formatCurrency(min)} - Tối đa: ${formatCurrency(max)}`
-  );
-  if (!input) return;
-
-  const amount = parseInt(input.replace(/\D/g, ''), 10);
-  if (isNaN(amount) || amount <= 0) {
-    alert("Số tiền không hợp lệ.");
-    return;
-  }
-  if (min && amount < min) {
-    alert("Số tiền nhỏ hơn mức tối thiểu.");
-    return;
-  }
-  if (max && amount > max) {
-    alert("Số tiền vượt quá mức tối đa.");
-    return;
-  }
-
-  // TODO: ở đây nên kiểm tra số dư ví trước (trong trang tài khoản bạn xử lý)
-  if (!confirm(`Xác nhận đầu tư ${formatCurrency(amount)} VNĐ vào gói "${pkg.name}"?`)) {
-    return;
-  }
-
-  const { data, error } = await supabaseClient
-    .from('investments')
-    .insert([{
-      user_id: currentUserId,
-      package_id: packageId,
-      amount: amount,
-      status: 'pending'  // hoặc 'running' tùy logic của bạn
-    }])
-    .select()
-    .single();
-
-  if (error) {
-    console.error(error);
-    alert("Tạo lệnh đầu tư thất bại: " + error.message);
-  } else {
-    alert("Đã tạo lệnh đầu tư thành công! Bạn xử lý duyệt / trừ tiền ở phía admin hoặc trang tài khoản.");
-  }
+function logout(){
+    if(confirm("Bạn có chắc muốn đăng xuất?")){
+        localStorage.removeItem("my_wallet_uid");
+        location.href="login.html"; 
+    }
 }
 
-/* ===== Check session khi mở TRANG CHỦ ===== */
-(async ()=>{
-  const { data, error } = await supabaseClient.auth.getSession();
-  if (error) {
-    console.error(error);
-  }
+function backLogin(){
+    location.href="login.html";
+}
 
-  if (!data || !data.session) {
-    // chưa đăng nhập → đưa về trang login bạn đang dùng
-    window.location.href = 'login.html'; // đổi thành file đăng nhập thật của bạn
-    return;
-  }
-
-  const session = data.session;
-  currentUserId = session.user.id;
-  const emailLabel = document.getElementById('userEmailLabel');
-  emailLabel.textContent = "👤 " + (session.user.email || '');
-
-  // Đã đăng nhập → load gói đầu tư
-  loadInvestmentPackages();
-})();
+/* ========== Chạy khi mở trang ========== */
+if(!uid) {
+    backLogin();
+} else {
+    loadBalance();
+}
 </script>
 </body>
 </html>
+
