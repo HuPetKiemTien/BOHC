@@ -249,6 +249,7 @@
                 setTimeout(() => window.location.href = "app_mobile_v6.html", 1500);
 
             } catch (e) {
+                console.error(e);
                 showToast(typeof e === 'string' ? e : "Lỗi kết nối", "error");
             } finally {
                 btn.innerHTML = 'Vào Game Ngay';
@@ -275,13 +276,16 @@
                 const { data: exist } = await db.from("users").select("id").eq("id", phone).maybeSingle();
                 if(exist) throw "Số điện thoại đã tồn tại!";
 
-                // Insert User (No security question)
+                // Insert User
                 const { error } = await db.from("users").insert({
                     id: phone,
                     name: name,
                     password: pass,
                     device_id: deviceId, 
-                    balance: 0
+                    balance: 0,
+                    // 2 dòng dưới để tránh lỗi nếu cột đang NOT NULL
+                    security_question: 'Liên hệ CSKH Telegram',
+                    security_answer: '@hc88cskh'
                 });
 
                 if(error) throw error;
@@ -291,6 +295,7 @@
                 document.getElementById('login-phone').value = phone;
 
             } catch (e) {
+                console.error(e);
                 showToast(typeof e === 'string' ? e : "Lỗi đăng ký", "error");
             } finally {
                 btn.innerHTML = 'Xác Nhận Đăng Ký';
@@ -304,9 +309,10 @@
                 const el = document.getElementById(`view-${v}`);
                 if(v === view) {
                     el.classList.remove('hidden');
-                    // Reset inputs logic optional here
+                    el.classList.add('fade-in');
                 } else {
                     el.classList.add('hidden');
+                    el.classList.remove('fade-in');
                 }
             });
         };
@@ -328,4 +334,3 @@
     </script>
 </body>
 </html>
-
