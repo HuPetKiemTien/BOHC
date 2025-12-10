@@ -12,7 +12,6 @@
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
         .font-mono { font-family: 'Space Mono', monospace; }
         
-        /* Glassmorphism */
         .glass-card {
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
             backdrop-filter: blur(10px);
@@ -20,11 +19,9 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
-        /* Hide Scrollbar but allow functionality */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Custom Select Arrow */
         select {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -35,7 +32,6 @@
             background-size: 1em;
         }
 
-        /* Active Tab Animation */
         .tab-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .tab-active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         .tab-inactive { color: #94a3b8; }
@@ -125,7 +121,6 @@
                 </div>
 
                 <!-- Scrollable Sub-Navigation Tabs -->
-                <!-- CẬP NHẬT: Thay đổi grid thành flex overflow-x-auto -->
                 <div class="flex overflow-x-auto gap-2 bg-slate-800 p-1.5 rounded-xl no-scrollbar snap-x">
                     <button onclick="switchSubTab('deposit')" id="tab-deposit" class="tab-btn tab-active flex-none snap-start py-2.5 px-6 rounded-lg text-xs font-bold whitespace-nowrap">
                         Nạp Code
@@ -165,14 +160,13 @@
                     </div>
 
                     <div class="space-y-3">
-                        <input type="number" id="wd-amount" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 font-bold text-lg placeholder-slate-600" placeholder="Số coin muốn rút">
+                        <!-- SỬA ĐỔI: type="text" và thêm oninput để định dạng số -->
+                        <input type="text" id="wd-amount" oninput="formatCurrency(this)" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 font-bold text-lg placeholder-slate-600" placeholder="Số coin muốn rút (VD: 20,000)">
                         
-                        <!-- CẬP NHẬT: Xóa ZaloPay -->
                         <div class="relative">
                             <select id="wd-bank" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-medium">
                                 <option value="" disabled selected>Chọn Ngân hàng / Ví</option>
                                 <option value="MOMO" class="text-pink-500 font-bold">Ví MoMo</option>
-                                <option disabled class="text-slate-500">──────────</option>
                                 <option value="VIETCOMBANK">Vietcombank</option>
                                 <option value="MBBANK">MB Bank (Quân Đội)</option>
                                 <option value="TECHCOMBANK">Techcombank</option>
@@ -240,6 +234,14 @@
             }
         }
 
+        // HÀM FORMAT TIỀN TỆ (MỚI)
+        window.formatCurrency = (input) => {
+            // Xóa ký tự không phải số
+            let val = input.value.replace(/\D/g, '');
+            // Thêm dấu phẩy
+            input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
         window.switchMainTab = (tabName) => {
             document.getElementById('view-home').classList.add('hidden');
             document.getElementById('view-account').classList.add('hidden');
@@ -250,6 +252,137 @@
             if (tabName === 'home') document.getElementById('nav-btn-home').className = "flex flex-col items-center justify-center gap-1 text-blue-500 w-16 transition-colors";
             else document.getElementById('nav-btn-account').className = "flex flex-col items-center justify-center gap-1 text-blue-500 w-16 transition-colors";
         }
+
+        window.switchSubTab = (tab) => {
+            ['deposit', 'withdraw', 'history'].forEach(t => {
+                document.getElementById(`subview-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = "tab-btn tab-inactive flex-none snap-start py-2.5 px-6 rounded-lg text-xs font-bold whitespace-nowrap";
+            });
+            document.getElementById(`subview-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = "tab-btn tab-active flex-none snap-start py-2.5 px-6 rounded-lg text-xs font-bold whitespace-nowrap";
+            if(tab === 'history') loadHistory();
+        }
+
+        window.handleLogin = async () => {
+            const uidInput = document.getElementById("login-uid").value.trim().toUpperCase();
+            if(!uidInput) return showToast("Vui lòng nhập ID!", "error");
+            currentUser = uidInput;
+            localStorage.setItem("my_wallet_uid", currentUser);
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("main-app").classList.remove("hidden");
+            document.getElementById("display-uid").innerText = currentUser;
+            document.getElementById("card-uid-end").innerText = currentUser.slice(-4) || currentUser;
+            switchMainTab('account');
+            await loadWallet();
+        }
+
+        window.handleLogout = () => {
+            localStorage.removeItem("my_wallet_uid");
+            location.reload();
+        }
+
+        window.loadWallet = async () => {
+            const { data, error } = await db.from("users").select("balance").eq("id", currentUser).maybeSingle();
+            if (error) return console.error(error);
+            if (!data) {
+                await db.from("users").insert({ id: currentUser, balance: 0 });
+                document.getElementById("balance").innerText = "0";
+            } else {
+                document.getElementById("balance").innerText = data.balance.toLocaleString();
+            }
+        }
+
+        window.userDeposit = async () => {
+            const code = document.getElementById("dep-code").value.trim().toUpperCase();
+            if(!code) return showToast("Chưa nhập mã!", "error");
+            const { data: codeData, error: codeErr } = await db.from("codes_deposit").select("*").eq("code", code).maybeSingle();
+            if(codeErr || !codeData) return showToast("Mã không tồn tại!", "error");
+            if(codeData.expired || codeData.used_count >= codeData.max_use) return showToast("Mã đã hết lượt!", "error");
+            
+            const { data: userData } = await db.from("users").select("balance").eq("id", currentUser).single();
+            const newBal = (userData.balance || 0) + codeData.value;
+            await db.from("users").update({ balance: newBal }).eq("id", currentUser);
+            
+            const newUsed = codeData.used_count + 1;
+            await db.from("codes_deposit").update({ used_count: newUsed, expired: newUsed >= codeData.max_use }).eq("code", code);
+            showToast(`Nạp thành công +${codeData.value.toLocaleString()}`, "success");
+            document.getElementById("dep-code").value = "";
+            loadWallet();
+        }
+
+        window.userWithdraw = async () => {
+            // Lấy giá trị thô và loại bỏ dấu phẩy
+            const rawAmount = document.getElementById("wd-amount").value.replace(/,/g, '');
+            const amount = parseInt(rawAmount);
+            
+            const bank = document.getElementById("wd-bank").value; 
+            const holder = document.getElementById("wd-holder").value.trim();
+            const acc = document.getElementById("wd-account").value.trim();
+
+            if(!amount || isNaN(amount)) return showToast("Nhập số tiền hợp lệ", "error");
+            if(amount < 15000) return showToast("Tối thiểu rút 15,000 Coin!", "error");
+            if(!bank) return showToast("Vui lòng chọn ngân hàng/ví", "error");
+            if(!holder || !acc) return showToast("Thiếu thông tin tài khoản", "error");
+
+            const { data: u } = await db.from("users").select("balance").eq("id", currentUser).single();
+            if(!u || u.balance < amount) return showToast("Số dư không đủ!", "error");
+
+            await db.from("users").update({ balance: u.balance - amount }).eq("id", currentUser);
+            const { error: reqErr } = await db.from("withdraw_request").insert({
+                uid: currentUser, amount, bank_name: bank, holder_name: holder, bank_account: acc, status: 'pending'
+            });
+
+            if(reqErr) {
+                await db.from("users").update({ balance: u.balance }).eq("id", currentUser);
+                return showToast("Lỗi hệ thống", "error");
+            }
+            showToast("Đã gửi yêu cầu rút!", "success");
+            document.getElementById("wd-amount").value = "";
+            loadWallet();
+        }
+
+        async function loadHistory() {
+            const list = document.getElementById("history-list");
+            list.innerHTML = '<div class="text-center text-slate-500 text-xs py-4"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+            const { data } = await db.from("withdraw_request").select("*").eq("uid", currentUser).order("time_request", {ascending: false}).limit(10);
+            if(!data || data.length === 0) {
+                list.innerHTML = '<div class="text-center text-slate-500 text-xs italic py-4">Chưa có giao dịch</div>';
+                return;
+            }
+            list.innerHTML = "";
+            data.forEach(item => {
+                let color = "text-yellow-500 bg-yellow-500/10"; let text = "Đang chờ"; let icon = "fa-clock";
+                if(item.status === 'approved') { color = "text-emerald-500 bg-emerald-500/10"; text = "Thành công"; icon = "fa-check"; }
+                if(item.status === 'rejected') { color = "text-rose-500 bg-rose-500/10"; text = "Từ chối"; icon = "fa-xmark"; }
+                list.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl border border-slate-700">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full ${color} flex items-center justify-center text-xs"><i class="fa-solid ${icon}"></i></div>
+                            <div>
+                                <div class="text-white font-bold text-xs">Rút tiền</div>
+                                <div class="text-[10px] text-slate-500 font-mono">${new Date(item.time_request).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-white font-bold text-sm">-${item.amount.toLocaleString()}</div>
+                            <div class="text-[10px] font-bold ${color.split(' ')[0]}">${text}</div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-icon').className = type === 'error' ? "fa-solid fa-circle-exclamation text-rose-500" : "fa-solid fa-check text-emerald-500";
+            t.classList.remove('opacity-0', '-translate-y-20');
+            setTimeout(() => t.classList.add('opacity-0', '-translate-y-20'), 3000);
+        }
+    </script>
+</body>
+</html>
+
+
 
         window.switchSubTab = (tab) => {
             ['deposit', 'withdraw', 'history'].forEach(t => {
