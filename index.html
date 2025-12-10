@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Crypto Game - Chẵn Lẻ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500;700&display=swap');
+        
+        body { font-family: 'Roboto', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .font-digital { font-family: 'Orbitron', sans-serif; }
+        
+        /* Hiệu ứng Neon */
+        .neon-box {
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-action { transition: all 0.2s; }
+        .btn-action:active { transform: scale(0.95); }
+
+        /* Animation quay số */
+        .rolling { animation: blurText 0.1s infinite; }
+        @keyframes blurText {
+            0% { filter: blur(0px); opacity: 1; }
+            50% { filter: blur(2px); opacity: 0.8; }
+            100% { filter: blur(0px); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-6 px-4">
+
+    <!-- Header & Wallet -->
+    <div class="w-full max-w-md bg-slate-800 rounded-2xl p-4 shadow-xl mb-6 border border-slate-700">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                <i class="fa-solid fa-gamepad mr-2"></i>Mini Finance
+            </h1>
+            <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-400">Demo Version</span>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700 flex flex-col items-center">
+                <span class="text-xs text-slate-400 uppercase">Coin Bạc (Demo)</span>
+                <div class="text-2xl font-bold text-slate-200 font-digital mt-1" id="silver">0</div>
+            </div>
+            <div class="bg-slate-900/50 p-3 rounded-xl border border-yellow-500/30 flex flex-col items-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-8 h-8 bg-yellow-500/20 rounded-bl-xl"></div>
+                <span class="text-xs text-yellow-500 uppercase font-bold">Coin Vàng</span>
+                <div class="text-2xl font-bold text-yellow-400 font-digital mt-1" id="gold">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div class="w-full max-w-md bg-slate-800 rounded-2xl p-6 shadow-2xl mb-6 border border-slate-700 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
+        
+        <div class="text-center mb-6">
+            <h2 class="text-slate-400 text-sm uppercase tracking-wider mb-2">Kết quả phiên</h2>
+            <div class="bg-black rounded-xl p-6 mb-2 border-2 border-slate-700 shadow-inner relative">
+                <div id="result-number" class="text-6xl font-digital font-bold text-white tracking-widest">00</div>
+                <div id="result-status" class="hidden absolute bottom-2 right-2 text-xs font-bold px-2 py-0.5 rounded bg-slate-800">---</div>
+            </div>
+            <p id="game-msg" class="text-sm text-slate-500 h-5">Chọn cửa để bắt đầu...</p>
+        </div>
+
+        <!-- Betting Controls -->
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="bet('CHAN')" id="btn-chan" class="btn-action py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/50 border-b-4 border-blue-800">
+                ĐẶT CHẴN
+                <div class="text-[10px] font-normal opacity-70">Số: 0, 2, 4, 6, 8</div>
+            </button>
+            <button onclick="bet('LE')" id="btn-le" class="btn-action py-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold shadow-lg shadow-purple-900/50 border-b-4 border-purple-800">
+                ĐẶT LẺ
+                <div class="text-[10px] font-normal opacity-70">Số: 1, 3, 5, 7, 9</div>
+            </button>
+        </div>
+        
+        <div class="mt-4 text-center">
+             <span class="text-xs text-slate-500">Phí mỗi lượt: <span class="text-slate-300">100 Bạc</span></span>
+        </div>
+    </div>
+
+    <!-- Actions Tabs -->
+    <div class="w-full max-w-md">
+        <!-- Tab Headers -->
+        <div class="flex mb-4 bg-slate-800 rounded-lg p-1">
+            <button onclick="switchTab('deposit')" id="tab-deposit" class="flex-1 py-2 text-sm font-medium rounded-md bg-slate-700 text-white shadow transition-all">Nạp Code</button>
+            <button onclick="switchTab('withdraw')" id="tab-withdraw" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all">Đổi Quà</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-white transition-all">Lịch Sử</button>
+        </div>
+
+        <!-- Deposit Panel -->
+        <div id="panel-deposit" class="bg-slate-800 rounded-2xl p-5 border border-slate-700">
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Mã Giftcode</label>
+            <div class="flex gap-2">
+                <input type="text" id="dep-code" placeholder="VD: NAP100" class="flex-1 bg-slate-900 border border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-blue-500 font-mono uppercase">
+                <button onclick="deposit()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-emerald-900/30">NẠP</button>
+            </div>
+            <p class="text-xs text-slate-500 mt-3 italic">* Nhập <span class="text-emerald-400">NAP100</span> hoặc <span class="text-emerald-400">NAP200</span> để nhận coin trải nghiệm.</p>
+        </div>
+
+        <!-- Withdraw Panel -->
+        <div id="panel-withdraw" class="hidden bg-slate-800 rounded-2xl p-5 border border-slate-700">
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Số vàng muốn đổi</label>
+                <input type="number" id="wd-amount" placeholder="0" class="w-full bg-slate-900 border border-slate-600 text-white px-4 py-3 rounded-lg focus:outline-none focus:border-yellow-500 font-mono">
+            </div>
+            <button onclick="withdraw()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white py-3 rounded-lg font-bold shadow-lg shadow-yellow-900/30 mb-4">
+                TẠO MÃ RÚT THƯỞNG
+            </button>
+            
+            <div id="wd-result" class="hidden bg-slate-900 p-3 rounded-lg border border-slate-600 text-center">
+                <div class="text-xs text-slate-400 mb-1">Code của bạn:</div>
+                <div id="wd-code-display" class="text-lg font-mono font-bold text-emerald-400 tracking-wider select-all">---</div>
+                <div class="text-[10px] text-slate-500 mt-1">Chụp màn hình và gửi cho Admin</div>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div id="panel-history" class="hidden bg-slate-800 rounded-2xl p-5 border border-slate-700">
+            <div class="overflow-y-auto max-h-48 space-y-2" id="history-list">
+                <div class="text-center text-slate-500 text-xs py-4">Chưa có giao dịch nào</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-slate-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 -translate-y-20 z-50">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-500"></i>
+        <span id="toast-msg" class="text-sm font-medium">Thông báo</span>
+    </div>
+
+    <script>
+        // State
+        let silver = 0;
+        let gold = 0;
+        let isSpinning = false;
+        
+        // Elements
+        const elSilver = document.getElementById('silver');
+        const elGold = document.getElementById('gold');
+        const elResultNum = document.getElementById('result-number');
+        const elGameMsg = document.getElementById('game-msg');
+
+        // Init
+        updateUI();
+
+        function updateUI() {
+            elSilver.innerText = silver.toLocaleString();
+            elGold.innerText = gold.toLocaleString();
+        }
+
+        // --- Betting Logic ---
+        function bet(type) {
+            if (isSpinning) return;
+            if (silver < 100) {
+                showToast("Bạn không đủ Coin Bạc! Hãy nạp thêm.", "error");
+                return;
+            }
+
+            // Deduct
+            silver -= 100;
+            updateUI();
+            
+            // Start Spin
+            isSpinning = true;
+            toggleButtons(false);
+            elGameMsg.innerText = "Đang quay số...";
+            elResultNum.classList.add('text-slate-500', 'rolling'); // Dim color while spinning
+
+            // Animation Loop
+            let counter = 0;
+            const interval = setInterval(() => {
+                const random = Math.floor(Math.random() * 100);
+                elResultNum.innerText = random < 10 ? '0' + random : random;
+                counter++;
+                
+                // Stop after 20 frames (approx 2 seconds for UX, not 45s to avoid boring user)
+                if (counter > 20) {
+                    clearInterval(interval);
+                    finalizeBet(type);
+                }
+            }, 80);
+        }
+
+        function finalizeBet(userChoice) {
+            elResultNum.classList.remove('text-slate-500', 'rolling');
+            
+            // Generate Final Result (0-99)
+            const finalNumber = Math.floor(Math.random() * 100); 
+            elResultNum.innerText = finalNumber < 10 ? '0' + finalNumber : finalNumber;
+            
+            // Determine Even/Odd
+            const isEven = finalNumber % 2 === 0;
+            const resultType = isEven ? 'CHAN' : 'LE';
+            
+            const isWin = (userChoice === resultType);
+            
+            if (isWin) {
+                // Win: Get 200 Silver + 1 Gold
+                silver += 200;
+                gold += 1;
+                elResultNum.className = "text-6xl font-digital font-bold text-emerald-400 tracking-widest";
+                elGameMsg.innerHTML = `<span class="text-emerald-400 font-bold">🎉 CHIẾN THẮNG!</span> +200 Bạc, +1 Vàng`;
+                addHistory(true, userChoice, finalNumber);
+                showToast("Chúc mừng! Bạn đã thắng.", "success");
+            } else {
+                elResultNum.className = "text-6xl font-digital font-bold text-rose-500 tracking-widest";
+                elGameMsg.innerHTML = `<span class="text-rose-500 font-bold">THẤT BẠI...</span> Chúc may mắn lần sau`;
+                addHistory(false, userChoice, finalNumber);
+            }
+            
+            isSpinning = false;
+            updateUI();
+            toggleButtons(true);
+        }
+
+        function toggleButtons(enable) {
+            const btns = document.querySelectorAll('.btn-action');
+            btns.forEach(btn => {
+                if(enable) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+            });
+        }
+
+        // --- Deposit Logic ---
+        function deposit() {
+            const codeInput = document.getElementById('dep-code');
+            const code = codeInput.value.trim().toUpperCase();
+            
+            if (code === "NAP100") {
+                silver += 10000;
+                showToast("Nạp thành công +10,000 Bạc", "success");
+                codeInput.value = "";
+            } else if (code === "NAP200") {
+                silver += 20000;
+                showToast("Nạp thành công +20,000 Bạc", "success");
+                codeInput.value = "";
+            } else {
+                showToast("Mã Giftcode không hợp lệ!", "error");
+            }
+            updateUI();
+        }
+
+        // --- Withdraw Logic ---
+        function withdraw() {
+            const amountInput = document.getElementById('wd-amount');
+            const amount = parseInt(amountInput.value);
+            
+            if (!amount || amount <= 0) {
+                showToast("Vui lòng nhập số lượng hợp lệ", "error");
+                return;
+            }
+            
+            if (gold < amount) {
+                showToast("Số dư Vàng không đủ!", "error");
+                return;
+            }
+            
+            gold -= amount;
+            updateUI();
+            
+            // Generate Fake Code
+            const randomCode = "WD-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+            document.getElementById('wd-code-display').innerText = randomCode;
+            document.getElementById('wd-result').classList.remove('hidden');
+            showToast("Tạo mã rút thành công!", "success");
+        }
+
+        // --- Utilities ---
+        function switchTab(tabName) {
+            // Hide all panels
+            ['deposit', 'withdraw', 'history'].forEach(t => {
+                document.getElementById('panel-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('bg-slate-700', 'text-white');
+                document.getElementById('tab-' + t).classList.add('text-slate-400');
+            });
+            
+            // Show active
+            document.getElementById('panel-' + tabName).classList.remove('hidden');
+            document.getElementById('tab-' + tabName).classList.add('bg-slate-700', 'text-white');
+            document.getElementById('tab-' + tabName).classList.remove('text-slate-400');
+        }
+
+        function addHistory(win, choice, number) {
+            const list = document.getElementById('history-list');
+            
+            // Clear "empty" message
+            if (list.children.length === 1 && list.children[0].innerText.includes('Chưa có')) {
+                list.innerHTML = '';
+            }
+
+            const div = document.createElement('div');
+            div.className = "flex justify-between items-center bg-slate-900/50 p-2 rounded border-l-4 " + (win ? "border-emerald-500" : "border-rose-500");
+            
+            const time = new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+            const choiceText = choice === 'CHAN' ? 'Chẵn' : 'Lẻ';
+            
+            div.innerHTML = `
+                <div class="text-xs text-slate-400">${time}</div>
+                <div class="text-sm font-bold ${win ? 'text-emerald-400' : 'text-rose-400'}">
+                    Đặt ${choiceText} - Ra ${number}
+                </div>
+                <div class="text-xs font-bold text-white">${win ? '+200' : '-100'}</div>
+            `;
+            
+            list.prepend(div);
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const txt = document.getElementById('toast-msg');
+            
+            txt.innerText = msg;
+            if (type === 'error') {
+                icon.className = "fa-solid fa-circle-exclamation text-rose-500";
+            } else {
+                icon.className = "fa-solid fa-circle-check text-emerald-500";
+            }
+            
+            toast.classList.remove('opacity-0', '-translate-y-20');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-20');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+
