@@ -2,10 +2,10 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Baccarat Pro - Supabase Wallet</title>
+    <title>Baccarat Pro - Realtime Sync</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Noto+Serif:wght@700&display=swap" rel="stylesheet">
-    <!-- 1. THÊM SUPABASE LIBRARY -->
+    <!-- THÊM SUPABASE LIBRARY -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -74,6 +74,8 @@
         .balance-box { display: flex; flex-direction: column; align-items: flex-end; }
         .bal-label { font-size: 9px; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; }
         .bal-val { color: var(--gold); font-weight: 700; font-family: monospace; font-size: 16px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #555; margin-right: 4px; }
+        .status-dot.online { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
 
         /* --- STAGE --- */
         .stage-area {
@@ -290,6 +292,7 @@
             text-align: center; white-space: nowrap;
         }
         .toast.info { background: rgba(44, 62, 80, 0.95); }
+        .toast.success { background: rgba(39, 174, 96, 0.95); }
     </style>
 </head>
 <body>
@@ -309,7 +312,10 @@
         </div>
         
         <div class="balance-box">
-            <span class="bal-label">Tài khoản</span>
+            <span class="bal-label">
+                <span id="uiStatusDot" class="status-dot"></span>
+                Tài khoản
+            </span>
             <span class="bal-val" id="uiBal">---</span>
         </div>
     </div>
@@ -387,54 +393,120 @@
 
 <script>
     /**
-     * BACCARAT ENGINE + SUPABASE INTEGRATION
+     * BACCARAT ENGINE + ROBUST SUPABASE INTEGRATION
      */
     
     // --- 1. SUPABASE CONFIG ---
+    // Sử dụng thông tin bạn đã cung cấp
     const SUPABASE_URL = 'https://boddppngzdgpazrrdual.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZGRwcG5nemRncGF6cnJkdWFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTk5ODAsImV4cCI6MjA4MDkzNTk4MH0.rdNoq5qlmXzH3AafSxZOwv6qJznWhs8J_LHmdu0NT44';
+    
+    // !!! QUAN TRỌNG: Đảm bảo bảng này tồn tại và có RLS policy cho phép SELECT/UPDATE
     const WALLET_TABLE = 'users';              
     const WALLET_BALANCE_COLUMN = 'balance'; 
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let supaUser = null;
+    let realtimeChannel = null;
 
     // --- SUPABASE HELPER FUNCTIONS ---
-    async function loadBalanceFromSupabase() {
+    async function initSupabase() {
         try {
+            // 1. Check Auth (Phiên đăng nhập)
             const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+            
             if (authError || !user) {
-                console.log('Chơi chế độ Khách (Offline)');
+                console.log('Chưa đăng nhập Supabase.');
+                app.showToast('Bạn đang chơi chế độ KHÁCH (Không lưu tiền)', 'alert');
                 app.balance = 5000000; // Tiền demo
+                game.updateBal();
                 return;
             }
+
             supaUser = user;
+            document.getElementById('uiStatusDot').classList.add('online');
+            
+            // 2. Load Initial Balance
+            await loadBalance();
 
-            const { data, error } = await supabaseClient
-                .from(WALLET_TABLE)
-                .select(WALLET_BALANCE_COLUMN)
-                .eq('id', user.id)
-                .single();
+            // 3. Setup Realtime Listener (Tự động cập nhật khi số dư thay đổi ở nơi khác)
+            setupRealtimeBalance();
+            
+            app.showToast(`Đã kết nối ví: ${user.email}`, 'success');
 
-            if (error) {
-                console.error('Lỗi lấy ví:', error);
-            } else if (data) {
-                app.balance = data[WALLET_BALANCE_COLUMN] || 0;
-            }
         } catch (e) {
-            console.error('loadBalanceFromSupabase error', e);
+            console.error('Lỗi khởi tạo Supabase:', e);
+            app.showToast('Lỗi kết nối máy chủ!', 'alert');
         }
     }
 
+    async function loadBalance() {
+        if (!supaUser) return;
+        
+        const { data, error } = await supabaseClient
+            .from(WALLET_TABLE)
+            .select(WALLET_BALANCE_COLUMN)
+            .eq('id', supaUser.id)
+            .maybeSingle(); // Dùng maybeSingle để tránh lỗi nếu chưa có row
+
+        if (error) {
+            console.error('Lỗi lấy tiền:', error);
+            app.showToast('Lỗi đọc số dư từ Database!', 'alert');
+        } else if (data) {
+            app.balance = data[WALLET_BALANCE_COLUMN] || 0;
+            game.updateBal();
+        } else {
+            console.warn('Không tìm thấy dữ liệu ví cho user này.');
+        }
+    }
+
+    function setupRealtimeBalance() {
+        if (!supaUser) return;
+
+        // Hủy kênh cũ nếu có
+        if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+
+        realtimeChannel = supabaseClient
+            .channel('wallet-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: WALLET_TABLE,
+                    filter: `id=eq.${supaUser.id}`
+                },
+                (payload) => {
+                    // Khi Database thay đổi, cập nhật UI ngay lập tức
+                    const newBal = payload.new[WALLET_BALANCE_COLUMN];
+                    if (newBal !== undefined && newBal !== app.balance) {
+                        console.log('Realtime update:', newBal);
+                        app.balance = newBal;
+                        game.updateBal();
+                    }
+                }
+            )
+            .subscribe();
+    }
+
     async function syncBalanceToSupabase() {
-        if (!supaUser) return; // Không sync nếu chơi offline
+        if (!supaUser) return;
+        
+        // Sử dụng await để đảm bảo lệnh gửi đi thành công (hoặc bắt lỗi)
         try {
-            await supabaseClient
+            const { error } = await supabaseClient
                 .from(WALLET_TABLE)
                 .update({ [WALLET_BALANCE_COLUMN]: app.balance })
                 .eq('id', supaUser.id);
+
+            if (error) {
+                console.error('Sync Error:', error);
+                app.showToast('Lỗi đồng bộ tiền! Kiểm tra mạng/quyền.', 'alert');
+                // Nếu lỗi, nên reload lại số dư thực tế từ DB để tránh lệch
+                await loadBalance(); 
+            }
         } catch (e) {
-            console.error('syncBalanceToSupabase error', e);
+            console.error('Sync Exception:', e);
         }
     }
 
@@ -546,7 +618,7 @@
         eng: new BaccaratEngine(),
         state: 'BETTING',
         timer: 20,
-        balance: 0, // Will load from Supabase
+        balance: 0, 
         bet: { P:0, B:0, T:0 },
         pend: { P:0, B:0, T:0 },
         chip: 10000,
@@ -559,9 +631,8 @@
         MAX_BET_TIE: 25000,
 
         async init() {
-            // 1. Load from Supabase
-            await loadBalanceFromSupabase();
-            game.updateBal();
+            // 1. Init Supabase & Load Balance
+            await initSupabase();
 
             // 2. Load Game State (Shoe, Time)
             const saved = Persistence.load();
@@ -577,7 +648,7 @@
                 const diff = now - saved.timestamp;
                 const roundsMissed = Math.floor(diff / this.eng.roundTime);
                 if (roundsMissed > 0) {
-                    app.showToast(`Đã qua ${roundsMissed} ván khi bạn vắng mặt.`, 'info');
+                    // app.showToast(`Đã qua ${roundsMissed} ván khi bạn vắng mặt.`, 'info');
                     for (let i = 0; i < roundsMissed; i++) this.eng.playRound();
                     Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: now });
                 }
@@ -590,8 +661,10 @@
             game.renderRoadmap(this.eng.history);
             game.updateShoeCount();
             
-            // Remove initial toast
-            document.getElementById('toast').style.opacity = 0;
+            // Ẩn toast loading ban đầu
+            if(document.getElementById('toast').innerText === 'Đang kết nối ví tiền...') {
+                 document.getElementById('toast').style.opacity = 0;
+            }
             
             this.loop();
         },
@@ -633,7 +706,7 @@
                     game.updateBal(); 
                 }
 
-                // SYNC WINNINGS TO SUPABASE
+                // CẬP NHẬT TIỀN THẮNG LÊN SUPABASE
                 syncBalanceToSupabase();
                 
                 game.showResult(res.winner, profit, res.shuffled);
@@ -647,7 +720,7 @@
             t.innerText = msg;
             t.className = `toast ${type}`; 
             t.style.opacity = 1;
-            setTimeout(()=>t.style.opacity=0, 3000);
+            setTimeout(()=>t.style.opacity=0, 4000);
         }
     };
 
@@ -697,7 +770,7 @@
             app.pend = {P:0, B:0, T:0};
             this.renderChips();
         },
-        confirmBet() {
+        async confirmBet() {
             if (app.state !== 'BETTING') return;
             const totalPend = app.pend.P + app.pend.B + app.pend.T;
             if (totalPend === 0) return;
@@ -724,11 +797,11 @@
             app.bet.T += app.pend.T;
             app.pend = {P:0, B:0, T:0};
 
-            // SYNC BET DEDUCTION TO SUPABASE
-            syncBalanceToSupabase();
-
             this.updateBal();
             this.renderChips();
+            
+            // TRỪ TIỀN CƯỢC TRÊN SUPABASE
+            await syncBalanceToSupabase();
         },
         renderChips() {
             ['P','B','T'].forEach(k => {
