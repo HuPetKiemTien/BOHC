@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Baccarat Pro - Supabase Wallet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Noto+Serif:wght@700&display=swap" rel="stylesheet">
+    <!-- 1. THÊM SUPABASE LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-table: #0f3d26;
+            --bg-dark: #05150a;
+            --gold: #f4d03f;
+            --gold-dim: #b7950b;
+            --player: #3498db;
+            --banker: #e74c3c;
+            --tie: #2ecc71;
+            --text-light: #fdfefe;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body {
+            margin: 0; padding: 0;
+            background: radial-gradient(circle at 50% 30%, var(--bg-table), var(--bg-dark));
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-light);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .top-bar {
+            height: 50px; display: flex; justify-content: space-between; align-items: center;
+            padding: 0 16px; background: rgba(0,0,0,0.3); 
+            border-bottom: 1px solid rgba(255,255,255,0.08); 
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .btn-exit {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(244, 208, 63, 0.3);
+            color: #eee;
+            padding: 0 16px;
+            height: 32px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex; align-items: center; gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn-exit:active { 
+            background: rgba(244, 208, 63, 0.2); 
+            border-color: var(--gold);
+            transform: scale(0.96);
+        }
+        .btn-exit svg { fill: currentColor; width: 14px; height: 14px; }
+
+        .shoe-info {
+            font-size: 10px; color: #aaa; text-align: center; line-height: 1.2;
+            background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
+            min-width: 80px;
+        }
+        .shoe-count { color: var(--gold); font-weight: bold; font-size: 13px; display: block; letter-spacing: 0.5px;}
+
+        .balance-box { display: flex; flex-direction: column; align-items: flex-end; }
+        .bal-label { font-size: 9px; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; }
+        .bal-val { color: var(--gold); font-weight: 700; font-family: monospace; font-size: 16px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+        /* --- STAGE --- */
+        .stage-area {
+            flex: 1; position: relative; display: flex; padding: 10px; justify-content: space-between;
+        }
+        .timer-float {
+            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 44px; height: 44px; background: rgba(0,0,0,0.6);
+            border: 2px solid var(--gold); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; color: #fff; font-size: 20px; z-index: 20;
+            box-shadow: 0 0 15px rgba(244, 208, 63, 0.2); transition: all 0.2s;
+            backdrop-filter: blur(4px);
+        }
+        .timer-float.wait { border-color: #7f8c8d; color: #bdc3c7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .timer-float.alert { border-color: #e74c3c; color: #e74c3c; animation: pulse 0.8s infinite; box-shadow: 0 0 15px rgba(231, 76, 60, 0.4); }
+
+        .hand-zone {
+            width: 46%; position: relative; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+            transition: opacity 0.3s;
+        }
+        .hand-zone.dimmed { opacity: 0.3; }
+
+        .score-badge {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            background: #1a1a1a; padding: 4px 14px; border-radius: 14px;
+            font-size: 14px; font-weight: 800; border: 1px solid #444;
+            opacity: 0; transition: opacity 0.3s; z-index: 10; white-space: nowrap;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .score-badge.show { opacity: 1; }
+        .score-badge.P { color: var(--player); border-color: var(--player); box-shadow: 0 0 10px rgba(52, 152, 219, 0.2); }
+        .score-badge.B { color: var(--banker); border-color: var(--banker); box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
+
+        /* CARDS */
+        .card {
+            width: 52px; height: 74px; position: absolute;
+            top: 50%; left: 50%; margin-top: -37px; margin-left: -26px;
+            perspective: 800px; opacity: 0; transform: scale(0.5);
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .card.active { opacity: 1; transform: scale(1); }
+        
+        .hand-zone.P .card.c1 { top: 35px; left: 25%; margin: 0; transform: rotate(-4deg); z-index: 1; }
+        .hand-zone.P .card.c2 { top: 35px; left: 55%; margin: 0; transform: rotate(4deg); z-index: 2; }
+        .hand-zone.P .card.c3 { top: 90px; left: 40%; margin: 0; transform: rotate(-90deg); z-index: 3; }
+
+        .hand-zone.B .card.c1 { top: 35px; left: 25%; margin: 0; transform: rotate(-4deg); z-index: 1; }
+        .hand-zone.B .card.c2 { top: 35px; left: 55%; margin: 0; transform: rotate(4deg); z-index: 2; }
+        .hand-zone.B .card.c3 { top: 90px; left: 40%; margin: 0; transform: rotate(-90deg); z-index: 3; }
+
+        .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s; }
+        .card-inner.flipped { transform: rotateY(180deg); }
+        .face {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            background: #fff; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .face.back { background: repeating-linear-gradient(45deg, #1a5276, #1a5276 6px, #154360 6px, #154360 12px); border: 2px solid #fff; }
+        .face.front { transform: rotateY(180deg); font-family: 'Noto Serif', serif; line-height: 1; }
+        .rank { font-size: 20px; font-weight: bold; margin-bottom: 2px; }
+        .suit { font-size: 26px; }
+        .red { color: #c0392b; } .black { color: #2c3e50; }
+
+        /* --- TABLE & CONTROLS --- */
+        .mid-section { flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 0 12px 10px 12px; background: rgba(0,0,0,0.25); border-top: 1px solid rgba(255,255,255,0.05); }
+
+        .table-limits {
+            display: flex; justify-content: center; gap: 15px;
+            color: rgba(255,255,255,0.3); font-size: 10px; 
+            font-weight: bold; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase;
+        }
+        .table-limits span { position: relative; }
+        .table-limits span.hl { color: rgba(244, 208, 63, 0.7); }
+
+        .bet-table { display: flex; height: 100px; gap: 8px; }
+        .bet-box {
+            flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; transition: all 0.2s; cursor: pointer;
+        }
+        .bet-box:active { background: rgba(255,255,255,0.1); transform: scale(0.98); }
+        .bet-box.disabled { opacity: 0.3; pointer-events: none; background: rgba(0,0,0,0.2); border-color: transparent; }
+        
+        .bet-box.winner { background: rgba(241, 196, 15, 0.2); border-color: var(--gold); box-shadow: inset 0 0 20px rgba(241,196,15,0.15); }
+        .bet-box.tie { flex: 0.65; }
+
+        .lbl-t { font-size: 15px; font-weight: 900; opacity: 0.9; letter-spacing: 0.5px; }
+        .lbl-o { font-size: 11px; opacity: 0.6; margin-top: 4px; font-family: monospace; }
+        .cl-p { color: var(--player); } .cl-b { color: var(--banker); } .cl-t { color: var(--tie); }
+
+        .chip-on-table {
+            position: absolute; top: -6px; right: -6px; background: var(--gold); color: #000;
+            font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 10px;
+            transform: scale(0); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4); border: 1px solid #fff; z-index: 5;
+        }
+        .chip-on-table.show { transform: scale(1); }
+        .current-bet {
+            font-size: 13px; font-weight: bold; color: var(--gold); background: rgba(0,0,0,0.7);
+            padding: 4px 10px; border-radius: 6px; margin-top: 8px; display: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 1px solid rgba(244, 208, 63, 0.3);
+        }
+        .current-bet.active { display: block; }
+
+        /* CHIPS */
+        .controls-row { display: flex; flex-direction: column; gap: 10px; }
+        
+        .chip-rack {
+            display: flex; gap: 12px; 
+            padding: 8px 4px; 
+            align-items: center; justify-content: center;
+            overflow-x: auto;
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+        }
+        .chip-rack::-webkit-scrollbar { display: none; }
+        
+        .chip {
+            flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%;
+            border: 4px dashed rgba(255,255,255,0.4); 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 900; box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            position: relative; cursor: pointer; user-select: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .chip:active { transform: scale(0.9); }
+        .chip.selected { 
+            transform: translateY(-10px) scale(1.1); 
+            border-style: solid; 
+            border-color: #fff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
+            z-index: 10; 
+        }
+        .chip::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); pointer-events: none;
+        }
+        
+        .c-1k { background: radial-gradient(circle at 30% 30%, #95a5a6, #7f8c8d); color: #fff; border-color: #ecf0f1; }
+        .c-5k { background: radial-gradient(circle at 30% 30%, #9b59b6, #8e44ad); color: #fff; border-color: #d2b4de; }
+        .c-10k { background: radial-gradient(circle at 30% 30%, #e74c3c, #c0392b); color: #fff; border-color: #fadbd8; }
+        .c-50k { background: radial-gradient(circle at 30% 30%, #e67e22, #d35400); color: #fff; border-color: #f5cba7; }
+        .c-100k { background: radial-gradient(circle at 30% 30%, #2ecc71, #27ae60); color: #fff; border-color: #abebc6; }
+        .c-250k { background: radial-gradient(circle at 30% 30%, #1abc9c, #16a085); color: #fff; border-color: #a3e4d7; }
+
+        .btn-group { display: flex; gap: 10px; padding: 0 4px; }
+        .btn {
+            height: 44px; border: none; border-radius: 12px;
+            font-weight: 800; text-transform: uppercase; font-size: 15px; cursor: pointer; letter-spacing: 1px;
+            transition: transform 0.1s, filter 0.2s;
+        }
+        .btn-cancel { 
+            background: #34495e; color: #bdc3c7; flex: 0.8; 
+            box-shadow: 0 4px 0 #2c3e50;
+        }
+        .btn-confirm { 
+            background: linear-gradient(135deg, #f1c40f, #d4ac0d); color: #111; flex: 2; 
+            box-shadow: 0 4px 0 #b7950b, 0 8px 15px rgba(241, 196, 15, 0.3); 
+        }
+        .btn:active { transform: translateY(4px); box-shadow: none !important; }
+        .btn:disabled { opacity: 0.5; box-shadow: none; cursor: not-allowed; filter: grayscale(100%); transform: none;}
+
+        /* --- ROADMAP --- */
+        .roadmap-container {
+            height: 160px; background: #fff; flex-shrink: 0; border-top: 1px solid #000;
+            overflow-x: auto; overflow-y: hidden;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .roadmap-grid {
+            display: grid; grid-template-rows: repeat(6, 1fr);
+            grid-auto-flow: column;
+            gap: 1px; background-color: #ddd; border-left: 1px solid #ddd;
+            height: 100%; width: max-content;
+            min-width: 100%;
+        }
+        .cell { background: #fff; width: 28px; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .bead {
+            width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: bold; color: #fff;
+            display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+        }
+        .bead.P { background: var(--player); }
+        .bead.B { background: var(--banker); }
+        .bead.T { background: var(--tie); }
+
+        /* OVERLAY */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+            backdrop-filter: blur(5px);
+        }
+        .overlay.show { opacity: 1; pointer-events: auto; }
+        .res-modal {
+            background: linear-gradient(145deg, #1a1a1a, #0a0a0a); border: 2px solid var(--gold);
+            padding: 30px 50px; border-radius: 20px; text-align: center;
+            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+        }
+        .overlay.show .res-modal { transform: scale(1); }
+        .res-t { font-size: 32px; font-weight: 900; color: #fff; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); letter-spacing: 1px;}
+        .res-m { font-size: 26px; color: var(--gold); font-family: monospace; font-weight: 700;}
+        .res-shoe { margin-top: 15px; color: #aaa; font-size: 12px; font-style: italic;}
+
+        @keyframes pulse { 0%{transform: translateX(-50%) scale(1);} 50%{transform: translateX(-50%) scale(1.1);} 100%{transform: translateX(-50%) scale(1);} }
+        .toast {
+            position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+            background: rgba(192, 57, 43, 0.95); /* Màu đỏ cảnh báo */
+            color: #fff; padding: 12px 24px; border-radius: 30px;
+            font-size: 13px; font-weight: bold; z-index: 100; opacity: 0; transition: opacity 0.5s; pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            text-align: center; white-space: nowrap;
+        }
+        .toast.info { background: rgba(44, 62, 80, 0.95); }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast info">Đang kết nối ví tiền...</div>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <a href="games.html" class="btn-exit">
+            <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            LOBBY
+        </a>
+        
+        <div class="shoe-info">
+            SHOE<br>
+            <span class="shoe-count" id="uiCardsLeft">416 / 416</span>
+        </div>
+        
+        <div class="balance-box">
+            <span class="bal-label">Tài khoản</span>
+            <span class="bal-val" id="uiBal">---</span>
+        </div>
+    </div>
+
+    <!-- Stage -->
+    <div class="stage-area">
+        <div class="timer-float" id="uiTimer">20</div>
+
+        <div class="overlay" id="uiOverlay">
+            <div class="res-modal">
+                <div class="res-t" id="resTitle">PLAYER WIN</div>
+                <div class="res-m" id="resMoney">+0</div>
+                <div class="res-shoe" id="resShuffleMsg"></div>
+            </div>
+        </div>
+
+        <div class="hand-zone P" id="handP">
+            <div class="score-badge P" id="scoreP">P: 0</div>
+        </div>
+
+        <div class="hand-zone B" id="handB">
+            <div class="score-badge B" id="scoreB">B: 0</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="mid-section">
+        <div class="table-limits">
+            <span>P/B: 2K - 250K</span>
+            <span class="hl">TIE: 2K - 25K</span>
+        </div>
+        <div class="bet-table">
+            <div class="bet-box" id="zoneP" onclick="game.placeBet('P')">
+                <span class="lbl-t cl-p">PLAYER</span>
+                <span class="lbl-o">1 : 1</span>
+                <div class="current-bet" id="betValP">0</div>
+                <div class="chip-on-table" id="pendP">+0</div>
+            </div>
+            <div class="bet-box tie" id="zoneT" onclick="game.placeBet('T')">
+                <span class="lbl-t cl-t">TIE</span>
+                <span class="lbl-o">1 : 8</span>
+                <div class="current-bet" id="betValT">0</div>
+                <div class="chip-on-table" id="pendT">+0</div>
+            </div>
+            <div class="bet-box" id="zoneB" onclick="game.placeBet('B')">
+                <span class="lbl-t cl-b">BANKER</span>
+                <span class="lbl-o">0.95</span>
+                <div class="current-bet" id="betValB">0</div>
+                <div class="chip-on-table" id="pendB">+0</div>
+            </div>
+        </div>
+
+        <div class="controls-row">
+            <div class="chip-rack">
+                <div class="chip c-1k" onclick="game.selectChip(1000, this)">1K</div>
+                <div class="chip c-5k" onclick="game.selectChip(5000, this)">5K</div>
+                <div class="chip c-10k selected" onclick="game.selectChip(10000, this)">10K</div>
+                <div class="chip c-50k" onclick="game.selectChip(50000, this)">50K</div>
+                <div class="chip c-100k" onclick="game.selectChip(100000, this)">100K</div>
+                <div class="chip c-250k" onclick="game.selectChip(250000, this)">250K</div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-cancel" id="btnCancel" onclick="game.clearBet()">HỦY</button>
+                <button class="btn btn-confirm" id="btnConfirm" onclick="game.confirmBet()">CƯỢC NGAY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roadmap -->
+    <div class="roadmap-container">
+        <div class="roadmap-grid" id="roadmapGrid">
+            <!-- Cells generated by JS -->
+        </div>
+    </div>
+
+<script>
+    /**
+     * BACCARAT ENGINE + SUPABASE INTEGRATION
+     */
+    
+    // --- 1. SUPABASE CONFIG ---
+    const SUPABASE_URL = 'https://boddppngzdgpazrrdual.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZGRwcG5nemRncGF6cnJkdWFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTk5ODAsImV4cCI6MjA4MDkzNTk4MH0.rdNoq5qlmXzH3AafSxZOwv6qJznWhs8J_LHmdu0NT44';
+    const WALLET_TABLE = 'users';              
+    const WALLET_BALANCE_COLUMN = 'balance'; 
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let supaUser = null;
+
+    // --- SUPABASE HELPER FUNCTIONS ---
+    async function loadBalanceFromSupabase() {
+        try {
+            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+            if (authError || !user) {
+                console.log('Chơi chế độ Khách (Offline)');
+                app.balance = 5000000; // Tiền demo
+                return;
+            }
+            supaUser = user;
+
+            const { data, error } = await supabaseClient
+                .from(WALLET_TABLE)
+                .select(WALLET_BALANCE_COLUMN)
+                .eq('id', user.id)
+                .single();
+
+            if (error) {
+                console.error('Lỗi lấy ví:', error);
+            } else if (data) {
+                app.balance = data[WALLET_BALANCE_COLUMN] || 0;
+            }
+        } catch (e) {
+            console.error('loadBalanceFromSupabase error', e);
+        }
+    }
+
+    async function syncBalanceToSupabase() {
+        if (!supaUser) return; // Không sync nếu chơi offline
+        try {
+            await supabaseClient
+                .from(WALLET_TABLE)
+                .update({ [WALLET_BALANCE_COLUMN]: app.balance })
+                .eq('id', supaUser.id);
+        } catch (e) {
+            console.error('syncBalanceToSupabase error', e);
+        }
+    }
+
+    // --- 2. GAME LOGIC ---
+    class Card {
+        constructor(rank, suit, value) {
+            this.r = rank; this.s = suit; this.v = value;
+            this.c = (suit === '♥' || suit === '♦') ? 'red' : 'black';
+        }
+    }
+
+    class Shoe {
+        constructor(numDecks = 8) {
+            this.cards = []; this.cutCardIdx = 0; this.numDecks = numDecks; this.needsShuffle = true;
+        }
+        init() {
+            const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+            const suits = ['♥', '♦', '♣', '♠'];
+            const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0];
+            this.cards = [];
+            for (let d = 0; d < this.numDecks; d++) for (let s = 0; s < 4; s++) for (let r = 0; r < 13; r++) this.cards.push(new Card(ranks[r], suits[s], values[r]));
+            this.shuffle();
+        }
+        shuffle() {
+            for (let i = this.cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+            }
+            this.cutCardIdx = Math.floor(Math.random() * 15) + 15;
+            this.needsShuffle = false;
+        }
+        draw() {
+            if (this.cards.length <= this.cutCardIdx) this.needsShuffle = true;
+            if (this.cards.length === 0) this.init();
+            return this.cards.pop();
+        }
+        remaining() { return this.cards.length; }
+    }
+
+    class BaccaratEngine {
+        constructor() {
+            this.shoe = new Shoe(8); this.history = []; this.roundTime = 25000;
+        }
+        playRound() {
+            let shuffled = false;
+            if (this.shoe.needsShuffle || this.shoe.cards.length === 0) {
+                this.shoe.init(); shuffled = true; this.history = [];
+            }
+            let pHand = [this.shoe.draw(), this.shoe.draw()];
+            let bHand = [this.shoe.draw(), this.shoe.draw()];
+            let pScore = (pHand[0].v + pHand[1].v) % 10;
+            let bScore = (bHand[0].v + bHand[1].v) % 10;
+            let natural = pScore >= 8 || bScore >= 8;
+
+            if (!natural) {
+                let pDraw = false; let p3 = null;
+                if (pScore <= 5) {
+                    p3 = this.shoe.draw(); pHand.push(p3); pScore = (pScore + p3.v) % 10; pDraw = true;
+                }
+                if (!pDraw) {
+                    if (bScore <= 5) {
+                        let b3 = this.shoe.draw(); bHand.push(b3); bScore = (bScore + b3.v) % 10;
+                    }
+                } else {
+                    let p3v = p3.v; let shouldDraw = false;
+                    if (bScore <= 2) shouldDraw = true;
+                    else if (bScore === 3 && p3v !== 8) shouldDraw = true;
+                    else if (bScore === 4 && (p3v >= 2 && p3v <= 7)) shouldDraw = true;
+                    else if (bScore === 5 && (p3v >= 4 && p3v <= 7)) shouldDraw = true;
+                    else if (bScore === 6 && (p3v === 6 || p3v === 7)) shouldDraw = true;
+                    if (shouldDraw) {
+                        let b3 = this.shoe.draw(); bHand.push(b3); bScore = (bScore + b3.v) % 10;
+                    }
+                }
+            }
+            let winner = pScore > bScore ? 'P' : (bScore > pScore ? 'B' : 'T');
+            this.history.push(winner);
+            return { pHand, bHand, pScore, bScore, winner, shuffled };
+        }
+    }
+
+    // --- MAIN CONTROLLER ---
+    const DB_KEY = 'baccarat_pro_data_v3';
+
+    class Persistence {
+        static save(state) {
+            const data = {
+                // Not saving balance locally anymore to trust Supabase
+                history: state.engine.history,
+                cards: state.engine.shoe.cards,
+                cutIdx: state.engine.shoe.cutCardIdx,
+                timestamp: Date.now(),
+                phaseStart: state.phaseStartTime 
+            };
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+        }
+        static load() {
+            const raw = localStorage.getItem(DB_KEY);
+            if (!raw) return null;
+            try {
+                const data = JSON.parse(raw);
+                const cards = data.cards.map(c => new Card(c.r, c.s, c.v));
+                return { ...data, cards };
+            } catch(e) { return null; }
+        }
+    }
+
+    const app = {
+        eng: new BaccaratEngine(),
+        state: 'BETTING',
+        timer: 20,
+        balance: 0, // Will load from Supabase
+        bet: { P:0, B:0, T:0 },
+        pend: { P:0, B:0, T:0 },
+        chip: 10000,
+        nextPhaseTime: 0,
+        loopId: null,
+
+        // TABLE LIMITS
+        MIN_BET: 2000,
+        MAX_BET: 250000,
+        MAX_BET_TIE: 25000,
+
+        async init() {
+            // 1. Load from Supabase
+            await loadBalanceFromSupabase();
+            game.updateBal();
+
+            // 2. Load Game State (Shoe, Time)
+            const saved = Persistence.load();
+            if (saved) {
+                if (saved.cards && saved.cards.length > 0) {
+                    this.eng.shoe.cards = saved.cards;
+                    this.eng.shoe.cutCardIdx = saved.cutIdx;
+                    this.eng.shoe.needsShuffle = false;
+                } else { this.eng.shoe.init(); }
+                this.eng.history = saved.history || [];
+
+                const now = Date.now();
+                const diff = now - saved.timestamp;
+                const roundsMissed = Math.floor(diff / this.eng.roundTime);
+                if (roundsMissed > 0) {
+                    app.showToast(`Đã qua ${roundsMissed} ván khi bạn vắng mặt.`, 'info');
+                    for (let i = 0; i < roundsMissed; i++) this.eng.playRound();
+                    Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: now });
+                }
+                const timeInCycle = diff % this.eng.roundTime;
+                this.nextPhaseTime = now + (this.eng.roundTime - timeInCycle);
+            } else {
+                this.eng.shoe.init();
+                this.nextPhaseTime = Date.now() + 20000;
+            }
+            game.renderRoadmap(this.eng.history);
+            game.updateShoeCount();
+            
+            // Remove initial toast
+            document.getElementById('toast').style.opacity = 0;
+            
+            this.loop();
+        },
+        loop() {
+            this.loopId = requestAnimationFrame(() => this.loop());
+            const now = Date.now();
+            const timeLeft = this.nextPhaseTime - now;
+            
+            if (timeLeft <= 0) {
+                this.nextPhaseTime = now + this.eng.roundTime;
+                this.state = 'BETTING';
+                game.resetTable();
+                Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: now });
+            } else if (timeLeft <= 8000 && this.state === 'BETTING') {
+                this.state = 'DEALING';
+                this.resolveRound();
+            }
+
+            if (this.state === 'BETTING') {
+                const sec = Math.ceil((timeLeft - 8000) / 1000);
+                game.updateTimer(sec > 0 ? sec : 0, false);
+            } else {
+                game.updateTimer('Chờ', true);
+            }
+        },
+        resolveRound() {
+            const res = this.eng.playRound();
+            game.updateShoeCount(); 
+            game.playAnimation(res).then(() => {
+                let winAmt = 0; let profit = 0;
+                if (res.winner === 'P') winAmt = this.bet.P * 2;
+                else if (res.winner === 'B') winAmt = this.bet.B * 1.95;
+                else if (res.winner === 'T') winAmt = (this.bet.T * 9) + this.bet.P + this.bet.B;
+                if (res.winner === 'T' && winAmt === 0) winAmt = this.bet.P + this.bet.B;
+                
+                profit = winAmt - (this.bet.P + this.bet.B + this.bet.T);
+                if (winAmt > 0) { 
+                    this.balance += winAmt; 
+                    game.updateBal(); 
+                }
+
+                // SYNC WINNINGS TO SUPABASE
+                syncBalanceToSupabase();
+                
+                game.showResult(res.winner, profit, res.shuffled);
+                game.renderRoadmap(this.eng.history);
+                this.bet = {P:0,B:0,T:0}; 
+                Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: this.nextPhaseTime });
+            });
+        },
+        showToast(msg, type='alert') {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.className = `toast ${type}`; 
+            t.style.opacity = 1;
+            setTimeout(()=>t.style.opacity=0, 3000);
+        }
+    };
+
+    // --- UI CONTROLLER ---
+    const game = {
+        selectChip(v, el) {
+            app.chip = v;
+            document.querySelectorAll('.chip').forEach(c=>c.classList.remove('selected'));
+            el.classList.add('selected');
+        },
+        placeBet(side) {
+            if (app.state !== 'BETTING') return;
+            
+            // 1. One Side Rule
+            if (side === 'P') {
+                if (app.bet.B > 0 || app.pend.B > 0) {
+                    app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!");
+                    return;
+                }
+            } else if (side === 'B') {
+                if (app.bet.P > 0 || app.pend.P > 0) {
+                    app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!");
+                    return;
+                }
+            }
+
+            // 2. Max Limit Check
+            const currentTotal = app.bet[side] + app.pend[side];
+            const limit = (side === 'T') ? app.MAX_BET_TIE : app.MAX_BET;
+
+            if (currentTotal + app.chip > limit) {
+                app.showToast(`Cược tối đa cửa này là ${limit/1000}K!`);
+                return;
+            }
+
+            // 3. Balance Check
+            if (app.balance < app.pend.P + app.pend.B + app.pend.T + app.chip) {
+                app.showToast("Số dư không đủ!");
+                return;
+            }
+            
+            app.pend[side] += app.chip;
+            this.renderChips();
+        },
+        clearBet() {
+            if (app.state !== 'BETTING') return;
+            app.pend = {P:0, B:0, T:0};
+            this.renderChips();
+        },
+        confirmBet() {
+            if (app.state !== 'BETTING') return;
+            const totalPend = app.pend.P + app.pend.B + app.pend.T;
+            if (totalPend === 0) return;
+
+            // Min Limit Check
+            const checkLimit = (side, name) => {
+                const amt = app.bet[side] + app.pend[side];
+                if (amt > 0 && amt < app.MIN_BET) {
+                    app.showToast(`Cược ${name} tối thiểu ${app.MIN_BET/1000}K!`);
+                    return false;
+                }
+                return true;
+            };
+
+            if (!checkLimit('P', 'Player')) return;
+            if (!checkLimit('B', 'Banker')) return;
+            if (!checkLimit('T', 'Tie')) return;
+
+            if (app.balance < totalPend) return;
+
+            app.balance -= totalPend;
+            app.bet.P += app.pend.P;
+            app.bet.B += app.pend.B;
+            app.bet.T += app.pend.T;
+            app.pend = {P:0, B:0, T:0};
+
+            // SYNC BET DEDUCTION TO SUPABASE
+            syncBalanceToSupabase();
+
+            this.updateBal();
+            this.renderChips();
+        },
+        renderChips() {
+            ['P','B','T'].forEach(k => {
+                const pendEl = document.getElementById('pend'+k);
+                const betEl = document.getElementById('betVal'+k);
+                
+                if (app.pend[k] > 0) {
+                    pendEl.innerText = "+" + (app.pend[k]/1000) + "k";
+                    pendEl.classList.add('show');
+                } else { pendEl.classList.remove('show'); }
+
+                if (app.bet[k] > 0) {
+                    betEl.innerText = (app.bet[k]/1000) + "k";
+                    betEl.classList.add('active');
+                } else { betEl.classList.remove('active'); }
+
+                if (k === 'P' || k === 'B') {
+                    let other = k === 'P' ? 'B' : 'P';
+                    let totalBetOnThis = app.bet[k] + app.pend[k];
+                    
+                    if (totalBetOnThis > 0) {
+                        document.getElementById('zone'+other).classList.add('disabled');
+                    } else {
+                        if (app.bet[other] + app.pend[other] === 0) {
+                            document.getElementById('zone'+other).classList.remove('disabled');
+                        }
+                    }
+                }
+            });
+            
+            const allZero = (app.bet.P+app.pend.P === 0) && (app.bet.B+app.pend.B === 0);
+            if(allZero) {
+                document.getElementById('zoneP').classList.remove('disabled');
+                document.getElementById('zoneB').classList.remove('disabled');
+            }
+
+            document.getElementById('btnConfirm').disabled = (app.pend.P + app.pend.B + app.pend.T === 0);
+        },
+        updateBal() { 
+            document.getElementById('uiBal').innerText = app.balance.toLocaleString('vi-VN'); 
+        },
+        updateTimer(val, wait) {
+            const el = document.getElementById('uiTimer'); el.innerText = val;
+            if(wait) { el.classList.add('wait'); el.classList.remove('alert'); } 
+            else { el.classList.remove('wait'); if(val <= 5) el.classList.add('alert'); else el.classList.remove('alert'); }
+        },
+        updateShoeCount() {
+            const c = app.eng.shoe.remaining(); 
+            const total = app.eng.shoe.numDecks * 52;
+            document.getElementById('uiCardsLeft').innerText = `${c} / ${total}`;
+            document.getElementById('uiCardsLeft').style.color = c<52 ? '#e74c3c' : 'var(--gold)';
+        },
+        resetTable() {
+            document.querySelectorAll('.card').forEach(c => c.remove());
+            document.querySelectorAll('.bet-box').forEach(b => b.classList.remove('winner'));
+            document.getElementById('uiOverlay').classList.remove('show');
+            document.getElementById('scoreP').classList.remove('show');
+            document.getElementById('scoreB').classList.remove('show');
+            this.renderChips(); 
+        },
+        async playAnimation(res) {
+            const w = ms => new Promise(r => setTimeout(r, ms));
+            const createCard = (d, i, zone) => {
+                const div = document.createElement('div'); div.className = `card c${i+1}`;
+                div.innerHTML = `<div class="card-inner"><div class="face back"></div><div class="face front ${d.c}"><div class="rank">${d.r}</div><div class="suit">${d.s}</div></div></div>`;
+                document.getElementById('hand'+zone).appendChild(div);
+                setTimeout(() => div.classList.add('active'), 10);
+                setTimeout(() => div.querySelector('.card-inner').classList.add('flipped'), 300);
+            };
+            createCard(res.pHand[0], 0, 'P'); await w(500); createCard(res.bHand[0], 0, 'B'); await w(500);
+            createCard(res.pHand[1], 1, 'P'); await w(500); createCard(res.bHand[1], 1, 'B'); await w(600);
+            document.getElementById('scoreP').innerText = "P: " + ((res.pHand[0].v + res.pHand[1].v)%10); document.getElementById('scoreP').classList.add('show');
+            document.getElementById('scoreB').innerText = "B: " + ((res.bHand[0].v + res.bHand[1].v)%10); document.getElementById('scoreB').classList.add('show');
+            await w(800);
+            if (res.pHand[2]) { createCard(res.pHand[2], 2, 'P'); await w(800); document.getElementById('scoreP').innerText = "P: " + res.pScore; }
+            if (res.bHand[2]) { createCard(res.bHand[2], 2, 'B'); await w(800); document.getElementById('scoreB').innerText = "B: " + res.bScore; }
+            await w(500); document.getElementById('zone'+res.winner).classList.add('winner');
+        },
+        showResult(winner, profit, shuffled) {
+            const t = document.getElementById('resTitle'); const m = document.getElementById('resMoney');
+            t.innerText = winner === 'P' ? "PLAYER WIN" : (winner === 'B' ? "BANKER WIN" : "TIE GAME");
+            t.style.color = winner === 'P' ? 'var(--player)' : (winner === 'B' ? 'var(--banker)' : 'var(--tie)');
+            m.innerText = (profit > 0 ? "+" : "") + profit.toLocaleString('vi-VN');
+            m.style.color = profit > 0 ? 'var(--gold)' : (profit < 0 ? '#aaa' : '#fff');
+            document.getElementById('resShuffleMsg').innerText = shuffled ? "ĐANG XÀO BÀI MỚI..." : "";
+            document.getElementById('uiOverlay').classList.add('show');
+        },
+        renderRoadmap(hist) {
+            const grid = document.getElementById('roadmapGrid'); grid.innerHTML = '';
+            const rows = 6; const cols = Math.max(14, Math.ceil(hist.length / rows));
+            grid.style.gridTemplateColumns = `repeat(${cols}, 28px)`;
+            for(let i=0; i<rows*cols; i++) {
+                const d = document.createElement('div'); d.className = 'cell'; grid.appendChild(d);
+                if (i < hist.length) {
+                    const b = document.createElement('div'); b.className = `bead ${hist[i]}`; b.innerText = hist[i]; d.appendChild(b);
+                }
+            }
+            const c = document.querySelector('.roadmap-container'); c.scrollLeft = c.scrollWidth;
+        }
+    };
+    window.onload = () => app.init();
+</script>
+</body>
+</html>
+
+
