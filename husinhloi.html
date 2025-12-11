@@ -324,13 +324,16 @@
                 return true; // kết thúc
             }
 
-            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+            // --- LOGIC MỚI ĐÃ SỬA ---
+            const totalSeconds = Math.floor(timeLeft / 1000);
+            const hours = Math.floor(totalSeconds / 3600);                 // Tổng số giờ còn lại (có thể > 24)
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
 
             hEl.innerText = String(hours).padStart(2, '0');
             mEl.innerText = String(minutes).padStart(2, '0');
             sEl.innerText = String(seconds).padStart(2, '0');
+            // -------------------------
 
             // Tính lãi
             const minutesElapsed = (now - startTime) / 1000 / 60;
