@@ -42,12 +42,6 @@
             box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
         }
 
-        .gold-gradient-text {
-            background: linear-gradient(to right, #fcd34d, #fbbf24, #d97706);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
         @keyframes pulse-glow {
             0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
             50% { box-shadow: 0 0 20px rgba(234, 179, 8, 0.6); }
@@ -102,8 +96,7 @@
                 </div>
 
                 <div id="status-badge" class="inline-flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-full border border-white/10 mt-2">
-                    <span class="w-2 h-2 rounded-full bg-slate-500"></span>
-                    <span class="text-xs font-bold text-slate-300">Chưa kích hoạt</span>
+                    <!-- Javascript will inject status here -->
                 </div>
             </div>
 
@@ -172,7 +165,7 @@
             </div>
             
             <p class="text-[10px] text-center text-slate-500 italic">
-                *Lãi suất được tính theo phút. Chu kỳ kéo dài 72 giờ.
+                *Lãi suất được tính theo phút. Chu kỳ kéo dài 3 ngày.
             </p>
         </div>
 
@@ -184,6 +177,7 @@
         <span id="toast-msg" class="text-sm font-medium">Thông báo</span>
     </div>
 
+    <!-- SCRIPT CẬP NHẬT -->
     <script>
         // --- CONFIGURATION ---
         const SUPABASE_URL = "https://boddppngzdgpazrrdual.supabase.co";
@@ -193,8 +187,9 @@
         // Logic Constants
         const MIN_DEPOSIT = 30000;
         const MAX_DEPOSIT = 900000;
-        const CYCLE_HOURS = 72;
-        const INTEREST_PER_MINUTE = 0.000000190; // Lợi tức mỗi phút
+        const CYCLE_HOURS = 72; // 3 ngày
+        // Lợi tức mỗi phút
+        const INTEREST_PER_MINUTE = 0.000000190; 
 
         let currentUid = null;
         let mainBalance = 0;
@@ -215,18 +210,42 @@
 
         // --- DATA LOADING ---
         async function loadData() {
-            // 1. Get User Balance
-            const { data: user } = await db.from("users").select("balance").eq("id", currentUid).maybeSingle();
-            if (user) {
-                mainBalance = user.balance;
-                document.getElementById("main-wallet-display").innerText = formatCurrency(mainBalance);
+            try {
+                // 1. Lấy số dư ví
+                const { data: user, error: userErr } = await db
+                    .from("users")
+                    .select("balance")
+                    .eq("id", currentUid)
+                    .maybeSingle();
+
+                if (userErr) {
+                    console.error("Lỗi load users:", userErr);
+                    showToast("Lỗi tải ví, thử lại sau!", "error");
+                } else if (user) {
+                    mainBalance = user.balance || 0;
+                    document.getElementById("main-wallet-display").innerText = formatCurrency(mainBalance);
+                }
+
+                // 2. Lấy trạng thái hũ
+                const { data: invest, error: invErr } = await db
+                    .from("investment")
+                    .select("*")
+                    .eq("uid", currentUid)
+                    .maybeSingle();
+
+                if (invErr && invErr.code !== "PGRST116") { // không phải lỗi "không có dòng"
+                    console.error("Lỗi load investment:", invErr);
+                    showToast("Lỗi tải dữ liệu hũ!", "error");
+                    investmentData = null;
+                } else {
+                    investmentData = invest || null;
+                }
+
+                renderUI();
+            } catch (e) {
+                console.error("Lỗi tổng khi load:", e);
+                showToast("Lỗi hệ thống, vui lòng thử lại!", "error");
             }
-
-            // 2. Get Investment Status
-            const { data: invest } = await db.from("investment").select("*").eq("uid", currentUid).maybeSingle();
-            investmentData = invest;
-
-            renderUI();
         }
 
         // --- UI RENDERING & LOGIC LOOP ---
@@ -241,27 +260,27 @@
             if (timerInterval) clearInterval(timerInterval);
 
             if (investmentData && investmentData.status === 'running') {
-                // CASE: ĐANG CHẠY
+                // ĐANG CHẠY
                 viewRunning.classList.remove("hidden");
                 viewDeposit.classList.add("hidden");
 
-                // Badge Style
-                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span><span class="text-xs font-bold text-green-400">Đang sinh lời</span>`;
+                statusBadge.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-green-400">Đang sinh lời</span>`;
                 statusBadge.className = "inline-flex items-center gap-2 bg-green-500/10 px-4 py-1.5 rounded-full border border-green-500/20 mt-2";
 
-                // Start Loop
                 startRunningLoop();
-
             } else {
-                // CASE: CHỜ NẠP (Chưa có hoặc đã finished)
+                // CHƯA NẠP / ĐÃ KẾT THÚC
                 viewRunning.classList.add("hidden");
                 viewDeposit.classList.remove("hidden");
 
-                // Reset displays
                 potTotalDisplay.innerText = "0";
                 profitDisplay.innerText = "+0 đ";
-                
-                statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span><span class="text-xs font-bold text-slate-300">Sẵn sàng</span>`;
+
+                statusBadge.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                    <span class="text-xs font-bold text-slate-300">Sẵn sàng</span>`;
                 statusBadge.className = "inline-flex items-center gap-2 bg-slate-500/10 px-4 py-1.5 rounded-full border border-slate-500/20 mt-2";
             }
         }
@@ -271,15 +290,13 @@
             const amount = investmentData.amount;
             const endTime = startTime + (CYCLE_HOURS * 60 * 60 * 1000);
 
-            // Update UI immediately
             updateTick(startTime, endTime, amount);
 
-            // Interval every 1s
-            timerInterval = setInterval(() => {
+            timerInterval = setInterval(async () => {
                 const isFinished = updateTick(startTime, endTime, amount);
                 if (isFinished) {
                     clearInterval(timerInterval);
-                    autoWithdraw();
+                    await autoWithdraw();
                 }
             }, 1000);
         }
@@ -288,37 +305,41 @@
             const now = Date.now();
             const timeLeft = endTime - now;
 
+            // Đếm ngược
+            const hEl = document.getElementById("cnt-h");
+            const mEl = document.getElementById("cnt-m");
+            const sEl = document.getElementById("cnt-s");
+
+            // Phòng trường hợp chuyển trang nhanh mà DOM chưa load
+            if(!hEl) return true;
+
             if (timeLeft <= 0) {
-                document.getElementById("cnt-h").innerText = "00";
-                document.getElementById("cnt-m").innerText = "00";
-                document.getElementById("cnt-s").innerText = "00";
-                return true; // Finished
+                hEl.innerText = "00";
+                mEl.innerText = "00";
+                sEl.innerText = "00";
+                return true; // kết thúc
             }
 
-            // Update Countdown
             const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-            document.getElementById("cnt-h").innerText = String(hours).padStart(2, '0');
-            document.getElementById("cnt-m").innerText = String(minutes).padStart(2, '0');
-            document.getElementById("cnt-s").innerText = String(seconds).padStart(2, '0');
+            hEl.innerText = String(hours).padStart(2, '0');
+            mEl.innerText = String(minutes).padStart(2, '0');
+            sEl.innerText = String(seconds).padStart(2, '0');
 
-            // Update Profit Calculation (Live)
-            // Lãi = Gốc * lãi_suất_phút * số_phút_đã_trôi
+            // Tính lãi
             const minutesElapsed = (now - startTime) / 1000 / 60;
             const currentProfit = amount * INTEREST_PER_MINUTE * minutesElapsed;
-            
             const total = amount + currentProfit;
 
             document.getElementById("pot-total-display").innerText = formatCurrency(Math.floor(total));
             document.getElementById("profit-display").innerText = "+" + formatCurrency(Math.floor(currentProfit)) + " đ";
 
-            return false; // Not finished yet
+            return false;
         }
 
-        // --- ACTIONS ---
-
+        // --- NẠP TIỀN VÀO HŨ ---
         async function handleDeposit() {
             const input = document.getElementById("amount-input");
             const rawVal = input.value.replace(/,/g, '');
@@ -334,19 +355,27 @@
                 return;
             }
 
-            // Loading state
+            // Nếu đã có hũ đang chạy thì không cho nạp
+            if (investmentData && investmentData.status === 'running') {
+                showToast("Hũ hiện tại đang chạy, chờ hết 3 ngày rồi nạp tiếp!", "error");
+                return;
+            }
+
             const btn = document.querySelector("#view-deposit button");
             const originText = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...`;
             btn.disabled = true;
 
             try {
-                // 1. Trừ tiền ví chính
-                const newBal = mainBalance - amount;
-                const { error: balErr } = await db.from("users").update({ balance: newBal }).eq("id", currentUid);
+                // 1. Trừ tiền ví bằng hàm add_balance (RPC)
+                // LƯU Ý: Phải tạo function add_balance trong Supabase SQL Editor trước
+                const { error: balErr } = await db.rpc("add_balance", {
+                    p_uid: currentUid,
+                    p_amount: -amount
+                });
                 if (balErr) throw balErr;
 
-                // 2. Tạo Investment record
+                // 2. Tạo/ghi đè hũ
                 const now = new Date().toISOString();
                 const { error: invErr } = await db.from("investment").upsert({
                     uid: currentUid,
@@ -359,11 +388,15 @@
                 if (invErr) throw invErr;
 
                 showToast("Nạp hũ thành công!", "success");
-                await loadData(); // Reload UI to switch view
+                await loadData();
             } catch (err) {
-                console.error(err);
-                showToast("Lỗi hệ thống, vui lòng thử lại", "error");
-                // Rollback logic could go here in a real production app
+                console.error("Deposit error:", err);
+                // Hiển thị lỗi rõ ràng hơn
+                if(err.message && err.message.includes("function add_balance does not exist")) {
+                     alert("LỖI CẤU HÌNH: Bạn chưa chạy lệnh SQL tạo hàm add_balance trong Supabase!");
+                } else {
+                     showToast(err.message || "Lỗi hệ thống, vui lòng thử lại", "error");
+                }
             } finally {
                 btn.innerHTML = originText;
                 btn.disabled = false;
@@ -371,39 +404,45 @@
             }
         }
 
+        // --- TỰ ĐỘNG RÚT SAU 3 NGÀY ---
         async function autoWithdraw() {
             if (!investmentData) return;
-            
-            // Tính toán lần cuối
-            const now = Date.now();
-            const start = new Date(investmentData.start_time).getTime();
-            const minutesElapsed = (now - start) / 1000 / 60;
-            const finalProfit = Math.floor(investmentData.amount * INTEREST_PER_MINUTE * minutesElapsed);
-            const totalReturn = investmentData.amount + finalProfit;
 
             try {
-                // 1. Cộng tiền vào ví (Dùng RPC nếu có, ở đây mình dùng update trực tiếp cho đơn giản vì bạn đang dùng key anon)
-                // Lấy lại balance mới nhất để cộng cho chuẩn
-                const { data: user } = await db.from("users").select("balance").eq("id", currentUid).single();
-                const currentBal = user.balance || 0;
-                
-                await db.from("users").update({ 
-                    balance: currentBal + totalReturn 
-                }).eq("id", currentUid);
+                const now = Date.now();
+                const start = new Date(investmentData.start_time).getTime();
+                const minutesElapsed = (now - start) / 1000 / 60;
+                const finalProfit = Math.floor(investmentData.amount * INTEREST_PER_MINUTE * minutesElapsed);
+                const totalReturn = investmentData.amount + finalProfit;
 
-                // 2. Cập nhật trạng thái Investment -> finished
-                await db.from("investment").update({
-                    status: 'finished',
-                    profit: finalProfit,
-                    last_update: new Date().toISOString()
-                }).eq("uid", currentUid);
+                // 1. Cộng tiền về ví (RPC)
+                const { error: balErr } = await db.rpc("add_balance", {
+                    p_uid: currentUid,
+                    p_amount: totalReturn
+                });
+                if (balErr) throw balErr;
 
-                alert(`Chúc mừng! Chu kỳ 3 ngày đã kết thúc.\nTổng nhận: ${formatCurrency(totalReturn)} đ\n(Gốc: ${formatCurrency(investmentData.amount)} + Lãi: ${formatCurrency(finalProfit)})`);
-                
-                await loadData(); // Reset UI về trạng thái nạp
+                // 2. Cập nhật trạng thái hũ
+                const { error: invErr } = await db
+                    .from("investment")
+                    .update({
+                        status: 'finished',
+                        profit: finalProfit,
+                        last_update: new Date().toISOString()
+                    })
+                    .eq("uid", currentUid);
+                if (invErr) throw invErr;
 
+                alert(
+                    `Chúc mừng! Chu kỳ 3 ngày đã kết thúc.\n` +
+                    `Tổng nhận: ${formatCurrency(totalReturn)} đ\n` +
+                    `(Gốc: ${formatCurrency(investmentData.amount)} + Lãi: ${formatCurrency(finalProfit)})`
+                );
+
+                await loadData();
             } catch (err) {
-                console.error("Auto withdraw failed", err);
+                console.error("Auto withdraw error:", err);
+                showToast("Lỗi rút tự động, vui lòng liên hệ Admin!", "error");
             }
         }
 
@@ -428,7 +467,9 @@
             const text = document.getElementById('toast-msg');
             
             text.innerText = msg;
-            icon.className = type === 'error' ? "fa-solid fa-circle-exclamation text-rose-500" : "fa-solid fa-check text-emerald-500";
+            icon.className = type === 'error'
+                ? "fa-solid fa-circle-exclamation text-rose-500"
+                : "fa-solid fa-check text-emerald-500";
             
             t.classList.remove('opacity-0', '-translate-y-20');
             setTimeout(() => {
