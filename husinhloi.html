@@ -64,7 +64,7 @@
         <div class="text-center">
             <h1 class="font-bold text-lg">Hũ Sinh Lời</h1>
             <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider flex items-center justify-center gap-1">
-                <i class="fa-solid fa-bolt"></i> Auto Profit 24/7
+                <i class="fa-solid fa-bolt"></i> Siêu Lãi Suất 499%
             </p>
         </div>
         <div class="w-10"></div>
@@ -164,8 +164,8 @@
                 </button>
             </div>
             
-            <p class="text-[10px] text-center text-slate-500 italic">
-                *Lãi suất được tính theo phút. Chu kỳ kéo dài 3 ngày.
+            <p class="text-[10px] text-center text-emerald-400 font-bold italic">
+                *Lãi suất siêu khủng: 499%/Năm
             </p>
         </div>
 
@@ -188,8 +188,12 @@
         const MIN_DEPOSIT = 30000;
         const MAX_DEPOSIT = 900000;
         const CYCLE_HOURS = 72; // 3 ngày
-        // Lợi tức mỗi phút
-        const INTEREST_PER_MINUTE = 0.000000190; 
+        
+        // --- CẬP NHẬT LÃI SUẤT 499% / NĂM ---
+        // 499% = 4.99
+        // 1 Năm = 525,600 phút
+        // 4.99 / 525600 = 0.0000094939...
+        const INTEREST_PER_MINUTE = 0.000009494; 
 
         let currentUid = null;
         let mainBalance = 0;
@@ -266,7 +270,7 @@
 
                 statusBadge.innerHTML = `
                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    <span class="text-xs font-bold text-green-400">Đang sinh lời</span>`;
+                    <span class="text-xs font-bold text-green-400">Đang sinh lời (499%)</span>`;
                 statusBadge.className = "inline-flex items-center gap-2 bg-green-500/10 px-4 py-1.5 rounded-full border border-green-500/20 mt-2";
 
                 startRunningLoop();
