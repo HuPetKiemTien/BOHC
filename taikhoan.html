@@ -186,7 +186,6 @@
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center"><i class="fa-solid fa-ticket text-emerald-500 mr-2"></i>Nhập Giftcode / Mã Nạp</h3>
                     <div class="space-y-4">
                         <input type="text" id="dep-code" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 font-mono placeholder-slate-600 uppercase text-sm" placeholder="NHẬP MÃ GIFTCODE">
-                        <!-- UPDATE: Thêm ID btn-deposit -->
                         <button id="btn-deposit" onclick="userDeposit()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-900/20 text-sm active:scale-95 transition-transform">
                             KÍCH HOẠT NGAY
                         </button>
@@ -231,7 +230,8 @@
                         <input type="text" id="wd-holder" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 uppercase placeholder-slate-600" placeholder="Chủ tài khoản">
                         <input type="text" id="wd-account" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-mono placeholder-slate-600" placeholder="Số tài khoản / SĐT Ví">
                         
-                        <button onclick="userWithdraw()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-900/20 text-sm mt-2 active:scale-95 transition-transform">
+                        <!-- UPDATED: Added id="btn-withdraw" -->
+                        <button id="btn-withdraw" onclick="userWithdraw()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-900/20 text-sm mt-2 active:scale-95 transition-transform">
                             GỬI YÊU CẦU
                         </button>
                     </div>
@@ -259,7 +259,10 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = null;
-        let depositLock = false; // Biến khóa nút nạp
+        
+        // --- 🔒 BIẾN KHÓA NÚT ---
+        let depositLock = false; 
+        let withdrawLock = false; // NEW
 
         /* --- LOGIC KHỞI TẠO TRANG --- */
         window.onload = async () => {
@@ -319,16 +322,14 @@
             }
         }
 
-        /* --- NẠP CODE (ĐÃ UPDATE CHỐNG SPAM) --- */
+        /* --- NẠP CODE (ĐÃ CHẶN SPAM) --- */
         window.userDeposit = async () => {
-            // 1. Chặn nếu đang xử lý
             if (depositLock) return;
             depositLock = true;
 
             const btn = document.getElementById("btn-deposit");
             const oldText = btn.innerText;
 
-            // 2. Khóa UI
             btn.disabled = true;
             btn.classList.add("opacity-60", "cursor-not-allowed");
             btn.innerText = "ĐANG XỬ LÝ...";
@@ -341,7 +342,6 @@
                     return;
                 }
 
-                // 3. Gọi RPC trong Database (Bảo mật 100%)
                 const { data, error } = await db.rpc("use_deposit_code", {
                     p_uid: currentUser,
                     p_code: code
@@ -353,7 +353,6 @@
                     return;
                 }
 
-                // Kiểm tra kết quả trả về từ RPC
                 const res = data && (Array.isArray(data) ? data[0] : data);
                 
                 if (!res || res.status !== "OK") {
@@ -363,15 +362,12 @@
 
                 showToast(`Nạp thành công +${Number(res.credited).toLocaleString()}`, "success");
                 document.getElementById("dep-code").value = "";
-                
-                // Refresh số dư
                 loadWallet();
 
             } catch (e) {
                 console.error(e);
                 showToast("Có lỗi xảy ra!", "error");
             } finally {
-                // 4. Đợi 3 giây mới mở khóa nút
                 setTimeout(() => {
                     depositLock = false;
                     btn.disabled = false;
@@ -381,35 +377,66 @@
             }
         }
 
+        /* --- RÚT TIỀN (UPDATED: CHẶN SPAM + LOCK 3S) --- */
         window.userWithdraw = async () => {
-            const rawAmount = document.getElementById("wd-amount").value.replace(/,/g, '');
-            const amount = parseInt(rawAmount);
-            
-            const bank = document.getElementById("wd-bank").value; 
-            const holder = document.getElementById("wd-holder").value.trim();
-            const acc = document.getElementById("wd-account").value.trim();
+            // 1. Chặn Spam Click + Khóa UI
+            if (withdrawLock) return;
+            withdrawLock = true;
 
-            if(!amount || isNaN(amount)) return showToast("Nhập số tiền hợp lệ", "error");
-            if(amount < 15000) return showToast("Tối thiểu rút 15,000 Coin!", "error");
-            if(!bank) return showToast("Vui lòng chọn ngân hàng/ví", "error");
-            if(!holder || !acc) return showToast("Thiếu thông tin tài khoản", "error");
+            const btn = document.getElementById("btn-withdraw");
+            const oldText = btn.innerText;
 
-            const { data: u } = await db.from("users").select("balance").eq("id", currentUser).single();
-            if(!u || u.balance < amount) return showToast("Số dư không đủ!", "error");
+            btn.disabled = true;
+            btn.classList.add("opacity-60", "cursor-not-allowed");
+            btn.innerText = "ĐANG XỬ LÝ..."; // Đổi text nút
 
-            await db.from("users").update({ balance: u.balance - amount }).eq("id", currentUser);
-            
-            const { error: reqErr } = await db.from("withdraw_request").insert({
-                uid: currentUser, amount, bank_name: bank, holder_name: holder, bank_account: acc, status: 'pending'
-            });
+            try {
+                const rawAmount = document.getElementById("wd-amount").value.replace(/,/g, '');
+                const amount = parseInt(rawAmount);
+                
+                const bank = document.getElementById("wd-bank").value; 
+                const holder = document.getElementById("wd-holder").value.trim();
+                const acc = document.getElementById("wd-account").value.trim();
 
-            if(reqErr) {
-                await db.from("users").update({ balance: u.balance }).eq("id", currentUser);
-                return showToast("Lỗi hệ thống", "error");
+                if(!amount || isNaN(amount)) { showToast("Nhập số tiền hợp lệ", "error"); return; }
+                if(amount < 15000) { showToast("Tối thiểu rút 15,000 Coin!", "error"); return; }
+                if(!bank) { showToast("Vui lòng chọn ngân hàng/ví", "error"); return; }
+                if(!holder || !acc) { showToast("Thiếu thông tin tài khoản", "error"); return; }
+
+                const { data: u } = await db.from("users").select("balance").eq("id", currentUser).single();
+                if(!u || u.balance < amount) { showToast("Số dư không đủ!", "error"); return; }
+
+                // Trừ tiền
+                await db.from("users").update({ balance: u.balance - amount }).eq("id", currentUser);
+                
+                // Tạo yêu cầu rút
+                const { error: reqErr } = await db.from("withdraw_request").insert({
+                    uid: currentUser, amount, bank_name: bank, holder_name: holder, bank_account: acc, status: 'pending'
+                });
+
+                if(reqErr) {
+                    // Rollback nếu lỗi
+                    await db.from("users").update({ balance: u.balance }).eq("id", currentUser);
+                    showToast("Lỗi hệ thống", "error");
+                    return;
+                }
+                
+                showToast("Đã gửi yêu cầu rút!", "success");
+                document.getElementById("wd-amount").value = "";
+                loadWallet();
+
+            } catch (e) {
+                console.error(e);
+                showToast("Có lỗi xảy ra!", "error");
+            } finally {
+                // 3. Mở khóa sau 3 giây
+                setTimeout(() => {
+                    withdrawLock = false;
+                    btn.disabled = false;
+                    btn.classList.remove("opacity-60", "cursor-not-allowed");
+                    btn.innerText = oldText; // Trả lại text cũ
+                }, 3000);
             }
-            showToast("Đã gửi yêu cầu rút!", "success");
-            document.getElementById("wd-amount").value = "";
-            loadWallet();
         }
 
         async function loadHistory() {
@@ -456,4 +483,5 @@
     </script>
 </body>
 </html>
+
 
