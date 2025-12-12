@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Xóc Đĩa Auto Sync - HC88</title>
+  <title>Xóc Đĩa Global - HC88</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -242,6 +242,12 @@
       user.id = uid;
       document.getElementById("user-id").innerText = "ID: " + uid.substring(0,6).toUpperCase();
       
+      // -- UPDATED: Ensure User Exists before loading balance --
+      try {
+        await db.rpc("ensure_user", { p_uid: user.id });
+      } catch (e) { console.error("RPC Error (non-fatal):", e); }
+      // -------------------------------------------------------
+
       await loadBalance();
       
       // Main Ticker
