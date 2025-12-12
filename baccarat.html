@@ -410,36 +410,52 @@
     let realtimeChannel = null;
 
     // --- SUPABASE HELPER FUNCTIONS ---
+    
+    // --- ĐÂY LÀ HÀM ĐÃ SỬA THEO HƯỚNG DẪN CỦA BẠN (SỬ DỤNG LOCALSTORAGE) ---
     async function initSupabase() {
-        try {
-            // 1. Check Auth (Phiên đăng nhập)
-            const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-            
-            if (authError || !user) {
-                console.log('Chưa đăng nhập Supabase.');
-                app.showToast('Bạn đang chơi chế độ KHÁCH (Không lưu tiền)', 'alert');
-                app.balance = 5000000; // Tiền demo
-                game.updateBal();
-                return;
-            }
-
-            supaUser = user;
-            document.getElementById('uiStatusDot').classList.add('online');
-            
-            // 2. Load Initial Balance
-            await loadBalance();
-
-            // 3. Setup Realtime Listener (Tự động cập nhật khi số dư thay đổi ở nơi khác)
-            setupRealtimeBalance();
-            
-            app.showToast(`Đã kết nối ví: ${user.email}`, 'success');
-
-        } catch (e) {
-            console.error('Lỗi khởi tạo Supabase:', e);
-            app.showToast('Lỗi kết nối máy chủ!', 'alert');
+      try {
+        // 1. LẤY UID DÙNG CHUNG TOÀN HỆ THỐNG
+        const uid = localStorage.getItem("my_wallet_uid");
+        if (!uid) {
+          alert("Vui lòng đăng nhập lại!");
+          window.location.href = "index.html";
+          return;
         }
+
+        // 2. GIẢ LẬP USER (KHÔNG DÙNG SUPABASE AUTH)
+        supaUser = { id: uid };
+        document.getElementById('uiStatusDot').classList.add('online');
+
+        // 3. LẤY SỐ DƯ TỪ BẢNG users
+        const { data, error } = await supabaseClient
+          .from("users")
+          .select("balance")
+          .eq("id", uid)
+          .maybeSingle();
+
+        // 4. CHƯA CÓ USER → TẠO
+        if (!data) {
+          await supabaseClient.from("users").insert({
+            id: uid,
+            balance: 0
+          });
+          app.balance = 0;
+        } else {
+          app.balance = data.balance || 0;
+        }
+
+        // 5. UPDATE GIAO DIỆN
+        game.updateBal();
+        setupRealtimeBalance();
+        app.showToast(`Đã kết nối ví: ${uid}`, 'success');
+
+      } catch (err) {
+        console.error(err);
+        app.showToast("Lỗi kết nối ví!", "alert");
+      }
     }
 
+    // (Hàm này giữ lại để tham khảo, nhưng initSupabase ở trên đã xử lý việc load lần đầu)
     async function loadBalance() {
         if (!supaUser) return;
         
@@ -447,7 +463,7 @@
             .from(WALLET_TABLE)
             .select(WALLET_BALANCE_COLUMN)
             .eq('id', supaUser.id)
-            .maybeSingle(); // Dùng maybeSingle để tránh lỗi nếu chưa có row
+            .maybeSingle(); 
 
         if (error) {
             console.error('Lỗi lấy tiền:', error);
@@ -455,8 +471,6 @@
         } else if (data) {
             app.balance = data[WALLET_BALANCE_COLUMN] || 0;
             game.updateBal();
-        } else {
-            console.warn('Không tìm thấy dữ liệu ví cho user này.');
         }
     }
 
@@ -906,5 +920,4 @@
 </script>
 </body>
 </html>
-
 
