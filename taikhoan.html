@@ -58,6 +58,9 @@
             top: 0; left: 0; width: 4px; height: 100%;
             background: #3b82f6;
         }
+        
+        /* Disabled state styling */
+        .cursor-not-allowed { cursor: not-allowed !important; }
     </style>
 </head>
 <body class="min-h-screen flex justify-center bg-slate-950">
@@ -183,7 +186,8 @@
                     <h3 class="text-sm font-bold text-white mb-4 flex items-center"><i class="fa-solid fa-ticket text-emerald-500 mr-2"></i>Nhập Giftcode / Mã Nạp</h3>
                     <div class="space-y-4">
                         <input type="text" id="dep-code" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 font-mono placeholder-slate-600 uppercase text-sm" placeholder="NHẬP MÃ GIFTCODE">
-                        <button onclick="userDeposit()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-900/20 text-sm active:scale-95 transition-transform">
+                        <!-- UPDATE: Thêm ID btn-deposit -->
+                        <button id="btn-deposit" onclick="userDeposit()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-900/20 text-sm active:scale-95 transition-transform">
                             KÍCH HOẠT NGAY
                         </button>
                     </div>
@@ -255,6 +259,7 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = null;
+        let depositLock = false; // Biến khóa nút nạp
 
         /* --- LOGIC KHỞI TẠO TRANG --- */
         window.onload = async () => {
@@ -314,24 +319,66 @@
             }
         }
 
+        /* --- NẠP CODE (ĐÃ UPDATE CHỐNG SPAM) --- */
         window.userDeposit = async () => {
-            const code = document.getElementById("dep-code").value.trim().toUpperCase();
-            if(!code) return showToast("Chưa nhập mã!", "error");
-            
-            const { data: codeData, error: codeErr } = await db.from("codes_deposit").select("*").eq("code", code).maybeSingle();
-            if(codeErr || !codeData) return showToast("Mã không tồn tại!", "error");
-            if(codeData.expired || codeData.used_count >= codeData.max_use) return showToast("Mã đã hết lượt!", "error");
-            
-            const { data: userData } = await db.from("users").select("balance").eq("id", currentUser).single();
-            const newBal = (userData.balance || 0) + codeData.value;
-            await db.from("users").update({ balance: newBal }).eq("id", currentUser);
-            
-            const newUsed = codeData.used_count + 1;
-            await db.from("codes_deposit").update({ used_count: newUsed, expired: newUsed >= codeData.max_use }).eq("code", code);
-            
-            showToast(`Nạp thành công +${codeData.value.toLocaleString()}`, "success");
-            document.getElementById("dep-code").value = "";
-            loadWallet();
+            // 1. Chặn nếu đang xử lý
+            if (depositLock) return;
+            depositLock = true;
+
+            const btn = document.getElementById("btn-deposit");
+            const oldText = btn.innerText;
+
+            // 2. Khóa UI
+            btn.disabled = true;
+            btn.classList.add("opacity-60", "cursor-not-allowed");
+            btn.innerText = "ĐANG XỬ LÝ...";
+
+            try {
+                const code = document.getElementById("dep-code").value.trim().toUpperCase();
+
+                if (!currentUser || !code) {
+                    showToast("Vui lòng nhập mã!", "error");
+                    return;
+                }
+
+                // 3. Gọi RPC trong Database (Bảo mật 100%)
+                const { data, error } = await db.rpc("use_deposit_code", {
+                    p_uid: currentUser,
+                    p_code: code
+                });
+
+                if (error) {
+                    console.error(error);
+                    showToast("Lỗi hệ thống hoặc mã sai!", "error");
+                    return;
+                }
+
+                // Kiểm tra kết quả trả về từ RPC
+                const res = data && (Array.isArray(data) ? data[0] : data);
+                
+                if (!res || res.status !== "OK") {
+                    showToast(res?.message || "Mã không hợp lệ hoặc hết lượt!", "error");
+                    return;
+                }
+
+                showToast(`Nạp thành công +${Number(res.credited).toLocaleString()}`, "success");
+                document.getElementById("dep-code").value = "";
+                
+                // Refresh số dư
+                loadWallet();
+
+            } catch (e) {
+                console.error(e);
+                showToast("Có lỗi xảy ra!", "error");
+            } finally {
+                // 4. Đợi 3 giây mới mở khóa nút
+                setTimeout(() => {
+                    depositLock = false;
+                    btn.disabled = false;
+                    btn.classList.remove("opacity-60", "cursor-not-allowed");
+                    btn.innerText = oldText;
+                }, 3000);
+            }
         }
 
         window.userWithdraw = async () => {
@@ -409,5 +456,4 @@
     </script>
 </body>
 </html>
-
 
