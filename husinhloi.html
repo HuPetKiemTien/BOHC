@@ -52,6 +52,9 @@
             border: 1px solid rgba(234, 179, 8, 0.3);
             animation: pulse-glow 2s infinite;
         }
+        
+        /* Disabled state styling */
+        .cursor-not-allowed { cursor: not-allowed !important; }
     </style>
 </head>
 <body class="flex flex-col">
@@ -158,7 +161,8 @@
                     <button onclick="setAmount(500000)" class="bg-white/5 hover:bg-white/10 py-2 rounded text-[11px] font-bold border border-white/5">500.000</button>
                 </div>
 
-                <button onclick="handleDeposit()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-extrabold py-4 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                <!-- UPDATED: Added id="btn-pot-deposit" for locking -->
+                <button id="btn-pot-deposit" onclick="handleDeposit()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-extrabold py-4 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
                     <i class="fa-solid fa-rocket"></i>
                     BẮT ĐẦU SINH LỜI NGAY
                 </button>
@@ -190,15 +194,15 @@
         const CYCLE_HOURS = 72; // 3 ngày
         
         // --- CẬP NHẬT LÃI SUẤT 499% / NĂM ---
-        // 499% = 4.99
-        // 1 Năm = 525,600 phút
-        // 4.99 / 525600 = 0.0000094939...
         const INTEREST_PER_MINUTE = 0.000009494; 
 
         let currentUid = null;
         let mainBalance = 0;
         let investmentData = null;
         let timerInterval = null;
+        
+        // --- NEW: BIẾN KHÓA NÚT CHỐNG SPAM ---
+        let potDepositLock = false;
 
         // --- INIT ---
         window.onload = async () => {
@@ -346,36 +350,42 @@
             return false;
         }
 
-        // --- NẠP TIỀN VÀO HŨ ---
+        // --- NẠP TIỀN VÀO HŨ (ĐÃ SỬA LOGIC KHÓA NÚT) ---
         async function handleDeposit() {
-            const input = document.getElementById("amount-input");
-            const rawVal = input.value.replace(/,/g, '');
-            const amount = parseInt(rawVal);
+            // 1. Chặn Spam Click + Khóa UI
+            if (potDepositLock) return;
+            potDepositLock = true;
 
-            if (isNaN(amount) || amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
-                showToast(`Nạp từ ${formatCurrency(MIN_DEPOSIT)} đến ${formatCurrency(MAX_DEPOSIT)}`, "error");
-                return;
-            }
-
-            if (amount > mainBalance) {
-                showToast("Số dư không đủ!", "error");
-                return;
-            }
-
-            // Nếu đã có hũ đang chạy thì không cho nạp
-            if (investmentData && investmentData.status === 'running') {
-                showToast("Hũ hiện tại đang chạy, chờ hết 3 ngày rồi nạp tiếp!", "error");
-                return;
-            }
-
-            const btn = document.querySelector("#view-deposit button");
-            const originText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...`;
+            const btn = document.getElementById("btn-pot-deposit");
+            // Lưu lại nội dung gốc (bao gồm icon Rocket) để trả lại
+            const originContent = btn.innerHTML;
+            
             btn.disabled = true;
+            btn.classList.add("opacity-60", "cursor-not-allowed");
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...`;
 
             try {
+                const input = document.getElementById("amount-input");
+                const rawVal = input.value.replace(/,/g, '');
+                const amount = parseInt(rawVal);
+
+                if (isNaN(amount) || amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
+                    showToast(`Nạp từ ${formatCurrency(MIN_DEPOSIT)} đến ${formatCurrency(MAX_DEPOSIT)}`, "error");
+                    return;
+                }
+
+                if (amount > mainBalance) {
+                    showToast("Số dư không đủ!", "error");
+                    return;
+                }
+
+                // Nếu đã có hũ đang chạy thì không cho nạp
+                if (investmentData && investmentData.status === 'running') {
+                    showToast("Hũ hiện tại đang chạy, chờ hết 3 ngày rồi nạp tiếp!", "error");
+                    return;
+                }
+
                 // 1. Trừ tiền ví bằng hàm add_balance (RPC)
-                // LƯU Ý: Phải tạo function add_balance trong Supabase SQL Editor trước
                 const { error: balErr } = await db.rpc("add_balance", {
                     p_uid: currentUid,
                     p_amount: -amount
@@ -395,19 +405,24 @@
                 if (invErr) throw invErr;
 
                 showToast("Nạp hũ thành công!", "success");
+                input.value = "";
                 await loadData();
+
             } catch (err) {
                 console.error("Deposit error:", err);
-                // Hiển thị lỗi rõ ràng hơn
                 if(err.message && err.message.includes("function add_balance does not exist")) {
                      alert("LỖI CẤU HÌNH: Bạn chưa chạy lệnh SQL tạo hàm add_balance trong Supabase!");
                 } else {
                      showToast(err.message || "Lỗi hệ thống, vui lòng thử lại", "error");
                 }
             } finally {
-                btn.innerHTML = originText;
-                btn.disabled = false;
-                input.value = "";
+                // 3. Mở khóa sau 3 giây (Dù thành công hay thất bại)
+                setTimeout(() => {
+                    potDepositLock = false;
+                    btn.disabled = false;
+                    btn.classList.remove("opacity-60", "cursor-not-allowed");
+                    btn.innerHTML = originContent; // Trả lại icon và text cũ
+                }, 3000);
             }
         }
 
