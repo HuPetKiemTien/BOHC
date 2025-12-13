@@ -295,6 +295,8 @@
         }
         .toast.info { background: rgba(44, 62, 80, 0.95); }
         .toast.success { background: rgba(39, 174, 96, 0.95); }
+        /* FIX: Thêm class alert */
+        .toast.alert { background: rgba(192, 57, 43, 0.95); border: 1px solid #e74c3c; box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3); }
     </style>
 </head>
 <body>
@@ -658,30 +660,39 @@
             const payload = { round_id: roundId, pHand, bHand, pScore, bScore, winner, shuffled };
 
             // 2. Update DB (Clients see this -> Animation starts)
-            await supabaseClient.from("baccarat_state").update({
+            // FIX: Dùng upsert để đảm bảo ghi được kể cả khi row bị lỗi
+            await supabaseClient.from("baccarat_state").upsert({
+                room_id: ROOM_ID,
                 phase: 'DEALING',
                 phase_ends_at: new Date(Date.now() + 20000).toISOString(), // buffer time
                 payload: payload,
                 history: this.eng.history,
-                shoe: { cards: shoe.cards, cutIdx: shoe.cutCardIdx, needsShuffle: shoe.needsShuffle }
-            }).eq("room_id", ROOM_ID);
+                shoe: { cards: shoe.cards, cutIdx: shoe.cutCardIdx, needsShuffle: shoe.needsShuffle },
+                updated_at: new Date()
+            }, { onConflict: "room_id" });
 
             // 3. Schedule Reset to BETTING
             setTimeout(async () => {
-                await supabaseClient.from("baccarat_state").update({
+                // FIX: Dùng upsert
+                await supabaseClient.from("baccarat_state").upsert({
+                    room_id: ROOM_ID,
                     phase: 'BETTING',
                     phase_ends_at: new Date(Date.now() + BETTING_TIME).toISOString(),
-                    payload: {} // Clear payload
-                }).eq("room_id", ROOM_ID);
+                    payload: {}, // Clear payload
+                    updated_at: new Date()
+                }, { onConflict: "room_id" });
             }, RESET_DELAY);
         },
 
         async updateHostStateToDB() {
             if (!this.isHost) return;
-            await supabaseClient.from("baccarat_state").update({
+            // FIX: Dùng upsert
+            await supabaseClient.from("baccarat_state").upsert({
+                room_id: ROOM_ID,
                 shoe: { cards: this.eng.shoe.cards, cutIdx: this.eng.shoe.cutCardIdx, needsShuffle: this.eng.shoe.needsShuffle },
-                history: this.eng.history
-            }).eq("room_id", ROOM_ID);
+                history: this.eng.history,
+                updated_at: new Date()
+            }, { onConflict: "room_id" });
         },
 
         // --- MAIN LOOP ---
