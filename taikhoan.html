@@ -399,7 +399,7 @@
                 const acc = document.getElementById("wd-account").value.trim();
 
                 if(!amount || isNaN(amount)) { showToast("Nhập số tiền hợp lệ", "error"); return; }
-                if(amount < 15000) { showToast("Tối thiểu rút 15,000 Coin!", "error"); return; }
+                if(amount < 500000) { showToast("Tối thiểu rút 500,000 Coin!", "error"); return; }
                 if(!bank) { showToast("Vui lòng chọn ngân hàng/ví", "error"); return; }
                 if(!holder || !acc) { showToast("Thiếu thông tin tài khoản", "error"); return; }
 
