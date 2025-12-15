@@ -541,8 +541,36 @@
 
         async initRoom() {
             // A. Lấy trạng thái hiện tại
-            const { data } = await supabaseClient.from("baccarat_state").select("*").eq("room_id", ROOM_ID).maybeSingle();
-            if (data) this.applyRoomState(data);
+            let { data, error } = await supabaseClient
+                .from("baccarat_state")
+                .select("*")
+                .eq("room_id", ROOM_ID)
+                .maybeSingle();
+
+            // Nếu chưa có room -> tạo mặc định
+            if (!data) {
+                const now = Date.now();
+                const total = 8 * 52;
+
+                const ins = await supabaseClient.from("baccarat_state").insert({
+                    room_id: ROOM_ID,
+                    phase: "BETTING",
+                    phase_ends_at: new Date(now + 20000).toISOString(),
+                    payload: null,
+                    history: [],
+                    shoe: { cardsLeft: total }
+                }).select("*").maybeSingle();
+
+                data = ins.data;
+
+                // Set local để timer chạy ngay cả khi realtime chưa kịp trả về
+                this.state = "BETTING";
+                this.nextPhaseTime = now + 20000;
+                // Button disabled ban đầu do pend = 0
+                document.getElementById('btnConfirm').disabled = true;
+            } else {
+                this.applyRoomState(data);
+            }
 
             // B. Đăng ký nhận update
             roomChannel = supabaseClient.channel("room-" + ROOM_ID)
@@ -611,6 +639,9 @@
                     // Chuyển sang betting mới
                     this.state = 'BETTING';
                     game.resetTable();
+                    // Fix: Check lại trạng thái nút
+                    const totalPend = this.pend.P + this.pend.B + this.pend.T;
+                    document.getElementById('btnConfirm').disabled = (totalPend === 0);
                 }
             }
         },
@@ -633,14 +664,24 @@
             }
 
             // --- CLIENT UI RENDER ---
+            if (!this.nextPhaseTime || Number.isNaN(this.nextPhaseTime)) {
+                game.updateTimer('--', true);
+                document.getElementById('btnConfirm').disabled = true;
+                return;
+            }
+
             if (this.state === 'BETTING') {
-                const sec = Math.ceil(timeLeft / 1000);
-                game.updateTimer(sec > 0 ? sec : 0, false);
-                
-                // Disable chip controls if time is very close to 0
-                if (sec <= 0) document.getElementById('btnConfirm').disabled = true;
+                const sec = Math.ceil((this.nextPhaseTime - now) / 1000);
+                const safeSec = (Number.isFinite(sec) && sec > 0) ? sec : 0;
+
+                game.updateTimer(safeSec, false);
+
+                const totalPend = this.pend.P + this.pend.B + this.pend.T;
+                // Disable if time is up OR no pending bets
+                document.getElementById('btnConfirm').disabled = (safeSec <= 0) || (totalPend === 0);
             } else {
                 game.updateTimer('...', true);
+                document.getElementById('btnConfirm').disabled = true;
             }
         },
 
@@ -795,7 +836,14 @@
                     else if (app.bet[other] + app.pend[other] === 0) document.getElementById('zone'+other).classList.remove('disabled');
                 }
             });
-            document.getElementById('btnConfirm').disabled = (app.pend.P + app.pend.B + app.pend.T === 0);
+            // Update button state based on pending bets and time (handled in loop but good to update here too for immediate feedback)
+            const totalPend = app.pend.P + app.pend.B + app.pend.T;
+             // Check time remaining to avoid enabling if time expired
+            const now = Date.now();
+            const timeLeft = app.nextPhaseTime - now;
+            const sec = Math.ceil(timeLeft / 1000);
+            
+            document.getElementById('btnConfirm').disabled = (totalPend === 0 || sec <= 0);
         },
         updateBal() { document.getElementById('uiBal').innerText = app.balance.toLocaleString('vi-VN'); },
         updateTimer(val, wait) {
