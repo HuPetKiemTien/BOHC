@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>HC88 PREMIUM - Cyberpunk Slots</title>
+
+  <!-- Tailwind & Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Orbitron', 'sans-serif'],
+            body: ['Chakra Petch', 'sans-serif'],
+          },
+          colors: {
+            neon: {
+              blue: '#00f3ff',
+              pink: '#ff00ff',
+              purple: '#bc13fe',
+              gold: '#ffd700'
+            }
+          },
+          animation: {
+            'spin-blur': 'spinBlur 0.1s infinite',
+            'bounce-sm': 'bounceSmall 0.3s ease-in-out',
+            'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'glow': 'glow 2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            spinBlur: {
+              '0%': { transform: 'translateY(-5px)', filter: 'blur(2px)' },
+              '50%': { transform: 'translateY(5px)', filter: 'blur(2px)' },
+              '100%': { transform: 'translateY(-5px)', filter: 'blur(2px)' }
+            },
+            bounceSmall: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(4px)' }
+            },
+            glow: {
+              'from': { boxShadow: '0 0 10px #00f3ff, 0 0 20px #00f3ff' },
+              'to': { boxShadow: '0 0 20px #bc13fe, 0 0 30px #bc13fe' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(188, 19, 254, 0.15) 0%, transparent 50%),
+        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    /* Hiệu ứng kính cao cấp */
+    .glass-panel {
+      background: rgba(13, 18, 30, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    /* Khung máy slot */
+    .slot-machine-frame {
+      position: relative;
+      background: #0f172a;
+      border-radius: 24px;
+      padding: 4px;
+      box-shadow: 
+        0 0 0 2px #1e293b,
+        0 0 20px rgba(0, 243, 255, 0.2);
+    }
+    
+    .slot-machine-frame::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 26px;
+      padding: 2px;
+      background: linear-gradient(45deg, #00f3ff, #bc13fe, #ff00ff);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0.6;
+    }
+
+    /* Cột quay (Reel) */
+    .reel-col {
+      background: linear-gradient(180deg, #020617 0%, #1e293b 50%, #020617 100%);
+      box-shadow: inset 0 0 20px #000;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .reel-col::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 15%, transparent 85%, rgba(0,0,0,0.7) 100%);
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Symbol */
+    .symbol-text {
+      text-shadow: 0 0 15px rgba(255,255,255,0.4);
+      filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5));
+    }
+
+    /* Nút bấm 3D */
+    .btn-3d {
+      transition: all 0.1s;
+      border-bottom: 4px solid rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(3px);
+      border-bottom-width: 1px;
+    }
+    .btn-spin-glow {
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+    }
+
+    /* Hiệu ứng rung màn hình */
+    .shake {
+      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+
+    /* Text Gradient */
+    .text-gradient-gold {
+      background: linear-gradient(to bottom, #fff 0%, #ffd700 50%, #b8860b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 0 rgba(0,0,0,0.5));
+    }
+  </style>
+</head>
+
+<body class="h-screen flex flex-col font-body text-slate-200 select-none">
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- Header -->
+  <header class="flex items-center justify-between p-4 z-20">
+    <div class="flex items-center gap-3">
+      <button class="w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-neon-blue hover:text-white hover:bg-white/10 transition">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <div>
+        <h1 class="font-display font-black text-lg leading-none tracking-widest italic text-white">
+          HC<span class="text-neon-blue">88</span>
+        </h1>
+        <div class="flex items-center gap-1.5 mt-1">
+          <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+          <span id="userStatus" class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Demo Mode</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Balance Display -->
+    <div class="glass-panel px-4 py-2 rounded-2xl flex items-center gap-3 border-l-4 border-neon-purple">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-lg">
+        <i class="fa-solid fa-crown text-yellow-900 text-xs"></i>
+      </div>
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Số dư</span>
+        <span id="balDisplay" class="font-display font-bold text-lg text-white leading-none tracking-wide">---</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Area -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4 py-2 relative w-full max-w-lg mx-auto" id="gameContainer">
+    
+    <!-- Status / Result Bar -->
+    <div class="w-full mb-4 flex justify-center h-12 relative">
+      <div id="resultBadge" class="absolute top-0 glass-panel px-8 py-2 rounded-full border border-white/20 transform transition-all duration-300 opacity-0 scale-90">
+         <span id="resultText" class="font-display font-black text-xl tracking-widest text-gradient-gold">WIN 50.000</span>
+      </div>
+      <div id="jackpotDisplay" class="text-center transition-all duration-300 opacity-100">
+        <div class="text-neon-pink font-display text-xs tracking-[0.3em] animate-pulse">GRAND JACKPOT</div>
+        <div class="font-display font-black text-2xl text-white drop-shadow-[0_0_10px_rgba(255,0,255,0.5)]">
+          ₫ 88,888,888
+        </div>
+      </div>
+    </div>
+
+    <!-- Slot Machine -->
+    <div class="w-full aspect-[4/3] max-h-[350px] slot-machine-frame mb-6 relative group">
+      <!-- Decor line -->
+      <div class="absolute top-1/2 left-0 w-full h-[2px] bg-red-500/50 z-20 shadow-[0_0_10px_red] pointer-events-none opacity-30 group-hover:opacity-50 transition"></div>
+      
+      <div class="w-full h-full bg-[#020617] rounded-[20px] overflow-hidden flex gap-2 p-3">
+        <!-- Reel 1 -->
+        <div class="flex-1 reel-col flex items-center justify-center" id="reel1">
+          <div class="symbol-text text-6xl transform transition-transform" id="sym1">🍒</div>
+        </div>
+        <!-- Reel 2 -->
+        <div class="flex-1 reel-col flex items-center justify-center" id="reel2">
+          <div class="symbol-text text-6xl transform transition-transform" id="sym2">🍋</div>
+        </div>
+        <!-- Reel 3 -->
+        <div class="flex-1 reel-col flex items-center justify-center" id="reel3">
+          <div class="symbol-text text-6xl transform transition-transform" id="sym3">⭐</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Control Deck -->
+    <div class="w-full space-y-4 relative z-10">
+      
+      <!-- Bet Selector -->
+      <div class="glass-panel p-1.5 rounded-2xl flex items-center justify-between">
+        <div class="flex-1 px-3">
+           <div class="text-[10px] text-slate-400 font-bold uppercase">Tiền cược</div>
+           <input id="betInput" type="number" class="w-full bg-transparent border-none text-neon-blue font-display font-bold text-xl focus:ring-0 p-0" value="5000">
+        </div>
+        <div class="flex gap-1">
+           <button onclick="quickBet(5000)" class="btn-3d px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold text-slate-300 border-slate-900">5K</button>
+           <button onclick="quickBet(20000)" class="btn-3d px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold text-slate-300 border-slate-900">20K</button>
+           <button onclick="quickBet('MAX')" class="btn-3d px-3 py-2 bg-gradient-to-r from-purple-900 to-purple-800 rounded-lg text-xs font-bold text-purple-200 border-purple-950">ALL</button>
+        </div>
+      </div>
+
+      <!-- Spin Button -->
+      <button id="btnSpin" onclick="spin()" class="btn-3d btn-spin-glow w-full h-16 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 border-emerald-800 flex items-center justify-center gap-3 group relative overflow-hidden">
+        <!-- Glow effect inside button -->
+        <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-2xl"></div>
+        
+        <i class="fa-solid fa-bolt text-yellow-300 text-2xl group-hover:animate-pulse"></i>
+        <span class="font-display font-black text-2xl text-white tracking-widest drop-shadow-md">QUAY NGAY</span>
+      </button>
+
+      <div class="text-center">
+        <p class="text-[10px] text-slate-500">Tỷ lệ thắng: 💎 x10 | ⭐ x5 | 🔔 x4 | 🍒 x3 | 🍋 x2</p>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // ==========================================
+    // 1. SUPABASE CONFIG & STATE
+    // ==========================================
+    const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"; // Thay đổi
+    const SUPABASE_KEY = "YOUR_ANON_KEY"; // Thay đổi
+    let sb = null;
+
+    try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e){}
+
+    let gameState = {
+      user: null,
+      balance: 100000, // Demo start
+      isSpinning: false,
+      lastWin: 0
+    };
+
+    // DOM Elements
+    const els = {
+      bal: document.getElementById('balDisplay'),
+      status: document.getElementById('userStatus'),
+      bet: document.getElementById('betInput'),
+      btn: document.getElementById('btnSpin'),
+      resultBadge: document.getElementById('resultBadge'),
+      resultText: document.getElementById('resultText'),
+      jackpotDiv: document.getElementById('jackpotDisplay'),
+      gameContainer: document.getElementById('gameContainer'),
+      reels: [
+        { el: document.getElementById('reel1'), sym: document.getElementById('sym1') },
+        { el: document.getElementById('reel2'), sym: document.getElementById('sym2') },
+        { el: document.getElementById('reel3'), sym: document.getElementById('sym3') }
+      ]
+    };
+
+    // Symbols Configuration
+    const SYMBOLS = [
+      { id: 'lemon', char: '🍋', weight: 40, color: '#facc15' },
+      { id: 'cherry', char: '🍒', weight: 30, color: '#ef4444' },
+      { id: 'bell',   char: '🔔', weight: 15, color: '#fbbf24' },
+      { id: 'star',   char: '⭐', weight: 10, color: '#a855f7' },
+      { id: 'diamond',char: '💎', weight: 5,  color: '#06b6d4' }
+    ];
+
+    // ==========================================
+    // 2. CORE FUNCTIONS
+    // ==========================================
+
+    function fmtMoney(n) {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n).replace('₫', '') + ' ₫';
+    }
+
+    // Hiệu ứng số chạy (Ticker)
+    function animateValue(obj, start, end, duration) {
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const current = Math.floor(progress * (end - start) + start);
+        obj.textContent = fmtMoney(current);
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    function updateUI(animate = false, oldBal = 0) {
+      if(animate) {
+        animateValue(els.bal, oldBal, gameState.balance, 1000);
+      } else {
+        els.bal.textContent = fmtMoney(gameState.balance);
+      }
+    }
+
+    function quickBet(amt) {
+      if(gameState.isSpinning) return;
+      if(amt === 'MAX') els.bet.value = gameState.balance;
+      else els.bet.value = amt;
+      // Hiệu ứng visual feedback
+      els.bet.classList.add('text-white');
+      setTimeout(() => els.bet.classList.remove('text-white'), 200);
+    }
+
+    function pickSymbol() {
+      const totalWeight = SYMBOLS.reduce((acc, s) => acc + s.weight, 0);
+      let r = Math.random() * totalWeight;
+      for (let s of SYMBOLS) {
+        r -= s.weight;
+        if (r <= 0) return s;
+      }
+      return SYMBOLS[0];
+    }
+
+    // ==========================================
+    // 3. GAME LOGIC & ANIMATION
+    // ==========================================
+
+    async function spin() {
+      if (gameState.isSpinning) return;
+      
+      const bet = parseInt(els.bet.value) || 0;
+      if (bet < 1000) return showToast("Cược tối thiểu 1.000đ", "error");
+      if (bet > gameState.balance) return showToast("Số dư không đủ", "error");
+
+      // Bắt đầu
+      gameState.isSpinning = true;
+      const oldBalance = gameState.balance;
+      gameState.balance -= bet;
+      updateUI(false); // Trừ tiền ngay lập tức
+      saveBalance(); // Sync DB
+
+      // UI Changes
+      els.btn.disabled = true;
+      els.btn.classList.add('opacity-50', 'cursor-not-allowed');
+      hideResult();
+
+      // Âm thanh rung (Haptic)
+      if(navigator.vibrate) navigator.vibrate(20);
+
+      // Animation loop
+      const results = [];
+      const spinDuration = [1000, 1400, 1800]; // Thời gian dừng từng cột
+
+      // Set CSS class quay
+      els.reels.forEach(r => {
+        r.sym.classList.add('animate-spin-blur');
+        r.el.classList.add('border-neon-blue', 'shadow-[inset_0_0_20px_rgba(0,243,255,0.3)]');
+      });
+
+      // Logic quay từng cột
+      await Promise.all(els.reels.map((reel, index) => {
+        return new Promise(resolve => {
+          // Visual change symbol liên tục
+          const interval = setInterval(() => {
+            reel.sym.textContent = pickSymbol().char;
+          }, 80);
+
+          // Stop logic
+          setTimeout(() => {
+            clearInterval(interval);
+            const finalSymbol = pickSymbol(); // Kết quả thật
+            results[index] = finalSymbol;
+            
+            // Dừng animation
+            reel.sym.classList.remove('animate-spin-blur');
+            reel.sym.textContent = finalSymbol.char;
+            
+            // Hiệu ứng "Bounce" khi dừng
+            reel.sym.classList.add('animate-bounce-sm');
+            setTimeout(() => reel.sym.classList.remove('animate-bounce-sm'), 300);
+            
+            // Sound/Haptic khi dừng
+            if(navigator.vibrate) navigator.vibrate(30);
+
+            resolve();
+          }, spinDuration[index]);
+        });
+      }));
+
+      // Xử lý kết quả
+      els.reels.forEach(r => r.el.classList.remove('border-neon-blue', 'shadow-[inset_0_0_20px_rgba(0,243,255,0.3)]'));
+      checkWin(results, bet);
+      
+      gameState.isSpinning = false;
+      els.btn.disabled = false;
+      els.btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    function checkWin(results, bet) {
+      const [s1, s2, s3] = results;
+      let multiplier = 0;
+      let isWin = false;
+
+      // 3 giống nhau
+      if (s1.id === s2.id && s2.id === s3.id) {
+        if(s1.id === 'diamond') multiplier = 10;
+        else if(s1.id === 'star') multiplier = 5;
+        else if(s1.id === 'bell') multiplier = 4;
+        else if(s1.id === 'cherry') multiplier = 3;
+        else multiplier = 2;
+      } 
+      // 2 giống nhau (cặp bất kỳ)
+      else if (s1.id === s2.id || s2.id === s3.id || s1.id === s3.id) {
+        multiplier = 1.2;
+      }
+
+      if (multiplier > 0) {
+        const winAmount = Math.floor(bet * multiplier);
+        const oldBal = gameState.balance;
+        gameState.balance += winAmount;
+        
+        showResult(`THẮNG ${fmtMoney(winAmount)}`, multiplier >= 4);
+        updateUI(true, oldBal); // Animate số tiền tăng
+        saveBalance();
+
+        if (multiplier >= 4) {
+          triggerConfetti();
+          els.gameContainer.classList.add('shake');
+          setTimeout(() => els.gameContainer.classList.remove('shake'), 500);
+        }
+      } else {
+        // Thua
+      }
+    }
+
+    // ==========================================
+    // 4. VISUAL EFFECTS HELPERS
+    // ==========================================
+
+    function showResult(text, isBigWin) {
+      els.jackpotDiv.style.opacity = '0'; // Hide Jackpot Title
+      els.resultText.textContent = text;
+      
+      els.resultBadge.classList.remove('opacity-0', 'scale-90');
+      els.resultBadge.classList.add('opacity-100', 'scale-100');
+      
+      if(isBigWin) {
+        els.resultText.classList.add('text-neon-pink');
+        els.resultBadge.classList.add('bg-white/10', 'border-neon-pink');
+      } else {
+        els.resultText.classList.remove('text-neon-pink');
+        els.resultBadge.classList.remove('bg-white/10', 'border-neon-pink');
+      }
+    }
+
+    function hideResult() {
+      els.resultBadge.classList.add('opacity-0', 'scale-90');
+      els.resultBadge.classList.remove('opacity-100', 'scale-100');
+      setTimeout(() => {
+        els.jackpotDiv.style.opacity = '1';
+      }, 300);
+    }
+
+    function showToast(msg, type) {
+      // Đơn giản hóa, dùng alert cho nhẹ hoặc có thể build custom toast
+      // Ở đây nháy đỏ input bet nếu lỗi
+      if(type === 'error') {
+        els.bet.parentElement.classList.add('bg-red-500/20');
+        setTimeout(() => els.bet.parentElement.classList.remove('bg-red-500/20'), 500);
+      }
+    }
+
+    // Canvas Confetti (Hiệu ứng pháo hoa đơn giản)
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerConfetti() {
+      particles = [];
+      const colors = ['#00f3ff', '#ff00ff', '#ffd700', '#ffffff'];
+      for (let i = 0; i < 100; i++) {
+        particles.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          vx: (Math.random() - 0.5) * 15,
+          vy: (Math.random() - 0.5) * 15 - 5,
+          size: Math.random() * 8 + 2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 100
+        });
+      }
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      if (particles.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+      }
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      for (let i = 0; i < particles.length; i++) {
+        let p = particles[i];
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.5; // Gravity
+        p.life--;
+        p.size *= 0.96;
+      }
+      
+      particles = particles.filter(p => p.life > 0);
+      requestAnimationFrame(animateConfetti);
+    }
+
+    // ==========================================
+    // 5. SUPABASE SYNC
+    // ==========================================
+    async function initUser() {
+      if(!sb) { updateUI(); return; }
+      
+      const { data: { user } } = await sb.auth.getUser();
+      if(user) {
+        gameState.user = user;
+        els.status.textContent = "VIP MEMBER";
+        els.status.classList.add('text-neon-blue');
+        
+        // Fetch balance
+        const { data } = await sb.from('users').select('balance').eq('id', user.id).single();
+        if(data) gameState.balance = Number(data.balance);
+      }
+      updateUI();
+    }
+
+    async function saveBalance() {
+      if(gameState.user && sb) {
+        await sb.from('users').update({ balance: gameState.balance }).eq('id', gameState.user.id);
+      }
+    }
+
+    // INIT
+    initUser();
+
+  </script>
+</body>
+</html>
+
