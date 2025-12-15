@@ -588,6 +588,11 @@
 
         async tryClaimHost() {
             const { data, error } = await supabaseClient.rpc("baccarat_claim_host", { p_room_id: ROOM_ID, p_uid: supaUser.id });
+            
+            // --- STEP 3: LOGGING DEBUG ---
+            console.log("CLAIM HOST:", data, error); 
+            // -----------------------------
+
             if (data === true) {
                 this.isHost = true;
                 this.eng.shoe.init(); // Host khởi tạo bộ bài của mình
@@ -917,4 +922,5 @@
 </script>
 </body>
 </html>
+
 
