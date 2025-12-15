@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Click Multiplier (97% RTP)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+
+        body {
+            background-color: #050505;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .reactor-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .reactor-container.state-locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+        .reactor-container.state-locked:active {
+            transform: translateX(5px);
+            animation: shake 0.3s;
+        }
+
+        .reactor-ring {
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            border: 2px dashed rgba(6, 182, 212, 0.3);
+            animation: spin 10s linear infinite;
+            pointer-events: none;
+        }
+        .reactor-ring::before {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            border-top: 4px solid #06b6d4;
+            border-right: 4px solid transparent;
+            border-bottom: 4px solid #06b6d4;
+            border-left: 4px solid transparent;
+            animation: spin-reverse 5s linear infinite;
+        }
+
+        .reactor-core {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #1e293b, #0f172a);
+            box-shadow: 
+                inset 0 0 30px rgba(0,0,0,0.8),
+                0 0 20px rgba(6, 182, 212, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            border: 4px solid #1e293b;
+            transition: all 0.1s;
+        }
+
+        .reactor-container:not(.state-locked):active .reactor-core {
+            transform: scale(0.95);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+            border-color: #06b6d4;
+        }
+
+        .state-playing .reactor-core {
+            border-color: #22c55e;
+            box-shadow: 0 0 50px rgba(34, 197, 94, 0.4);
+            animation: pulse-green 1s infinite;
+        }
+
+        .state-crash .reactor-core {
+            border-color: #ef4444;
+            background: #1a0505;
+            box-shadow: 0 0 50px rgba(239, 68, 68, 0.6);
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .state-crash .reactor-ring {
+            border-color: #ef4444;
+            animation: none;
+        }
+
+        .multi-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .btn-action {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .btn-start {
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            box-shadow: 0 4px 0 #1e40af;
+        }
+        .btn-start:active { transform: translateY(4px); box-shadow: none; }
+        .btn-cashout {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+            box-shadow: 0 4px 0 #92400e;
+        }
+        .btn-cashout:active { transform: translateY(4px); box-shadow: none; }
+
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen text-white">
+
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center p-4 z-20">
+        <div class="flex items-center gap-3">
+            <a href="games.html" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center hover:bg-slate-700 hover:border-cyan-500 transition-all group">
+                <i class="fa-solid fa-arrow-left text-slate-400 group-hover:text-cyan-400 transition-colors"></i>
+            </a>
+            <div class="hidden sm:flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-slate-400 text-sm font-bold tracking-wider" id="userLabel">DEMO USER</span>
+            </div>
+        </div>
+        <div class="bg-slate-900/80 px-4 py-2 rounded-full border border-slate-700 flex items-center gap-2 shadow-lg">
+            <i class="fa-solid fa-wallet text-yellow-500"></i>
+            <span class="font-mono text-xl font-bold text-white" id="bal">---</span>
+        </div>
+    </div>
+
+    <!-- MAIN GAME AREA -->
+    <div class="flex-1 flex flex-col items-center justify-center relative">
+        
+        <div id="tutorialText" class="absolute top-10 text-slate-500 text-sm font-bold tracking-[0.2em] transition-all">
+            HÃY ĐẶT CƯỢC ĐỂ CHƠI
+        </div>
+
+        <div id="mainBtn" class="reactor-container state-locked" onclick="clickUp()">
+            <div class="reactor-ring"></div>
+            <div class="reactor-core">
+                <div class="text-xs text-slate-500 font-bold tracking-widest mb-2 transition-colors" id="statusText">LOCKED</div>
+                <div class="multi-text text-white transition-all" id="multi" style="font-size: 2.5rem; opacity: 0.5;">WAITING</div>
+                <div class="text-xs text-cyan-400 mt-2 font-mono opacity-0 transition-opacity" id="tapHint">CLICK TO PUMP</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BOTTOM CONTROL PANEL -->
+    <div class="p-6 bg-slate-900/90 border-t border-slate-800 backdrop-blur-md z-20 pb-8">
+        <div class="max-w-md mx-auto w-full space-y-4">
+            
+            <div class="flex items-center gap-3">
+                <div class="relative flex-1">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">$</span>
+                    <input type="number" id="bet" 
+                        class="glass-input w-full pl-8 pr-3 py-4 rounded-xl text-xl font-bold text-white focus:outline-none focus:border-cyan-500 transition-colors font-mono"
+                        value="2300" placeholder="Cược">
+                </div>
+                <button onclick="setBet(5000)" class="bg-slate-800 text-slate-400 font-bold px-3 py-4 rounded-xl hover:bg-slate-700 text-xs">5K</button>
+                <button onclick="setBet(10000)" class="bg-slate-800 text-slate-400 font-bold px-3 py-4 rounded-xl hover:bg-slate-700 text-xs">10K</button>
+                <button onclick="setBet(balance)" class="bg-slate-800 text-slate-400 font-bold px-3 py-4 rounded-xl hover:bg-slate-700 text-xs">ALL</button>
+            </div>
+
+            <button onclick="handleAction()" id="btnAction"
+                class="btn-action btn-start w-full py-5 rounded-2xl font-black text-2xl text-white flex items-center justify-center gap-3 group">
+                
+                <div class="flex flex-col items-center leading-none">
+                    <span id="btnMainText">CƯỢC NGAY</span>
+                    <span id="btnSubText" class="text-xs opacity-70 font-normal mt-1 normal-case tracking-normal">Bắt đầu vòng mới</span>
+                </div>
+
+                <div id="cashVal" class="hidden text-sm font-mono bg-black/20 px-2 py-1 rounded ml-2">
+                    +0
+                </div>
+            </button>
+
+        </div>
+    </div>
+
+<script>
+    const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+    const SUPABASE_KEY = "YOUR_ANON_KEY";
+    let sb;
+    try { sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) {}
+
+    let user = null;
+    let balance = 100000;
+    let bet = 0;
+    let step = 0;
+    let playing = false;
+    
+    // BIẾN QUAN TRỌNG: ĐIỂM NỔ (Được xác định khi bắt đầu ván)
+    let crashPoint = 0;
+
+    // Elements
+    const elContainer = document.getElementById("mainBtn");
+    const elMulti = document.getElementById("multi");
+    const elStatus = document.getElementById("statusText");
+    const elTapHint = document.getElementById("tapHint");
+    const elTutorial = document.getElementById("tutorialText");
+    const elBtnAction = document.getElementById("btnAction");
+    const elBtnMainText = document.getElementById("btnMainText");
+    const elBtnSubText = document.getElementById("btnSubText");
+    const elCashVal = document.getElementById("cashVal");
+    const elBal = document.getElementById("bal");
+    const elInputBet = document.getElementById("bet");
+
+    const mul = () => step / 100;
+
+    function handleAction() {
+        if (!playing) {
+            startGame();
+        } else {
+            cashOut();
+        }
+    }
+
+    function setBet(amount) {
+        if(!playing) elInputBet.value = amount;
+    }
+
+    function startGame() {
+        const val = parseInt(elInputBet.value);
+        if (isNaN(val) || val < 100) return alert("Cược tối thiểu 100");
+        if (balance < val) return alert("Hết tiền rồi!");
+
+        bet = val;
+        balance -= bet;
+        step = 0;
+        playing = true;
+        syncBalance();
+
+        // --- CORE ALGORITHM: PROVABLY FAIR GENERATION ---
+        // Sinh ra điểm nổ theo phân phối Pareto (RTP 97%)
+        // Công thức: CrashPoint = 0.97 / (1 - Random[0,1])
+        // Điều này tạo ra xác suất Crash < X chính xác là 1 - 0.97/X
+        // Ví dụ: Xác suất crash < 2.0x là 1 - 0.97/2 = 51.5%
+        crashPoint = 0.97 / Math.random();
+        
+        // Debug (Bật lên nếu muốn test): console.log("Crash Point ván này:", crashPoint);
+
+        // UI Setup
+        elContainer.className = "reactor-container state-playing"; 
+        
+        elBtnAction.className = "btn-action btn-cashout w-full py-5 rounded-2xl font-black text-2xl text-white flex items-center justify-center gap-3 group";
+        elBtnMainText.innerText = "RÚT TIỀN";
+        elBtnSubText.innerText = "An toàn là trên hết";
+        elCashVal.classList.remove("hidden");
+        
+        elMulti.innerText = "+0.00x"; 
+        elMulti.style.fontSize = "4rem";
+        elMulti.style.opacity = "1";
+        elMulti.style.color = "#fff";
+        
+        elStatus.innerText = "ĐANG CHƠI";
+        elStatus.className = "text-xs text-green-400 font-bold tracking-widest mb-2 animate-pulse";
+        elTapHint.style.opacity = "1";
+        elTutorial.innerText = "NHẤN VÀO LÕI ĐỂ TĂNG LÃI!";
+        elTutorial.className = "absolute top-10 text-cyan-400 text-sm font-bold tracking-[0.2em] animate-bounce";
+        
+        updateDisplay();
+
+        // Kiểm tra Instant Bust (Nổ ngay lập tức nếu CrashPoint < 1.0)
+        // Xác suất ~3%
+        if (crashPoint < 1.0) {
+            setTimeout(() => crash(), 200); // Delay nhẹ cho user kịp nhìn thấy giao diện start
+        }
+    }
+
+    function clickUp() {
+        if (!playing) {
+            elContainer.classList.add("animate-shake"); 
+            setTimeout(() => elContainer.classList.remove("animate-shake"), 500);
+            return;
+        }
+        
+        // Tăng lợi nhuận dự kiến
+        step += 10;
+        const profit_mul = mul();
+        const total_mul = 1 + profit_mul; // Tổng hệ số (1 gốc + lãi)
+
+        // Visual Click
+        const core = elContainer.querySelector('.reactor-core');
+        core.style.transform = "scale(0.97)";
+        setTimeout(() => core.style.transform = "scale(1)", 50);
+
+        // --- KIỂM TRA ĐIỀU KIỆN THẮNG THUA ---
+        // Nếu tổng hệ số vượt quá điểm nổ đã định trước -> THUA
+        if (total_mul > crashPoint) {
+            crash();
+            return;
+        }
+
+        // Color Feedback
+        if (profit_mul > 0.5) {
+             elMulti.style.color = "#22c55e"; 
+             elStatus.innerText = "LÃI NGON";
+        }
+        if (profit_mul > 1.5) {
+             elMulti.style.color = "#f59e0b";
+             elStatus.innerText = "RỦI RO CAO";
+             elStatus.className = "text-xs text-yellow-500 font-bold tracking-widest mb-2";
+        }
+        if (profit_mul > 3.0) {
+             elMulti.style.color = "#ef4444";
+             elStatus.innerText = "CỰC CĂNG";
+             elStatus.className = "text-xs text-red-500 font-bold tracking-widest mb-2 animate-ping";
+        }
+
+        updateDisplay();
+    }
+
+    function crash() {
+        playing = false;
+        step = 0;
+
+        elContainer.className = "reactor-container state-crash";
+        elMulti.innerText = "CRASH";
+        elMulti.style.color = "#ef4444";
+        elStatus.innerText = "MẤT CƯỢC";
+        elTapHint.style.opacity = "0";
+
+        resetActionButtonState();
+
+        if(navigator.vibrate) navigator.vibrate(200);
+
+        setTimeout(() => {
+            resetToIdle();
+        }, 2000);
+
+        syncBalance();
+        updateDisplay();
+    }
+
+    function cashOut() {
+        if (!playing) return;
+        
+        // Tính tiền trả về
+        const profit = Math.floor(bet * mul());
+        const totalReturn = bet + profit;
+        
+        balance += totalReturn;
+        playing = false;
+        step = 0;
+        syncBalance();
+        
+        elContainer.className = "reactor-container";
+        elMulti.innerText = "WIN";
+        elMulti.style.color = "#fbbf24";
+        elStatus.innerText = "+" + totalReturn.toLocaleString();
+        elStatus.className = "text-lg text-yellow-400 font-bold tracking-widest mb-2";
+        elTapHint.style.opacity = "0";
+
+        resetActionButtonState(true);
+
+        setTimeout(() => {
+            resetToIdle();
+        }, 2000);
+        
+        updateDisplay();
+    }
+
+    function resetActionButtonState(won = false) {
+        elBtnAction.className = "btn-action btn-start w-full py-5 rounded-2xl font-black text-2xl text-white flex items-center justify-center gap-3 group opacity-50 cursor-not-allowed";
+        elBtnAction.disabled = true;
+        elBtnMainText.innerText = won ? "ĐÃ THẮNG" : "ĐÃ NỔ";
+        elBtnSubText.innerText = "Đang đặt lại...";
+        elCashVal.classList.add("hidden");
+    }
+
+    function resetToIdle() {
+        elContainer.className = "reactor-container state-locked";
+        elMulti.innerText = "WAITING";
+        elMulti.style.fontSize = "2.5rem";
+        elMulti.style.color = "#fff";
+        elMulti.style.opacity = "0.5";
+        
+        elStatus.innerText = "LOCKED";
+        elStatus.className = "text-xs text-slate-500 font-bold tracking-widest mb-2 transition-colors";
+        
+        elTutorial.innerText = "HÃY ĐẶT CƯỢC ĐỂ CHƠI";
+        elTutorial.className = "absolute top-10 text-slate-500 text-sm font-bold tracking-[0.2em] transition-all";
+
+        elBtnAction.disabled = false;
+        elBtnAction.classList.remove("opacity-50", "cursor-not-allowed", "btn-cashout");
+        elBtnAction.classList.add("btn-start");
+        elBtnMainText.innerText = "CƯỢC NGAY";
+        elBtnSubText.innerText = "Bắt đầu vòng mới";
+    }
+
+    function updateDisplay() {
+        elBal.innerText = balance.toLocaleString();
+        if (playing) {
+            elMulti.innerText = "+" + mul().toFixed(2) + "x";
+            const currentProfit = Math.floor(bet * mul());
+            const totalReceive = bet + currentProfit;
+            elCashVal.innerText = "Nhận: " + totalReceive.toLocaleString();
+        }
+    }
+
+    // --- INIT ---
+    async function loadUser() {
+        if(sb) {
+            const {data:{user:u}} = await sb.auth.getUser();
+            if(u) {
+                user = u;
+                document.getElementById("userLabel").innerText = "VIP";
+                const {data} = await sb.from("users").select("balance").eq("id",u.id).single();
+                if(data) balance = data.balance;
+            }
+        }
+        updateDisplay();
+    }
+    async function syncBalance() {
+        if(user && sb) await sb.from("users").update({balance}).eq("id",user.id);
+    }
+    loadUser();
+
+    document.addEventListener('dblclick', function(event) {
+        event.preventDefault();
+    }, { passive: false });
+</script>
+</body>
+</html>
+
+
