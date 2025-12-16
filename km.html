@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HeoCon88 - Khuyến Mãi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    body {
+        font-family: 'Outfit', sans-serif;
+        background-color: #0f172a;
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+            radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+        color: #e2e8f0;
+        min-height: 100vh;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .glass-nav {
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, background 0.2s;
+    }
+    .glass-card:active {
+        transform: scale(0.98);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .promo-tag {
+        background: linear-gradient(90deg, #ef4444, #f97316);
+        box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
+    }
+    
+    .promo-free {
+        background: linear-gradient(90deg, #10b981, #3b82f6);
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Modal Animation */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    
+    .modal-overlay { animation: fadeIn 0.2s ease-out; }
+    .modal-content { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+
+    /* Custom Scrollbar for Tags */
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Button States */
+    .btn-pending { background: #eab308; cursor: not-allowed; color: #000; }
+    .btn-success { background: #22c55e; cursor: not-allowed; }
+    .btn-failed { background: #ef4444; cursor: not-allowed; }
+</style>
+</head>
+<body class="flex flex-col pb-10">
+
+<!-- HEADER -->
+<header class="glass-nav sticky top-0 z-50 px-4 py-4 flex items-center justify-between">
+    <button onclick="goHome()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition">
+        <i class="fa-solid fa-arrow-left text-lg text-white"></i>
+    </button>
+    <h1 class="text-lg font-bold text-white tracking-wide">Sự Kiện & Khuyến Mãi</h1>
+    <div class="w-10"></div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="flex-1 p-4">
+
+    <!-- CATEGORY TABS -->
+    <div class="flex gap-3 overflow-x-auto hide-scrollbar mb-6 pb-2">
+        <button onclick="filterPromo('all')" id="btn-all" class="cat-btn px-5 py-2 rounded-full bg-white text-slate-900 font-bold text-sm whitespace-nowrap shadow-lg transition">Tất cả</button>
+        <button onclick="filterPromo('deposit')" id="btn-deposit" class="cat-btn px-5 py-2 rounded-full bg-white/10 text-slate-300 font-medium text-sm whitespace-nowrap hover:bg-white/20 transition">Nạp tiền</button>
+        <button onclick="filterPromo('free')" id="btn-free" class="cat-btn px-5 py-2 rounded-full bg-white/10 text-slate-300 font-medium text-sm whitespace-nowrap hover:bg-white/20 transition">Trải nghiệm</button>
+        <button onclick="filterPromo('refund')" id="btn-refund" class="cat-btn px-5 py-2 rounded-full bg-white/10 text-slate-300 font-medium text-sm whitespace-nowrap hover:bg-white/20 transition">Hoàn trả</button>
+    </div>
+
+    <!-- PROMO LIST -->
+    <div id="promo-list" class="space-y-4">
+        
+        <!-- Item 1: Nạp đầu (Updated) -->
+        <div class="glass-card rounded-2xl p-0 overflow-hidden cursor-pointer group" data-cat="deposit" onclick="openModal('promo1')">
+            <div class="relative h-32 bg-gradient-to-r from-red-600 to-orange-600 flex items-center justify-center overflow-hidden">
+                <i class="fa-solid fa-sack-dollar text-8xl text-white/10 absolute -right-4 -bottom-4 group-hover:scale-110 transition duration-500"></i>
+                <div class="text-center z-10">
+                    <h3 class="text-2xl font-black text-white drop-shadow-md">NẠP ĐẦU</h3>
+                    <p class="text-sm text-white/90 font-medium uppercase tracking-wider">Tặng 100%</p>
+                </div>
+                <div class="absolute top-3 right-3 promo-tag text-[10px] font-bold text-white px-2 py-1 rounded shadow-sm">HOT</div>
+            </div>
+            <div class="p-4 flex justify-between items-center">
+                <div>
+                    <h4 class="font-bold text-white">Thưởng nạp 580k - 1.58M</h4>
+                    <p class="text-xs text-slate-400 mt-1">Dành cho hội viên nạp lần đầu</p>
+                </div>
+                <div id="status-preview-promo1" class="text-xs font-bold px-2 py-1 rounded bg-slate-700 text-slate-400">Chi tiết</div>
+            </div>
+        </div>
+
+        <!-- Item 2: Trải nghiệm (New) -->
+        <div class="glass-card rounded-2xl p-0 overflow-hidden cursor-pointer group" data-cat="free" onclick="openModal('promo2')">
+            <div class="relative h-32 bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center overflow-hidden">
+                <i class="fa-solid fa-gift text-8xl text-white/10 absolute -left-4 -bottom-4 group-hover:scale-110 transition duration-500"></i>
+                <div class="text-center z-10">
+                    <h3 class="text-3xl font-black text-white drop-shadow-md">280K</h3>
+                    <p class="text-sm text-white/90 font-medium uppercase tracking-wider">Tiền trải nghiệm</p>
+                </div>
+                <div class="absolute top-3 left-3 promo-free text-[10px] font-bold text-white px-2 py-1 rounded shadow-sm">FREE</div>
+            </div>
+            <div class="p-4 flex justify-between items-center">
+                <div>
+                    <h4 class="font-bold text-white">Tặng vốn khởi nghiệp</h4>
+                    <p class="text-xs text-slate-400 mt-1">Đăng ký nhận ngay 280.000 Coin</p>
+                </div>
+                <div id="status-preview-promo2" class="text-xs font-bold px-2 py-1 rounded bg-slate-700 text-slate-400">Chi tiết</div>
+            </div>
+        </div>
+
+        <!-- Item 3: Hoàn trả -->
+        <div class="glass-card rounded-2xl p-0 overflow-hidden cursor-pointer group" data-cat="refund" onclick="openModal('promo3')">
+            <div class="relative h-24 bg-gradient-to-r from-slate-700 to-slate-600 flex items-center justify-between px-6 overflow-hidden">
+                <div class="z-10">
+                    <h3 class="text-xl font-black text-white">1.5%</h3>
+                    <p class="text-xs text-white/90 font-medium uppercase">Hoàn trả mỗi ngày</p>
+                </div>
+                <i class="fa-solid fa-rotate-left text-4xl text-white/20"></i>
+            </div>
+            <div class="p-3">
+                <h4 class="font-bold text-white text-sm">Hoàn trả vô tận</h4>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div id="empty-state" class="hidden text-center py-10 opacity-60">
+        <i class="fa-solid fa-box-open text-4xl text-slate-500 mb-3"></i>
+        <p class="text-sm text-slate-400">Không có khuyến mãi nào trong mục này</p>
+    </div>
+
+</main>
+
+<!-- MODAL POPUP -->
+<div id="detail-modal" class="fixed inset-0 z-[100] hidden">
+    <!-- Overlay -->
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-sm modal-overlay" onclick="closeModal()"></div>
+    
+    <!-- Content -->
+    <div class="absolute bottom-0 left-0 w-full bg-[#1e293b] rounded-t-3xl overflow-hidden modal-content border-t border-white/10">
+        <!-- Header Image -->
+        <div class="h-32 bg-gradient-to-r from-blue-600 to-indigo-600 relative flex items-center justify-center transition-colors duration-300" id="modal-header-bg">
+            <button onclick="closeModal()" class="absolute top-4 right-4 w-8 h-8 bg-black/20 rounded-full text-white flex items-center justify-center hover:bg-black/40 transition z-20">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <i id="modal-icon" class="fa-solid fa-gift text-6xl text-white/20 absolute"></i>
+            <h2 id="modal-title" class="text-xl font-bold text-white z-10 text-center px-4 uppercase drop-shadow-md">Tiêu đề KM</h2>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6 pb-8 bg-[#0f172a]">
+            <div class="prose prose-invert prose-sm max-w-none">
+                <h3 class="text-emerald-400 font-bold mb-2 text-sm">🎁 Chi tiết ưu đãi:</h3>
+                <div id="modal-desc" class="text-slate-300 mb-4 leading-relaxed text-sm bg-slate-800/50 p-3 rounded-lg border border-slate-700">
+                    <!-- Content injected via JS -->
+                </div>
+                
+                <h3 class="text-emerald-400 font-bold mb-2 text-sm">⚠ Lưu ý:</h3>
+                <ul class="list-disc list-inside text-slate-400 space-y-1 text-xs">
+                    <li>Một IP/Thiết bị chỉ được nhận 1 lần.</li>
+                    <li>Nghiêm cấm hành vi bào khuyến mãi.</li>
+                    <li>Quyết định của Admin là quyết định cuối cùng.</li>
+                </ul>
+            </div>
+
+            <!-- Action Button -->
+            <button id="modal-action-btn" class="w-full mt-6 font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                <span>Đăng Ký Ngay</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === Dữ liệu Khuyến Mãi (Updated) ===
+    const promoData = {
+        'promo1': {
+            title: "NẠP ĐẦU 580K - 1.58M",
+            icon: "fa-sack-dollar",
+            bg: "from-red-600 to-orange-600",
+            desc: `
+                <p>Thưởng nóng cho hội viên mới nạp tiền lần đầu:</p>
+                <ul class="mt-2 space-y-1">
+                    <li>- Nạp <b>580.000</b> Coin nhận thêm thưởng.</li>
+                    <li>- Nạp <b>1.580.000</b> Coin nhận gói kích hoạt VIP.</li>
+                    <li>- Yêu cầu: 1 vòng cược lại trước khi rút.</li>
+                </ul>
+            `
+        },
+        'promo2': {
+            title: "TẶNG 280K TRẢI NGHIỆM",
+            icon: "fa-gift",
+            bg: "from-emerald-500 to-cyan-500",
+            desc: `
+                <p>Quà tặng khởi nghiệp dành cho tân thủ:</p>
+                <ul class="mt-2 space-y-1">
+                    <li>- Nhận ngay <b>280.000 Coin</b> vào ví chính.</li>
+                    <li>- Áp dụng cho tất cả trò chơi (Trừ Xổ số).</li>
+                    <li>- Thắng trên 500k được phép rút tiền.</li>
+                </ul>
+            `
+        },
+        'promo3': {
+            title: "HOÀN TRẢ 1.5%",
+            icon: "fa-rotate-left",
+            bg: "from-slate-700 to-slate-600",
+            desc: "Hoàn trả không giới hạn mỗi ngày. Tự động cộng vào 13:00."
+        }
+    };
+
+    let uid = localStorage.getItem("my_wallet_uid");
+    let currentPromoId = null;
+
+    // === HÀM CHÍNH ===
+
+    function goHome() {
+        location.href = "home.html";
+    }
+
+    // Lọc khuyến mãi
+    function filterPromo(category) {
+        document.querySelectorAll('.cat-btn').forEach(btn => {
+            btn.className = "cat-btn px-5 py-2 rounded-full bg-white/10 text-slate-300 font-medium text-sm whitespace-nowrap hover:bg-white/20 transition";
+        });
+        const activeBtn = document.getElementById(`btn-${category}`);
+        activeBtn.className = "cat-btn px-5 py-2 rounded-full bg-white text-slate-900 font-bold text-sm whitespace-nowrap shadow-lg transition";
+
+        const items = document.querySelectorAll('#promo-list > div');
+        let hasItem = false;
+        items.forEach(item => {
+            if (category === 'all' || item.getAttribute('data-cat') === category) {
+                item.style.display = 'block';
+                hasItem = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        document.getElementById('empty-state').classList.toggle('hidden', hasItem);
+    }
+
+    // Mở Modal
+    function openModal(promoId) {
+        if(!uid) {
+            alert("Vui lòng đăng nhập để xem chi tiết!");
+            return location.href = "index.html";
+        }
+
+        const data = promoData[promoId];
+        if(!data) return;
+
+        currentPromoId = promoId;
+
+        // Render Content
+        document.getElementById('modal-title').innerText = data.title;
+        document.getElementById('modal-desc').innerHTML = data.desc;
+        document.getElementById('modal-icon').className = `fa-solid ${data.icon} text-6xl text-white/20 absolute`;
+        document.getElementById('modal-header-bg').className = `h-32 bg-gradient-to-r ${data.bg} relative flex items-center justify-center transition-colors duration-300`;
+
+        // Check Status & Render Button
+        updateButtonState();
+
+        document.getElementById('detail-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    // === LOGIC XỬ LÝ TRẠNG THÁI ===
+    
+    // Lấy trạng thái từ LocalStorage (Giả lập DB)
+    function getStatus(promoId) {
+        const key = `promo_status_${uid}_${promoId}`;
+        return localStorage.getItem(key) || 'none'; // none, pending, success, failed
+    }
+
+    function setStatus(promoId, status) {
+        const key = `promo_status_${uid}_${promoId}`;
+        localStorage.setItem(key, status);
+        updateButtonState();
+        updatePreviewBadge(promoId, status);
+    }
+
+    // Cập nhật nút bấm trong Modal
+    function updateButtonState() {
+        const status = getStatus(currentPromoId);
+        const btn = document.getElementById('modal-action-btn');
+
+        // Reset classes
+        btn.className = "w-full mt-6 font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2";
+        btn.onclick = null;
+
+        if (status === 'none') {
+            // Chưa đăng ký
+            btn.classList.add('bg-gradient-to-r', 'from-indigo-500', 'to-purple-600', 'hover:from-indigo-600', 'text-white', 'active:scale-95');
+            btn.innerHTML = '<span>Đăng Ký Tham Gia</span> <i class="fa-solid fa-arrow-right"></i>';
+            btn.onclick = handleRegister;
+        } else if (status === 'pending') {
+            // Đang xử lý (Vàng)
+            btn.classList.add('btn-pending');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Đang Xử Lý...</span>';
+        } else if (status === 'success') {
+            // Thành công (Xanh)
+            btn.classList.add('btn-success', 'text-white');
+            btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> <span>Đã Thành Công</span>';
+        } else if (status === 'failed') {
+            // Thất bại (Đỏ)
+            btn.classList.add('btn-failed', 'text-white');
+            btn.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> <span>Không Thành Công</span>';
+        }
+    }
+
+    // Xử lý khi bấm Đăng Ký
+    function handleRegister() {
+        if (!confirm("Xác nhận đăng ký tham gia khuyến mãi này?")) return;
+
+        // 1. Chuyển sang Đang Xử Lý
+        setStatus(currentPromoId, 'pending');
+
+        // 2. Giả lập Admin duyệt sau 5 giây (Để bạn test)
+        // Trong thực tế, bước này Admin làm trên trang Admin
+        setTimeout(() => {
+            // Random kết quả để test: 70% thành công, 30% thất bại
+            const isApproved = Math.random() > 0.3; 
+            const finalStatus = isApproved ? 'success' : 'failed';
+            
+            setStatus(currentPromoId, finalStatus);
+            
+            // Nếu modal đang mở thì cập nhật lại nút ngay lập tức
+            if(!document.getElementById('detail-modal').classList.contains('hidden')){
+                updateButtonState();
+            }
+        }, 5000); // 5 giây sau tự duyệt
+    }
+
+    // Cập nhật Badge bên ngoài danh sách (Optional UX)
+    function updatePreviewBadge(promoId, status) {
+        const badge = document.getElementById(`status-preview-${promoId}`);
+        if (!badge) return;
+
+        if (status === 'pending') {
+            badge.className = "text-xs font-bold px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50";
+            badge.innerText = "Đang xử lý";
+        } else if (status === 'success') {
+            badge.className = "text-xs font-bold px-2 py-1 rounded bg-green-500/20 text-green-400 border border-green-500/50";
+            badge.innerText = "Đã nhận";
+        } else if (status === 'failed') {
+            badge.className = "text-xs font-bold px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/50";
+            badge.innerText = "Từ chối";
+        }
+    }
+
+    // Load trạng thái ban đầu khi vào trang
+    window.onload = function() {
+        if(uid) {
+            ['promo1', 'promo2'].forEach(pid => {
+                const s = getStatus(pid);
+                if(s !== 'none') updatePreviewBadge(pid, s);
+            });
+        }
+    }
+
+</script>
+
+</body>
+</html>
+
+
