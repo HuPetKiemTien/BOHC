@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Baccarat Pro - Realtime Host/Client</title>
+    <title>Baccarat Pro - Realtime Sync</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Noto+Serif:wght@700&display=swap" rel="stylesheet">
     <!-- THÊM SUPABASE LIBRARY -->
@@ -57,10 +57,13 @@
             display: flex; align-items: center; gap: 6px;
             transition: all 0.2s ease;
         }
-        .btn-exit.host-badge {
-            border-color: #2ecc71; color: #2ecc71; background: rgba(46, 204, 113, 0.1);
+        .btn-exit:active { 
+            background: rgba(244, 208, 63, 0.2); 
+            border-color: var(--gold);
+            transform: scale(0.96);
         }
-        
+        .btn-exit svg { fill: currentColor; width: 14px; height: 14px; }
+
         .shoe-info {
             font-size: 10px; color: #aaa; text-align: center; line-height: 1.2;
             background: rgba(0,0,0,0.4); padding: 4px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
@@ -294,18 +297,18 @@
 </head>
 <body>
 
-    <div id="toast" class="toast info">Đang kết nối server...</div>
+    <div id="toast" class="toast info">Đang kết nối ví tiền...</div>
 
     <!-- Top Bar -->
     <div class="top-bar">
-        <a href="games.html" class="btn-exit" id="uiHostBadge">
+        <a href="games.html" class="btn-exit">
             <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
             LOBBY
         </a>
         
         <div class="shoe-info">
             SHOE<br>
-            <span class="shoe-count" id="uiCardsLeft">-- / --</span>
+            <span class="shoe-count" id="uiCardsLeft">416 / 416</span>
         </div>
         
         <div class="balance-box">
@@ -319,7 +322,7 @@
 
     <!-- Stage -->
     <div class="stage-area">
-        <div class="timer-float" id="uiTimer">--</div>
+        <div class="timer-float" id="uiTimer">20</div>
 
         <div class="overlay" id="uiOverlay">
             <div class="res-modal">
@@ -389,19 +392,139 @@
     </div>
 
 <script>
+    /**
+     * BACCARAT ENGINE + ROBUST SUPABASE INTEGRATION
+     */
+    
     // --- 1. SUPABASE CONFIG ---
+    // Sử dụng thông tin bạn đã cung cấp
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     
-    // Sử dụng chung UID từ LocalStorage
-    const ROOM_ID = "vip-room-1";
-    
+    // !!! QUAN TRỌNG: Đảm bảo bảng này tồn tại và có RLS policy cho phép SELECT/UPDATE
+    const WALLET_TABLE = 'users';              
+    const WALLET_BALANCE_COLUMN = 'balance'; 
+
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let supaUser = null;
-    let walletChannel = null;
-    let roomChannel = null;
+    let realtimeChannel = null;
 
-    // --- GAME LOGIC CLASSES (Chỉ Host dùng Engine, Client chỉ dùng Card để render) ---
+    // --- SUPABASE HELPER FUNCTIONS ---
+    
+    // --- ĐÂY LÀ HÀM ĐÃ SỬA THEO HƯỚNG DẪN CỦA BẠN (SỬ DỤNG LOCALSTORAGE) ---
+    async function initSupabase() {
+      try {
+        // 1. LẤY UID DÙNG CHUNG TOÀN HỆ THỐNG
+        const uid = localStorage.getItem("my_wallet_uid");
+        if (!uid) {
+          alert("Vui lòng đăng nhập lại!");
+          window.location.href = "index.html";
+          return;
+        }
+
+        // 2. GIẢ LẬP USER (KHÔNG DÙNG SUPABASE AUTH)
+        supaUser = { id: uid };
+        document.getElementById('uiStatusDot').classList.add('online');
+
+        // 3. LẤY SỐ DƯ TỪ BẢNG users
+        const { data, error } = await supabaseClient
+          .from("users")
+          .select("balance")
+          .eq("id", uid)
+          .maybeSingle();
+
+        // 4. CHƯA CÓ USER → TẠO
+        if (!data) {
+          await supabaseClient.from("users").insert({
+            id: uid,
+            balance: 0
+          });
+          app.balance = 0;
+        } else {
+          app.balance = data.balance || 0;
+        }
+
+        // 5. UPDATE GIAO DIỆN
+        game.updateBal();
+        setupRealtimeBalance();
+        app.showToast(`Đã kết nối ví: ${uid}`, 'success');
+
+      } catch (err) {
+        console.error(err);
+        app.showToast("Lỗi kết nối ví!", "alert");
+      }
+    }
+
+    // (Hàm này giữ lại để tham khảo, nhưng initSupabase ở trên đã xử lý việc load lần đầu)
+    async function loadBalance() {
+        if (!supaUser) return;
+        
+        const { data, error } = await supabaseClient
+            .from(WALLET_TABLE)
+            .select(WALLET_BALANCE_COLUMN)
+            .eq('id', supaUser.id)
+            .maybeSingle(); 
+
+        if (error) {
+            console.error('Lỗi lấy tiền:', error);
+            app.showToast('Lỗi đọc số dư từ Database!', 'alert');
+        } else if (data) {
+            app.balance = data[WALLET_BALANCE_COLUMN] || 0;
+            game.updateBal();
+        }
+    }
+
+    function setupRealtimeBalance() {
+        if (!supaUser) return;
+
+        // Hủy kênh cũ nếu có
+        if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+
+        realtimeChannel = supabaseClient
+            .channel('wallet-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: WALLET_TABLE,
+                    filter: `id=eq.${supaUser.id}`
+                },
+                (payload) => {
+                    // Khi Database thay đổi, cập nhật UI ngay lập tức
+                    const newBal = payload.new[WALLET_BALANCE_COLUMN];
+                    if (newBal !== undefined && newBal !== app.balance) {
+                        console.log('Realtime update:', newBal);
+                        app.balance = newBal;
+                        game.updateBal();
+                    }
+                }
+            )
+            .subscribe();
+    }
+
+    async function syncBalanceToSupabase() {
+        if (!supaUser) return;
+        
+        // Sử dụng await để đảm bảo lệnh gửi đi thành công (hoặc bắt lỗi)
+        try {
+            const { error } = await supabaseClient
+                .from(WALLET_TABLE)
+                .update({ [WALLET_BALANCE_COLUMN]: app.balance })
+                .eq('id', supaUser.id);
+
+            if (error) {
+                console.error('Sync Error:', error);
+                app.showToast('Lỗi đồng bộ tiền! Kiểm tra mạng/quyền.', 'alert');
+                // Nếu lỗi, nên reload lại số dư thực tế từ DB để tránh lệch
+                await loadBalance(); 
+            }
+        } catch (e) {
+            console.error('Sync Exception:', e);
+        }
+    }
+
+    // --- 2. GAME LOGIC ---
     class Card {
         constructor(rank, suit, value) {
             this.r = rank; this.s = suit; this.v = value;
@@ -439,7 +562,7 @@
 
     class BaccaratEngine {
         constructor() {
-            this.shoe = new Shoe(8); this.history = []; this.roundTime = 20000; // 20s betting time
+            this.shoe = new Shoe(8); this.history = []; this.roundTime = 25000;
         }
         playRound() {
             let shuffled = false;
@@ -479,293 +602,133 @@
         }
     }
 
-    // --- MAIN APP LOGIC ---
+    // --- MAIN CONTROLLER ---
+    const DB_KEY = 'baccarat_pro_data_v3';
+
+    class Persistence {
+        static save(state) {
+            const data = {
+                // Not saving balance locally anymore to trust Supabase
+                history: state.engine.history,
+                cards: state.engine.shoe.cards,
+                cutIdx: state.engine.shoe.cutCardIdx,
+                timestamp: Date.now(),
+                phaseStart: state.phaseStartTime 
+            };
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+        }
+        static load() {
+            const raw = localStorage.getItem(DB_KEY);
+            if (!raw) return null;
+            try {
+                const data = JSON.parse(raw);
+                const cards = data.cards.map(c => new Card(c.r, c.s, c.v));
+                return { ...data, cards };
+            } catch(e) { return null; }
+        }
+    }
+
     const app = {
-        eng: new BaccaratEngine(), // Host dùng engine này, Client chỉ dùng để chứa history/shoe
+        eng: new BaccaratEngine(),
         state: 'BETTING',
+        timer: 20,
         balance: 0, 
         bet: { P:0, B:0, T:0 },
         pend: { P:0, B:0, T:0 },
         chip: 10000,
-        
-        isHost: false,       // Cờ xác định có phải host không
-        nextPhaseTime: 0,    // Thời gian kết thúc phase hiện tại
-        _lastRoundId: null,  // ID của round gần nhất để tránh animation lặp lại
-        
+        nextPhaseTime: 0,
+        loopId: null,
+
+        // TABLE LIMITS
         MIN_BET: 2000,
         MAX_BET: 250000,
         MAX_BET_TIE: 25000,
 
         async init() {
-            // 1. Kết nối ví (Supabase Users)
-            await this.initWallet();
+            // 1. Init Supabase & Load Balance
+            await initSupabase();
 
-            // 2. Kết nối phòng chơi (Supabase Baccarat State)
-            await this.initRoom();
+            // 2. Load Game State (Shoe, Time)
+            const saved = Persistence.load();
+            if (saved) {
+                if (saved.cards && saved.cards.length > 0) {
+                    this.eng.shoe.cards = saved.cards;
+                    this.eng.shoe.cutCardIdx = saved.cutIdx;
+                    this.eng.shoe.needsShuffle = false;
+                } else { this.eng.shoe.init(); }
+                this.eng.history = saved.history || [];
+
+                const now = Date.now();
+                const diff = now - saved.timestamp;
+                const roundsMissed = Math.floor(diff / this.eng.roundTime);
+                if (roundsMissed > 0) {
+                    // app.showToast(`Đã qua ${roundsMissed} ván khi bạn vắng mặt.`, 'info');
+                    for (let i = 0; i < roundsMissed; i++) this.eng.playRound();
+                    Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: now });
+                }
+                const timeInCycle = diff % this.eng.roundTime;
+                this.nextPhaseTime = now + (this.eng.roundTime - timeInCycle);
+            } else {
+                this.eng.shoe.init();
+                this.nextPhaseTime = Date.now() + 20000;
+            }
+            game.renderRoadmap(this.eng.history);
+            game.updateShoeCount();
             
-            // 3. Chạy loop (đếm ngược & host logic)
+            // Ẩn toast loading ban đầu
+            if(document.getElementById('toast').innerText === 'Đang kết nối ví tiền...') {
+                 document.getElementById('toast').style.opacity = 0;
+            }
+            
             this.loop();
         },
-
-        async initWallet() {
-            try {
-                const uid = localStorage.getItem("my_wallet_uid");
-                if (!uid) { alert("Vui lòng đăng nhập lại!"); window.location.href = "index.html"; return; }
-                
-                supaUser = { id: uid };
-                document.getElementById('uiStatusDot').classList.add('online');
-
-                const { data } = await supabaseClient.from("users").select("balance").eq("id", uid).maybeSingle();
-                if (!data) {
-                    await supabaseClient.from("users").insert({ id: uid, balance: 0 });
-                    this.balance = 0;
-                } else {
-                    this.balance = data.balance || 0;
-                }
-                game.updateBal();
-                this.setupWalletRealtime();
-                this.showToast(`ID: ${uid.substring(0,8)}...`, 'success');
-            } catch (err) { console.error(err); this.showToast("Lỗi ví tiền", "alert"); }
-        },
-
-        setupWalletRealtime() {
-            if (walletChannel) supabaseClient.removeChannel(walletChannel);
-            walletChannel = supabaseClient.channel('wallet-sub').on('postgres_changes', 
-                { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${supaUser.id}` }, 
-                (payload) => {
-                    const newBal = payload.new.balance;
-                    if (newBal !== this.balance) { this.balance = newBal; game.updateBal(); }
-                }
-            ).subscribe();
-        },
-
-        async initRoom() {
-            // A. Lấy trạng thái hiện tại
-            let { data, error } = await supabaseClient
-                .from("baccarat_state")
-                .select("*")
-                .eq("room_id", ROOM_ID)
-                .maybeSingle();
-
-            // Nếu chưa có room -> tạo mặc định
-            if (!data) {
-                const now = Date.now();
-                const total = 8 * 52;
-
-                const ins = await supabaseClient.from("baccarat_state").insert({
-                    room_id: ROOM_ID,
-                    phase: "BETTING",
-                    phase_ends_at: new Date(now + 20000).toISOString(),
-                    payload: null,
-                    history: [],
-                    shoe: { cardsLeft: total }
-                }).select("*").maybeSingle();
-
-                data = ins.data;
-
-                // Set local để timer chạy ngay cả khi realtime chưa kịp trả về
-                this.state = "BETTING";
-                this.nextPhaseTime = now + 20000;
-                // Button disabled ban đầu do pend = 0
-                document.getElementById('btnConfirm').disabled = true;
-            } else {
-                this.applyRoomState(data);
-            }
-
-            // B. Đăng ký nhận update
-            roomChannel = supabaseClient.channel("room-" + ROOM_ID)
-                .on("postgres_changes", { event: "*", schema: "public", table: "baccarat_state", filter: `room_id=eq.${ROOM_ID}` }, 
-                (payload) => {
-                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                        this.applyRoomState(payload.new);
-                    }
-                })
-                .subscribe();
-
-            // C. Thử làm Host
-            await this.tryClaimHost();
-        },
-
-        async tryClaimHost() {
-            const { data, error } = await supabaseClient.rpc("baccarat_claim_host", { p_room_id: ROOM_ID, p_uid: supaUser.id });
-            
-            // --- STEP 3: LOGGING DEBUG ---
-            console.log("CLAIM HOST:", data, error); 
-            // -----------------------------
-
-            if (data === true) {
-                this.isHost = true;
-                this.eng.shoe.init(); // Host khởi tạo bộ bài của mình
-                document.getElementById("uiHostBadge").innerHTML = "👑 HOST";
-                document.getElementById("uiHostBadge").classList.add("host-badge");
-                this.showToast("Bạn đang là HOST phòng này", "success");
-            }
-        },
-
-        applyRoomState(data) {
-            // 1. Đồng bộ lịch sử & Shoe (chỉ hiển thị số lượng)
-            if (data.history) {
-                this.eng.history = data.history;
-                game.renderRoadmap(this.eng.history);
-            }
-            if (data.shoe && data.shoe.cardsLeft !== undefined) {
-                // Client không cần biết từng lá bài trong shoe, chỉ cần số lượng
-                const total = 8 * 52; 
-                const left = data.shoe.cardsLeft;
-                document.getElementById('uiCardsLeft').innerText = `${left} / ${total}`;
-                document.getElementById('uiCardsLeft').style.color = left < 52 ? '#e74c3c' : 'var(--gold)';
-            }
-
-            // 2. Đồng bộ thời gian
-            if (data.phase_ends_at) {
-                this.nextPhaseTime = new Date(data.phase_ends_at).getTime();
-            }
-
-            // 3. Xử lý Phase & Animation
-            if (data.phase === 'DEALING' && data.payload && data.payload.round_id) {
-                // Nếu là round mới -> Chạy animation
-                if (this._lastRoundId !== data.payload.round_id) {
-                    this._lastRoundId = data.payload.round_id;
-                    this.state = 'DEALING';
-                    
-                    // Reset bàn cũ trước khi diễn hoạt mới
-                    game.resetTable();
-                    
-                    // Chạy diễn hoạt dựa trên payload từ server
-                    game.playAnimation(data.payload).then(() => {
-                        this.finishRound(data.payload.winner);
-                        game.showResult(data.payload.winner, 0, data.payload.shuffled); 
-                        // Note: profit hiển thị ở showResult chỉ là UI text, 
-                        // tiền thật đã được cộng ở finishRound
-                    });
-                }
-            } else if (data.phase === 'BETTING') {
-                if (this.state !== 'BETTING') {
-                    // Chuyển sang betting mới
-                    this.state = 'BETTING';
-                    game.resetTable();
-                    // Fix: Check lại trạng thái nút
-                    const totalPend = this.pend.P + this.pend.B + this.pend.T;
-                    document.getElementById('btnConfirm').disabled = (totalPend === 0);
-                }
-            }
-        },
-
         loop() {
-            requestAnimationFrame(() => this.loop());
-            
+            this.loopId = requestAnimationFrame(() => this.loop());
             const now = Date.now();
             const timeLeft = this.nextPhaseTime - now;
-
-            if (this.isHost) {
-                // --- HOST LOGIC ---
-                if (timeLeft <= 0 && this.state === 'BETTING') {
-                    // Hết giờ cược -> Host xử lý kết quả
-                    this.hostResolveRound();
-                } else if (timeLeft <= -5000 && this.state === 'DEALING') {
-                    // Hết giờ diễn hoạt -> Host chuyển về Betting
-                    this.hostStartBettingPhase();
-                }
-            }
-
-            // --- CLIENT UI RENDER ---
-            if (!this.nextPhaseTime || Number.isNaN(this.nextPhaseTime)) {
-                game.updateTimer('--', true);
-                document.getElementById('btnConfirm').disabled = true;
-                return;
+            
+            if (timeLeft <= 0) {
+                this.nextPhaseTime = now + this.eng.roundTime;
+                this.state = 'BETTING';
+                game.resetTable();
+                Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: now });
+            } else if (timeLeft <= 8000 && this.state === 'BETTING') {
+                this.state = 'DEALING';
+                this.resolveRound();
             }
 
             if (this.state === 'BETTING') {
-                const sec = Math.ceil((this.nextPhaseTime - now) / 1000);
-                const safeSec = (Number.isFinite(sec) && sec > 0) ? sec : 0;
-
-                game.updateTimer(safeSec, false);
-
-                const totalPend = this.pend.P + this.pend.B + this.pend.T;
-                // Disable if time is up OR no pending bets
-                document.getElementById('btnConfirm').disabled = (safeSec <= 0) || (totalPend === 0);
+                const sec = Math.ceil((timeLeft - 8000) / 1000);
+                game.updateTimer(sec > 0 ? sec : 0, false);
             } else {
-                game.updateTimer('...', true);
-                document.getElementById('btnConfirm').disabled = true;
+                game.updateTimer('Chờ', true);
             }
         },
-
-        async hostResolveRound() {
-            // Host tính toán kết quả
+        resolveRound() {
             const res = this.eng.playRound();
-            const roundId = Date.now();
-            const payload = { ...res, round_id: roundId }; // Thêm round_id để client nhận biết
-            
-            // Host update DB -> Trigger Realtime cho mọi người
-            await supabaseClient.from("baccarat_state").update({
-                phase: "DEALING",
-                phase_ends_at: new Date(Date.now() + 15000).toISOString(), // 15s dealing
-                payload: payload,
-                history: this.eng.history,
-                shoe: { cardsLeft: this.eng.shoe.remaining(), cutIdx: this.eng.shoe.cutCardIdx }
-            }).eq("room_id", ROOM_ID);
-            
-            // Host cũng tự apply để UI mượt mà (dù realtime cũng sẽ trả về)
-            this.applyRoomState({
-                phase: "DEALING",
-                phase_ends_at: new Date(Date.now() + 15000).toISOString(),
-                payload: payload,
-                history: this.eng.history,
-                shoe: { cardsLeft: this.eng.shoe.remaining() }
-            });
-        },
-
-        async hostStartBettingPhase() {
-             await supabaseClient.from("baccarat_state").update({
-                phase: "BETTING",
-                phase_ends_at: new Date(Date.now() + 20000).toISOString(), // 20s betting
-                payload: null // clear payload
-            }).eq("room_id", ROOM_ID);
-            
-            // Local update
-             this.applyRoomState({
-                phase: "BETTING",
-                phase_ends_at: new Date(Date.now() + 20000).toISOString()
-            });
-        },
-
-        // Xử lý tiền khi có kết quả (Client Side logic but synced trigger)
-        finishRound(winner) {
-            let winAmt = 0;
-            if (winner === 'P') winAmt = this.bet.P * 2;
-            else if (winner === 'B') winAmt = this.bet.B * 1.95;
-            else if (winner === 'T') winAmt = (this.bet.T * 9) + this.bet.P + this.bet.B; // Hoàn tiền P/B nếu Tie
-            
-            // Nếu Tie mà không đặt Tie, P/B được hoàn
-            if (winner === 'T' && this.bet.T === 0) {
-                 winAmt = this.bet.P + this.bet.B;
-            }
-
-            const profit = winAmt - (this.bet.P + this.bet.B + this.bet.T);
-            
-            // Nếu thắng -> Update ví
-            if (winAmt > 0) {
-                this.balance += winAmt;
-                this.syncBalance(); // Gửi số dư mới lên server
+            game.updateShoeCount(); 
+            game.playAnimation(res).then(() => {
+                let winAmt = 0; let profit = 0;
+                if (res.winner === 'P') winAmt = this.bet.P * 2;
+                else if (res.winner === 'B') winAmt = this.bet.B * 1.95;
+                else if (res.winner === 'T') winAmt = (this.bet.T * 9) + this.bet.P + this.bet.B;
+                if (res.winner === 'T' && winAmt === 0) winAmt = this.bet.P + this.bet.B;
                 
-                // Hiển thị tiền thắng cụ thể cho user này
-                const m = document.getElementById('resMoney');
-                m.innerText = "+" + profit.toLocaleString('vi-VN');
-                m.style.color = 'var(--gold)';
-            } else {
-                 const m = document.getElementById('resMoney');
-                 m.innerText = profit === 0 ? "HOÀN TIỀN" : profit.toLocaleString('vi-VN');
-                 m.style.color = profit >= 0 ? '#fff' : '#aaa';
-            }
+                profit = winAmt - (this.bet.P + this.bet.B + this.bet.T);
+                if (winAmt > 0) { 
+                    this.balance += winAmt; 
+                    game.updateBal(); 
+                }
 
-            // Reset cược local
-            this.bet = {P:0,B:0,T:0};
+                // CẬP NHẬT TIỀN THẮNG LÊN SUPABASE
+                syncBalanceToSupabase();
+                
+                game.showResult(res.winner, profit, res.shuffled);
+                game.renderRoadmap(this.eng.history);
+                this.bet = {P:0,B:0,T:0}; 
+                Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: this.nextPhaseTime });
+            });
         },
-
-        async syncBalance() {
-             await supabaseClient.from("users").update({ balance: this.balance }).eq("id", supaUser.id);
-        },
-        
         showToast(msg, type='alert') {
             const t = document.getElementById('toast');
             t.innerText = msg;
@@ -783,15 +746,35 @@
             el.classList.add('selected');
         },
         placeBet(side) {
-            if (app.state !== 'BETTING') { app.showToast("Đã hết thời gian cược!"); return; }
+            if (app.state !== 'BETTING') return;
             
             // 1. One Side Rule
-            if (side === 'P' && (app.bet.B > 0 || app.pend.B > 0)) { app.showToast("Chỉ cược 1 bên (Con/Cái)!"); return; }
-            if (side === 'B' && (app.bet.P > 0 || app.pend.P > 0)) { app.showToast("Chỉ cược 1 bên (Con/Cái)!"); return; }
+            if (side === 'P') {
+                if (app.bet.B > 0 || app.pend.B > 0) {
+                    app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!");
+                    return;
+                }
+            } else if (side === 'B') {
+                if (app.bet.P > 0 || app.pend.P > 0) {
+                    app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!");
+                    return;
+                }
+            }
 
+            // 2. Max Limit Check
+            const currentTotal = app.bet[side] + app.pend[side];
             const limit = (side === 'T') ? app.MAX_BET_TIE : app.MAX_BET;
-            if (app.bet[side] + app.pend[side] + app.chip > limit) { app.showToast("Đạt giới hạn cược!"); return; }
-            if (app.balance < app.pend.P + app.pend.B + app.pend.T + app.chip) { app.showToast("Số dư không đủ!"); return; }
+
+            if (currentTotal + app.chip > limit) {
+                app.showToast(`Cược tối đa cửa này là ${limit/1000}K!`);
+                return;
+            }
+
+            // 3. Balance Check
+            if (app.balance < app.pend.P + app.pend.B + app.pend.T + app.chip) {
+                app.showToast("Số dư không đủ!");
+                return;
+            }
             
             app.pend[side] += app.chip;
             this.renderChips();
@@ -806,8 +789,22 @@
             const totalPend = app.pend.P + app.pend.B + app.pend.T;
             if (totalPend === 0) return;
 
-            // Trừ tiền ngay lập tức
+            // Min Limit Check
+            const checkLimit = (side, name) => {
+                const amt = app.bet[side] + app.pend[side];
+                if (amt > 0 && amt < app.MIN_BET) {
+                    app.showToast(`Cược ${name} tối thiểu ${app.MIN_BET/1000}K!`);
+                    return false;
+                }
+                return true;
+            };
+
+            if (!checkLimit('P', 'Player')) return;
+            if (!checkLimit('B', 'Banker')) return;
+            if (!checkLimit('T', 'Tie')) return;
+
             if (app.balance < totalPend) return;
+
             app.balance -= totalPend;
             app.bet.P += app.pend.P;
             app.bet.B += app.pend.B;
@@ -816,8 +813,9 @@
 
             this.updateBal();
             this.renderChips();
-            app.syncBalance(); // Lưu số dư mới (đã trừ tiền cược) lên server
-            app.showToast("Đã đặt cược!", "success");
+            
+            // TRỪ TIỀN CƯỢC TRÊN SUPABASE
+            await syncBalanceToSupabase();
         },
         renderChips() {
             ['P','B','T'].forEach(k => {
@@ -833,28 +831,42 @@
                     betEl.innerText = (app.bet[k]/1000) + "k";
                     betEl.classList.add('active');
                 } else { betEl.classList.remove('active'); }
-                
-                // Logic disable đối diện
+
                 if (k === 'P' || k === 'B') {
                     let other = k === 'P' ? 'B' : 'P';
-                    if (app.bet[k] + app.pend[k] > 0) document.getElementById('zone'+other).classList.add('disabled');
-                    else if (app.bet[other] + app.pend[other] === 0) document.getElementById('zone'+other).classList.remove('disabled');
+                    let totalBetOnThis = app.bet[k] + app.pend[k];
+                    
+                    if (totalBetOnThis > 0) {
+                        document.getElementById('zone'+other).classList.add('disabled');
+                    } else {
+                        if (app.bet[other] + app.pend[other] === 0) {
+                            document.getElementById('zone'+other).classList.remove('disabled');
+                        }
+                    }
                 }
             });
-            // Update button state based on pending bets and time (handled in loop but good to update here too for immediate feedback)
-            const totalPend = app.pend.P + app.pend.B + app.pend.T;
-             // Check time remaining to avoid enabling if time expired
-            const now = Date.now();
-            const timeLeft = app.nextPhaseTime - now;
-            const sec = Math.ceil(timeLeft / 1000);
             
-            document.getElementById('btnConfirm').disabled = (totalPend === 0 || sec <= 0);
+            const allZero = (app.bet.P+app.pend.P === 0) && (app.bet.B+app.pend.B === 0);
+            if(allZero) {
+                document.getElementById('zoneP').classList.remove('disabled');
+                document.getElementById('zoneB').classList.remove('disabled');
+            }
+
+            document.getElementById('btnConfirm').disabled = (app.pend.P + app.pend.B + app.pend.T === 0);
         },
-        updateBal() { document.getElementById('uiBal').innerText = app.balance.toLocaleString('vi-VN'); },
+        updateBal() { 
+            document.getElementById('uiBal').innerText = app.balance.toLocaleString('vi-VN'); 
+        },
         updateTimer(val, wait) {
             const el = document.getElementById('uiTimer'); el.innerText = val;
             if(wait) { el.classList.add('wait'); el.classList.remove('alert'); } 
             else { el.classList.remove('wait'); if(val <= 5) el.classList.add('alert'); else el.classList.remove('alert'); }
+        },
+        updateShoeCount() {
+            const c = app.eng.shoe.remaining(); 
+            const total = app.eng.shoe.numDecks * 52;
+            document.getElementById('uiCardsLeft').innerText = `${c} / ${total}`;
+            document.getElementById('uiCardsLeft').style.color = c<52 ? '#e74c3c' : 'var(--gold)';
         },
         resetTable() {
             document.querySelectorAll('.card').forEach(c => c.remove());
@@ -862,10 +874,9 @@
             document.getElementById('uiOverlay').classList.remove('show');
             document.getElementById('scoreP').classList.remove('show');
             document.getElementById('scoreB').classList.remove('show');
-            this.renderChips();
+            this.renderChips(); 
         },
         async playAnimation(res) {
-            // Hàm này nhận kết quả từ Server và diễn hoạt y hệt như logic game
             const w = ms => new Promise(r => setTimeout(r, ms));
             const createCard = (d, i, zone) => {
                 const div = document.createElement('div'); div.className = `card c${i+1}`;
@@ -874,36 +885,24 @@
                 setTimeout(() => div.classList.add('active'), 10);
                 setTimeout(() => div.querySelector('.card-inner').classList.add('flipped'), 300);
             };
-
-            // Card 1-2
-            createCard(res.pHand[0], 0, 'P'); await w(500); 
-            createCard(res.bHand[0], 0, 'B'); await w(500);
-            createCard(res.pHand[1], 1, 'P'); await w(500); 
-            createCard(res.bHand[1], 1, 'B'); await w(600);
-            
-            // Score ban đầu
-            document.getElementById('scoreP').innerText = "P: " + ((res.pHand[0].v + res.pHand[1].v)%10); 
-            document.getElementById('scoreP').classList.add('show');
-            document.getElementById('scoreB').innerText = "B: " + ((res.bHand[0].v + res.bHand[1].v)%10); 
-            document.getElementById('scoreB').classList.add('show');
+            createCard(res.pHand[0], 0, 'P'); await w(500); createCard(res.bHand[0], 0, 'B'); await w(500);
+            createCard(res.pHand[1], 1, 'P'); await w(500); createCard(res.bHand[1], 1, 'B'); await w(600);
+            document.getElementById('scoreP').innerText = "P: " + ((res.pHand[0].v + res.pHand[1].v)%10); document.getElementById('scoreP').classList.add('show');
+            document.getElementById('scoreB').innerText = "B: " + ((res.bHand[0].v + res.bHand[1].v)%10); document.getElementById('scoreB').classList.add('show');
             await w(800);
-
-            // Card 3
             if (res.pHand[2]) { createCard(res.pHand[2], 2, 'P'); await w(800); document.getElementById('scoreP').innerText = "P: " + res.pScore; }
             if (res.bHand[2]) { createCard(res.bHand[2], 2, 'B'); await w(800); document.getElementById('scoreB').innerText = "B: " + res.bScore; }
-            await w(500); 
-            document.getElementById('zone'+res.winner).classList.add('winner');
+            await w(500); document.getElementById('zone'+res.winner).classList.add('winner');
         },
         showResult(winner, profit, shuffled) {
-            const t = document.getElementById('resTitle');
+            const t = document.getElementById('resTitle'); const m = document.getElementById('resMoney');
             t.innerText = winner === 'P' ? "PLAYER WIN" : (winner === 'B' ? "BANKER WIN" : "TIE GAME");
             t.style.color = winner === 'P' ? 'var(--player)' : (winner === 'B' ? 'var(--banker)' : 'var(--tie)');
-            
-            // Note: Profit ở đây chỉ hiển thị tạm, việc tính toán tiền đã làm ở logic App
+            m.innerText = (profit > 0 ? "+" : "") + profit.toLocaleString('vi-VN');
+            m.style.color = profit > 0 ? 'var(--gold)' : (profit < 0 ? '#aaa' : '#fff');
             document.getElementById('resShuffleMsg').innerText = shuffled ? "ĐANG XÀO BÀI MỚI..." : "";
             document.getElementById('uiOverlay').classList.add('show');
-        }
-        ,
+        },
         renderRoadmap(hist) {
             const grid = document.getElementById('roadmapGrid'); grid.innerHTML = '';
             const rows = 6; const cols = Math.max(14, Math.ceil(hist.length / rows));
@@ -917,10 +916,8 @@
             const c = document.querySelector('.roadmap-container'); c.scrollLeft = c.scrollWidth;
         }
     };
-
     window.onload = () => app.init();
 </script>
 </body>
 </html>
-
 
