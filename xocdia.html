@@ -110,12 +110,12 @@
 
     /* MODAL */
     .modal-overlay { 
-      position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100;
       opacity: 0; pointer-events: none; transition: opacity 0.3s;
       display: flex; align-items: center; justify-content: center;
     }
     .modal-overlay.show { opacity: 1; pointer-events: auto; }
-    .modal-content { transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .modal-content { transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     .modal-overlay.show .modal-content { transform: scale(1); }
     
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; display: inline-block; }
@@ -254,13 +254,13 @@
 
   <!-- MODAL RESULT -->
   <div id="modal-result" class="modal-overlay">
-    <div class="modal-content bg-slate-900 border border-gold/30 rounded-3xl p-6 w-64 text-center shadow-2xl relative overflow-hidden">
+    <div class="modal-content bg-slate-900 border-2 border-gold/30 rounded-3xl p-8 w-72 text-center shadow-2xl relative overflow-hidden">
       <!-- Glow effect -->
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent"></div>
       
-      <div id="mod-title" class="text-5xl font-oswald font-bold text-gold mb-2 drop-shadow-md italic">--</div>
-      <div id="mod-desc" class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">--</div>
-      <div id="mod-win" class="text-xl font-bold text-white"></div>
+      <div id="mod-title" class="text-6xl font-oswald font-bold text-gold mb-2 drop-shadow-md italic">--</div>
+      <div id="mod-desc" class="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">--</div>
+      <div id="mod-win" class="text-2xl font-black text-white"></div>
     </div>
   </div>
 
@@ -274,7 +274,6 @@
     // ===== 1. SUPABASE CONFIGURATION =====
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
-    
     const WALLET_TABLE = 'users';              
     const WALLET_BALANCE_COLUMN = 'balance'; 
 
@@ -289,7 +288,7 @@
 
     // ===== 3. GAME LOGIC =====
     const app = {
-      user: null, // { id, balance }
+      user: null, 
       realtimeChannel: null,
       
       showToast: (msg, type='info') => {
@@ -308,8 +307,9 @@
 
     const game = {
       roundId: 0,
-      phase: 'WAIT', // SHAKE, BET, LOCK, REVEAL
+      phase: 'WAIT',
       resolved: false,
+      modalTimeout: null,
       
       bets: {
         pending: { CHAN:0, LE:0, '4D':0, '4T':0, '3D1T':0, '3T1D':0 },
@@ -318,9 +318,8 @@
       },
       currentChip: 10000,
 
-      // --- INIT WITH SUPABASE & RECOVERY ---
+      // --- INIT ---
       init: async () => {
-        // 1. Check Auth
         const uid = localStorage.getItem("my_wallet_uid");
         if (!uid) {
           alert("Vui lòng đăng nhập lại!");
@@ -332,50 +331,32 @@
         document.getElementById("user-id").innerText = "ID: " + uid.substring(0, 8).toUpperCase();
         document.getElementById("conn-dot").classList.add("online");
 
-        // 2. Load Balance
         await game.loadBalance();
         game.setupRealtimeBalance();
-
-        // 3. CHECK PENDING BETS (CRITICAL FIX)
-        // Check state before starting the loop
         await game.checkPendingState();
 
-        // 4. Start Loop
         game.renderRoadmap();
-        // Immediately run loop logic once so UI is in sync
         game.loop();
         setInterval(game.loop, 100);
       },
 
-      // --- PERSISTENCE LOGIC ---
+      // --- PERSISTENCE ---
       savePendingState: () => {
-        const data = {
-            roundId: game.roundId,
-            bets: game.bets.confirmed,
-            timestamp: Date.now()
-        };
+        const data = { roundId: game.roundId, bets: game.bets.confirmed, timestamp: Date.now() };
         localStorage.setItem("xd_pending_bet", JSON.stringify(data));
       },
-
-      clearPendingState: () => {
-        localStorage.removeItem("xd_pending_bet");
-      },
-
+      clearPendingState: () => { localStorage.removeItem("xd_pending_bet"); },
       checkPendingState: async () => {
         const raw = localStorage.getItem("xd_pending_bet");
         if (!raw) return;
-
         try {
             const data = JSON.parse(raw);
             const now = Date.now();
             const currentRound = Math.floor(now / CONFIG.PERIOD);
 
-            // Case A: Round has passed (User left and came back later)
             if (data.roundId < currentRound) {
-                console.log("Processing old bet for round", data.roundId);
                 const res = game.getResult(data.roundId);
                 let winAmt = 0;
-                
                 for (let k in data.bets) {
                     let isWin = false;
                     if (k === 'CHAN' && res.isChan) isWin = true;
@@ -384,62 +365,37 @@
                     if (k === '4T' && res.reds === 0) isWin = true;
                     if (k === '3D1T' && res.reds === 3) isWin = true;
                     if (k === '3T1D' && res.reds === 1) isWin = true;
-                    
                     if (isWin) winAmt += data.bets[k] * (1 + CONFIG.ODDS[k]);
                 }
-
                 if (winAmt > 0) {
                     const final = Math.floor(winAmt);
                     app.user.balance += final;
                     await game.syncBalance();
                     app.showToast(`Bạn thắng ${final.toLocaleString()} ván trước!`, 'success');
-                } else {
-                    app.showToast(`Kết quả ván trước: ${res.txt} ${res.sub}`, 'info');
                 }
                 game.clearPendingState();
-            } 
-            // Case B: Round is still active (User reloaded page)
-            else if (data.roundId === currentRound) {
-                console.log("Restoring active bet for current round", data.roundId);
-                // VITAL FIX: Set game.roundId to prevent newRound() from wiping bets
+            } else if (data.roundId === currentRound) {
                 game.roundId = currentRound;
                 game.bets.confirmed = data.bets;
                 game.updateBadges();
             }
-        } catch (e) {
-            console.error("Recovery error:", e);
-        }
+        } catch (e) { console.error(e); }
       },
 
       loadBalance: async () => {
         try {
-          const { data, error } = await supabaseClient
-            .from(WALLET_TABLE)
-            .select(WALLET_BALANCE_COLUMN)
-            .eq('id', app.user.id)
-            .maybeSingle();
-
-          if (!data) {
-             await supabaseClient.from(WALLET_TABLE).insert({ id: app.user.id, balance: 0 });
-             app.user.balance = 0;
-          } else {
-             app.user.balance = data[WALLET_BALANCE_COLUMN] || 0;
-          }
+          const { data } = await supabaseClient.from(WALLET_TABLE).select(WALLET_BALANCE_COLUMN).eq('id', app.user.id).maybeSingle();
+          if (!data) { await supabaseClient.from(WALLET_TABLE).insert({ id: app.user.id, balance: 0 }); app.user.balance = 0; } 
+          else { app.user.balance = data[WALLET_BALANCE_COLUMN] || 0; }
           game.updateBalanceUI();
-        } catch (err) {
-          console.error(err);
-        }
+        } catch (e) {}
       },
 
       setupRealtimeBalance: () => {
         if (!app.user) return;
         if (app.realtimeChannel) supabaseClient.removeChannel(app.realtimeChannel);
-
-        app.realtimeChannel = supabaseClient
-          .channel('wallet-changes')
-          .on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: WALLET_TABLE, filter: `id=eq.${app.user.id}` },
+        app.realtimeChannel = supabaseClient.channel('wallet-changes')
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: WALLET_TABLE, filter: `id=eq.${app.user.id}` },
             (payload) => {
               const newBal = payload.new[WALLET_BALANCE_COLUMN];
               if (newBal !== undefined && newBal !== app.user.balance) {
@@ -447,18 +403,12 @@
                 game.updateBalanceUI();
               }
             }
-          )
-          .subscribe();
+          ).subscribe();
       },
 
       syncBalance: async () => {
         if (!app.user) return;
-        try {
-          const { error } = await supabaseClient
-            .from(WALLET_TABLE)
-            .update({ [WALLET_BALANCE_COLUMN]: app.user.balance })
-            .eq('id', app.user.id);
-        } catch (e) { console.error('Sync Ex:', e); }
+        await supabaseClient.from(WALLET_TABLE).update({ [WALLET_BALANCE_COLUMN]: app.user.balance }).eq('id', app.user.id);
       },
 
       updateBalanceUI: () => {
@@ -467,19 +417,13 @@
         document.getElementById("balance").innerText = fmt;
       },
 
-      // --- GAME LOOP ---
+      // --- LOOP ---
       loop: () => {
         const now = Date.now();
         const rid = Math.floor(now / CONFIG.PERIOD);
         const cyc = now % CONFIG.PERIOD;
         
-        // Only trigger newRound if roundId changes AND it's not the initial load fix
-        if (rid !== game.roundId) {
-            // Initial load case: roundId is 0, rid is X.
-            // If we just restored bets in checkPendingState, game.roundId would be X.
-            // So this block only runs if we legitimately moved to a new round.
-            game.newRound(rid);
-        }
+        if (rid !== game.roundId) game.newRound(rid);
 
         const tm = document.getElementById("timer");
         const st = document.getElementById("status-txt");
@@ -490,20 +434,17 @@
           st.innerText = "ĐANG XÓC"; st.className = "text-[10px] font-black text-blue-300 uppercase tracking-widest";
           tm.innerText = "";
           bowl.classList.add("shaking"); bowl.classList.remove("open");
-
         } else if (cyc < CONFIG.PHASES.BET) {
           game.setPhase('BET');
           st.innerText = "ĐẶT CƯỢC"; st.className = "text-[10px] font-black text-emerald-300 uppercase tracking-widest";
           const left = Math.ceil((CONFIG.PHASES.BET - cyc)/1000);
           tm.innerText = left;
           bowl.classList.remove("shaking");
-
         } else if (cyc < CONFIG.PHASES.LOCK) {
           game.setPhase('LOCK');
           st.innerText = "CHỜ MỞ"; st.className = "text-[10px] font-black text-rose-300 uppercase tracking-widest";
           tm.innerText = "--";
           bowl.classList.remove("shaking");
-
         } else {
           game.setPhase('REVEAL');
           st.innerText = "KẾT QUẢ"; st.className = "text-[10px] font-black text-gold uppercase tracking-widest";
@@ -512,7 +453,6 @@
             game.resolved = true;
             const res = game.getResult(rid);
             game.renderCoins(res.coins);
-            
             setTimeout(() => {
               bowl.classList.add("open");
               game.highlightWin(res);
@@ -527,9 +467,8 @@
         if (game.phase !== p) {
           game.phase = p;
           if (p === 'BET') {
-             // Re-enable buttons, check if we have confirmed bets to handle opposite logic
              document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('winner', 'disabled'));
-             game.updateBadges(); // This refreshes disabled states based on current bets
+             game.updateBadges();
           } else if (p === 'LOCK') {
              document.querySelectorAll('.bet-btn').forEach(b => b.classList.add('disabled'));
           }
@@ -537,7 +476,6 @@
       },
 
       newRound: (id) => {
-        console.log("Starting new round:", id);
         game.roundId = id;
         game.resolved = false;
         
@@ -553,11 +491,10 @@
         document.getElementById("bowl").classList.remove("open", "shaking");
         document.getElementById("modal-result").classList.remove("show");
         
-        // Clear pending storage for the new round
         game.clearPendingState();
       },
 
-      // --- BETTING & PAYOUT ---
+      // --- BETTING ---
       setChip: (val, el) => {
         game.currentChip = val;
         document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
@@ -567,7 +504,6 @@
       placeBet: (type) => {
         if (game.phase !== 'BET') return app.showToast("Chưa đến giờ cược!", "error");
         
-        // Improved validation that checks BOTH pending and confirmed
         const currentChan = game.bets.pending['CHAN'] + game.bets.confirmed['CHAN'];
         const currentLe = game.bets.pending['LE'] + game.bets.confirmed['LE'];
 
@@ -591,10 +527,8 @@
         if (game.phase !== 'BET') return app.showToast("Chưa đến giờ cược!", "error");
         if (!game.bets.lastRound) return app.showToast("Không có lịch sử cược!", "error");
 
-        // Validate rebet against opposite rules just in case
         for (let k in game.bets.lastRound) {
            if (game.bets.lastRound[k] > 0) {
-               // Basic check
                if (k === 'CHAN' && (game.bets.pending['LE'] + game.bets.confirmed['LE'] > 0)) continue;
                if (k === 'LE' && (game.bets.pending['CHAN'] + game.bets.confirmed['CHAN'] > 0)) continue;
                game.bets.pending[k] += game.bets.lastRound[k];
@@ -613,24 +547,22 @@
         if (total === 0) return;
         if (total > app.user.balance) return app.showToast("Số dư không đủ!", "error");
 
-        // Deduct Local
         app.user.balance -= total;
         game.updateBalanceUI();
         
-        // Move to Confirmed
         for (let k in game.bets.pending) {
           game.bets.confirmed[k] += game.bets.pending[k];
           game.bets.pending[k] = 0;
         }
         game.updateBadges();
         
-        // Sync & SAVE STATE
         await game.syncBalance();
         game.savePendingState(); 
         
         app.showToast("Đặt cược thành công!", "success");
       },
 
+      // --- CORE FIX: PAYOUT & SHOW MODAL ---
       payout: async (res) => {
         let winTotal = 0;
         let played = false;
@@ -654,14 +586,44 @@
           if (winTotal > 0) {
              const final = Math.floor(winTotal);
              app.user.balance += final;
-             await game.syncBalance(); // Sync win
+             await game.syncBalance(); 
              game.showModal(res.txt, res.sub, final);
           } else {
              game.showModal(res.txt, res.sub, 0);
           }
-          // CLEAR PENDING STATE AFTER PAYOUT
           game.clearPendingState();
         }
+      },
+
+      showModal: (title, sub, win) => {
+        const modal = document.getElementById("modal-result");
+        const tEl = document.getElementById("mod-title");
+        const dEl = document.getElementById("mod-desc");
+        const wEl = document.getElementById("mod-win");
+
+        // 1. Text Update
+        tEl.innerText = title;
+        dEl.innerText = sub;
+
+        // 2. Color Update (Explicit Class Reset)
+        tEl.className = "text-6xl font-oswald font-bold mb-2 drop-shadow-md italic " + 
+          (title === "CHẴN" ? "text-purple-400" : "text-orange-400");
+
+        // 3. Amount Logic
+        if (win > 0) {
+           wEl.innerText = "+" + win.toLocaleString();
+           wEl.className = "text-3xl font-black text-green-400 animate-bounce";
+        } else {
+           wEl.innerText = "THỬ LẠI MAY MẮN";
+           wEl.className = "text-xl font-bold text-slate-500";
+        }
+
+        // 4. Show & Auto Hide
+        modal.classList.add("show");
+        if (game.modalTimeout) clearTimeout(game.modalTimeout);
+        game.modalTimeout = setTimeout(() => {
+           modal.classList.remove("show");
+        }, 5000);
       },
 
       // --- HELPERS ---
@@ -669,7 +631,6 @@
         let hasChan = (game.bets.pending['CHAN'] + game.bets.confirmed['CHAN']) > 0;
         let hasLe = (game.bets.pending['LE'] + game.bets.confirmed['LE']) > 0;
 
-        // Visual disable for opposite bets
         const btnChan = document.getElementById('btn-CHAN');
         const btnLe = document.getElementById('btn-LE');
         
@@ -740,14 +701,6 @@
            const b = document.querySelector(`[onclick="game.placeBet('${w}')"]`);
            if(b) b.classList.add('winner');
         });
-      },
-
-      showModal: (title, sub, win) => {
-        // ... code ...
-        const m = document.getElementById("modal-result");
-        m.classList.add("show");
-        // Tăng thời gian hiển thị bảng thắng tiền lên 5 giây
-        setTimeout(() => m.classList.remove("show"), 5000); 
       },
 
       renderRoadmap: () => {
