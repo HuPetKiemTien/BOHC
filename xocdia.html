@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <!-- SUPABASE LIBRARY -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
@@ -57,7 +58,6 @@
       z-index: 20; display: flex; align-items: center; justify-content: center;
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    /* Simple texture using CSS gradient */
     .bowl::before {
       content: ''; position: absolute; inset: 10px; border-radius: 50%;
       border: 1px solid rgba(255,255,255,0.05);
@@ -117,6 +117,9 @@
     .modal-overlay.show { opacity: 1; pointer-events: auto; }
     .modal-content { transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .modal-overlay.show .modal-content { transform: scale(1); }
+    
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; display: inline-block; }
+    .status-dot.online { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
   </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -138,8 +141,9 @@
     <div class="text-right">
       <div class="text-[10px] text-slate-500 font-bold" id="user-id">ID: ...</div>
       <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-0.5 rounded-full border border-white/5 mt-0.5">
+        <span id="conn-dot" class="status-dot"></span>
         <i class="fa-solid fa-wallet text-gold text-xs"></i>
-        <span id="balance" class="font-oswald text-base text-white">0</span>
+        <span id="balance" class="font-oswald text-base text-white">---</span>
       </div>
     </div>
   </header>
@@ -269,25 +273,27 @@
   </div>
 
   <script>
-    // ===== CONFIG =====
+    // ===== 1. SUPABASE CONFIGURATION (FROM BACCARAT FILE) =====
+    const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
+    
+    const WALLET_TABLE = 'users';              
+    const WALLET_BALANCE_COLUMN = 'balance'; 
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ===== 2. GAME CONSTANTS =====
     const CONFIG = {
       PERIOD: 35000,
       PHASES: { SHAKE: 3000, BET: 28000, LOCK: 32000, REVEAL: 35000 },
       ODDS: { CHAN: 0.96, LE: 0.96, '4D': 12, '4T': 12, '3D1T': 2.6, '3T1D': 2.6 }
     };
 
-    const SUPABASE_URL = "https://boddppngzdgpazrrdual.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvZGRwcG5nemRncGF6cnJkdWFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTk5ODAsImV4cCI6MjA4MDkzNTk4MH0.rdNoq5qlmXzH3AafSxZOwv6qJznWhs8J_LHmdu0NT44";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const WALLET_TABLE = "users";
-    const WALLET_BALANCE_COLUMN = "balance";
-
-    // ===== APP STATE =====
+    // ===== 3. GAME LOGIC =====
     const app = {
       user: null, // { id, balance }
       realtimeChannel: null,
       
-      // UI Logic
       showToast: (msg, type='info') => {
         const t = document.getElementById("toast");
         const i = document.getElementById("toast-icon");
@@ -299,17 +305,9 @@
         
         t.classList.remove("opacity-0", "pointer-events-none");
         setTimeout(() => t.classList.add("opacity-0", "pointer-events-none"), 2000);
-      },
-
-      updateBalanceUI: () => {
-        if (!app.user) return;
-        const b = app.user.balance;
-        const fmt = b >= 1000000 ? (b/1000000).toFixed(2)+'M' : (b >= 1000 ? (b/1000).toFixed(0)+'k' : b);
-        document.getElementById("balance").innerText = fmt;
       }
     };
 
-    // ===== GAME LOGIC =====
     const game = {
       roundId: 0,
       phase: 'WAIT', // SHAKE, BET, LOCK, REVEAL
@@ -318,44 +316,54 @@
       bets: {
         pending: { CHAN:0, LE:0, '4D':0, '4T':0, '3D1T':0, '3T1D':0 },
         confirmed: { CHAN:0, LE:0, '4D':0, '4T':0, '3D1T':0, '3T1D':0 },
-        lastRound: null // For REBET
+        lastRound: null
       },
       currentChip: 10000,
 
+      // --- INIT WITH SUPABASE LOGIC ---
       init: async () => {
+        // 1. Check LocalStorage
         const uid = localStorage.getItem("my_wallet_uid");
-        if (!uid) return window.location.href = "games.html";
-        
+        if (!uid) {
+          alert("Vui lòng đăng nhập lại!");
+          window.location.href = "index.html";
+          return;
+        }
+
+        // 2. Setup User Obj
         app.user = { id: uid, balance: 0 };
         document.getElementById("user-id").innerText = "ID: " + uid.substring(0, 8).toUpperCase();
+        document.getElementById("conn-dot").classList.add("online");
 
+        // 3. Load Balance
         await game.loadBalance();
         game.setupRealtimeBalance();
+
+        // 4. Start Game
         game.renderRoadmap();
-        
-        // Loop
         setInterval(game.loop, 100);
       },
 
-      // --- SUPABASE INTEGRATION ---
       loadBalance: async () => {
-        if (!app.user) return;
-        const { data, error } = await supabaseClient
-          .from(WALLET_TABLE)
-          .select(WALLET_BALANCE_COLUMN)
-          .eq('id', app.user.id)
-          .maybeSingle();
+        try {
+          const { data, error } = await supabaseClient
+            .from(WALLET_TABLE)
+            .select(WALLET_BALANCE_COLUMN)
+            .eq('id', app.user.id)
+            .maybeSingle();
 
-        if (error) {
-          console.error('Lỗi lấy tiền:', error);
-          app.showToast('Lỗi kết nối ví!', 'error');
-        } else if (data) {
-          app.user.balance = data[WALLET_BALANCE_COLUMN] || 0;
-          app.updateBalanceUI();
-        } else {
-          // New user -> set default 100k
-          app.user.balance = 100000;
-          game.syncBalanceToSupabase();
+          if (!data) {
+             // Create if not exists
+             await supabaseClient.from(WALLET_TABLE).insert({ id: app.user.id, balance: 0 });
+             app.user.balance = 0;
+          } else {
+             app.user.balance = data[WALLET_BALANCE_COLUMN] || 0;
+          }
+          game.updateBalanceUI();
+          app.showToast(`Đã kết nối ví: ${app.user.id.substring(0,6)}...`, 'success');
+        } catch (err) {
+          console.error(err);
+          app.showToast("Lỗi kết nối ví!", "error");
         }
       },
 
@@ -371,30 +379,38 @@
             (payload) => {
               const newBal = payload.new[WALLET_BALANCE_COLUMN];
               if (newBal !== undefined && newBal !== app.user.balance) {
+                console.log('Realtime update:', newBal);
                 app.user.balance = newBal;
-                app.updateBalanceUI();
+                game.updateBalanceUI();
               }
             }
           )
           .subscribe();
       },
 
-      syncBalanceToSupabase: async () => {
+      syncBalance: async () => {
         if (!app.user) return;
         try {
           const { error } = await supabaseClient
             .from(WALLET_TABLE)
-            .upsert({ id: app.user.id, [WALLET_BALANCE_COLUMN]: app.user.balance });
+            .update({ [WALLET_BALANCE_COLUMN]: app.user.balance })
+            .eq('id', app.user.id);
 
           if (error) {
-            console.error('Sync Error:', error);
-            app.showToast('Lỗi đồng bộ tiền!', 'error');
-            await game.loadBalance(); // Revert
+             console.error('Sync Error:', error);
+             app.showToast('Lỗi đồng bộ tiền!', 'error');
+             await game.loadBalance(); // Revert on error
           }
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error('Sync Ex:', e); }
       },
-      // --- END SUPABASE ---
 
+      updateBalanceUI: () => {
+        const b = app.user.balance;
+        const fmt = b >= 1000000 ? (b/1000000).toFixed(2)+'M' : (b >= 1000 ? (b/1000).toFixed(0)+'k' : b.toLocaleString());
+        document.getElementById("balance").innerText = fmt;
+      },
+
+      // --- GAME LOOP ---
       loop: () => {
         const now = Date.now();
         const rid = Math.floor(now / CONFIG.PERIOD);
@@ -448,10 +464,8 @@
         if (game.phase !== p) {
           game.phase = p;
           if (p === 'BET') {
-             // Unlock buttons
              document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('winner', 'disabled'));
           } else if (p === 'LOCK') {
-             // Lock buttons
              document.querySelectorAll('.bet-btn').forEach(b => b.classList.add('disabled'));
           }
         }
@@ -461,7 +475,6 @@
         game.roundId = id;
         game.resolved = false;
         
-        // Save history for REBET
         let hasBet = false;
         for (let k in game.bets.confirmed) if(game.bets.confirmed[k] > 0) hasBet = true;
         if (hasBet) game.bets.lastRound = {...game.bets.confirmed};
@@ -475,7 +488,7 @@
         document.getElementById("modal-result").classList.remove("show");
       },
 
-      // --- BETTING ---
+      // --- BETTING & PAYOUT ---
       setChip: (val, el) => {
         game.currentChip = val;
         document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
@@ -485,9 +498,11 @@
       placeBet: (type) => {
         if (game.phase !== 'BET') return app.showToast("Chưa đến giờ cược!", "error");
         
-        // Check conflicts
         if (type === 'CHAN' && (game.bets.pending['LE'] > 0 || game.bets.confirmed['LE'] > 0)) return app.showToast("Không cược Chẵn & Lẻ cùng lúc", "error");
         if (type === 'LE' && (game.bets.pending['CHAN'] > 0 || game.bets.confirmed['CHAN'] > 0)) return app.showToast("Không cược Chẵn & Lẻ cùng lúc", "error");
+        
+        const totalPending = Object.values(game.bets.pending).reduce((a,b)=>a+b,0);
+        if (totalPending + game.currentChip > app.user.balance) return app.showToast("Số dư không đủ!", "error");
 
         game.bets.pending[type] += game.currentChip;
         game.updateBadges();
@@ -516,21 +531,22 @@
         let total = 0;
         for (let k in game.bets.pending) total += game.bets.pending[k];
         
-        if (total === 0) return app.showToast("Vui lòng đặt cược", "error");
+        if (total === 0) return;
         if (total > app.user.balance) return app.showToast("Số dư không đủ!", "error");
 
-        // Deduct
+        // Deduct Local
         app.user.balance -= total;
-        app.updateBalanceUI();
+        game.updateBalanceUI();
         
-        // Move to confirmed
+        // Move to Confirmed
         for (let k in game.bets.pending) {
           game.bets.confirmed[k] += game.bets.pending[k];
           game.bets.pending[k] = 0;
         }
-        
         game.updateBadges();
-        await game.syncBalanceToSupabase();
+        
+        // Sync to Supabase
+        await game.syncBalance();
         app.showToast("Đặt cược thành công!", "success");
       },
 
@@ -557,7 +573,7 @@
           if (winTotal > 0) {
              const final = Math.floor(winTotal);
              app.user.balance += final;
-             await game.syncBalanceToSupabase();
+             await game.syncBalance(); // Sync win
              game.showModal(res.txt, res.sub, final);
           } else {
              game.showModal(res.txt, res.sub, 0);
@@ -586,7 +602,6 @@
         coins.forEach((r, i) => {
           const d = document.createElement("div");
           d.className = `coin ${r?'c-red':'c-white'}`;
-          // Random scatter
           const rx = (Math.random()-0.5)*20;
           const ry = (Math.random()-0.5)*20;
           d.style.left = (pos[i].x + rx) + "px";
@@ -596,7 +611,6 @@
       },
 
       getResult: (id) => {
-        // Deterministic RNG
         const rng = (seed) => {
           let t = seed += 0x6D2B79F5;
           t = Math.imul(t ^ t >>> 15, t | 1);
@@ -654,15 +668,14 @@
       renderRoadmap: () => {
         const rm = document.getElementById("roadmap");
         rm.innerHTML = "";
-        // Fake history
         for(let i=18; i>0; i--) game.addRoadmap(game.getResult(game.roundId - i));
       },
 
       addRoadmap: (res) => {
         const rm = document.getElementById("roadmap");
         const d = document.createElement("div");
-        let cls = res.isChan ? "dot-chan" : "dot-le"; // Blue/Red
-        if(res.reds===0 || res.reds===4) cls += " dot-special"; // Gold border for 4
+        let cls = res.isChan ? "dot-chan" : "dot-le";
+        if(res.reds===0 || res.reds===4) cls += " dot-special";
         d.className = `dot ${cls}`;
         rm.appendChild(d);
         if(rm.children.length > 20) rm.removeChild(rm.firstChild);
