@@ -205,7 +205,7 @@
                         </div>
                         <div class="flex justify-between text-xs text-blue-200">
                             <span>Tối thiểu:</span>
-                            <span class="font-bold text-yellow-400">500,000 Coin</span>
+                            <span class="font-bold text-yellow-400">1,000,000 Coin</span>
                         </div>
                     </div>
 
@@ -399,7 +399,7 @@
                 const acc = document.getElementById("wd-account").value.trim();
 
                 if(!amount || isNaN(amount)) { showToast("Nhập số tiền hợp lệ", "error"); return; }
-                if(amount < 500000) { showToast("Tối thiểu rút 500,000 Coin!", "error"); return; }
+                if(amount < 1000000) { showToast("Tối thiểu rút 500,000 Coin!", "error"); return; }
                 if(!bank) { showToast("Vui lòng chọn ngân hàng/ví", "error"); return; }
                 if(!holder || !acc) { showToast("Thiếu thông tin tài khoản", "error"); return; }
 
