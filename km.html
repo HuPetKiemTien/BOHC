@@ -60,10 +60,12 @@
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* Button States */
-    .btn-pending { background: #eab308; cursor: not-allowed; color: #000; }
-    .btn-success { background: #22c55e; cursor: not-allowed; }
-    .btn-failed { background: #ef4444; cursor: not-allowed; }
+    /* Tele Button */
+    .btn-tele {
+        background: linear-gradient(90deg, #0088cc, #005f8f);
+        box-shadow: 0 4px 15px rgba(0, 136, 204, 0.4);
+    }
+    .btn-tele:active { transform: scale(0.98); }
 </style>
 </head>
 <body class="flex flex-col pb-10">
@@ -80,6 +82,15 @@
 <!-- MAIN CONTENT -->
 <main class="flex-1 p-4">
 
+    <!-- COIN NOTICE -->
+    <div class="bg-blue-900/40 border border-blue-500/30 rounded-lg p-3 mb-5 flex items-start gap-3">
+        <i class="fa-solid fa-circle-info text-blue-400 mt-0.5"></i>
+        <div>
+            <p class="text-sm font-bold text-blue-200">Quy đổi đơn vị:</p>
+            <p class="text-xs text-blue-300">10.000 Coin = 1.000 VNĐ</p>
+        </div>
+    </div>
+
     <!-- CATEGORY TABS -->
     <div class="flex gap-3 overflow-x-auto hide-scrollbar mb-6 pb-2">
         <button onclick="filterPromo('all')" id="btn-all" class="cat-btn px-5 py-2 rounded-full bg-white text-slate-900 font-bold text-sm whitespace-nowrap shadow-lg transition">Tất cả</button>
@@ -91,31 +102,31 @@
     <!-- PROMO LIST -->
     <div id="promo-list" class="space-y-4">
         
-        <!-- Item 1: Nạp đầu (Updated) -->
+        <!-- Item 1: Nạp đầu -->
         <div class="glass-card rounded-2xl p-0 overflow-hidden cursor-pointer group" data-cat="deposit" onclick="openModal('promo1')">
             <div class="relative h-32 bg-gradient-to-r from-red-600 to-orange-600 flex items-center justify-center overflow-hidden">
                 <i class="fa-solid fa-sack-dollar text-8xl text-white/10 absolute -right-4 -bottom-4 group-hover:scale-110 transition duration-500"></i>
                 <div class="text-center z-10">
                     <h3 class="text-2xl font-black text-white drop-shadow-md">NẠP ĐẦU</h3>
-                    <p class="text-sm text-white/90 font-medium uppercase tracking-wider">Tặng 100%</p>
+                    <p class="text-sm text-white/90 font-medium uppercase tracking-wider">Tặng tới 1.680K</p>
                 </div>
                 <div class="absolute top-3 right-3 promo-tag text-[10px] font-bold text-white px-2 py-1 rounded shadow-sm">HOT</div>
             </div>
             <div class="p-4 flex justify-between items-center">
                 <div>
-                    <h4 class="font-bold text-white">Thưởng nạp 580k - 1.58M</h4>
-                    <p class="text-xs text-slate-400 mt-1">Dành cho hội viên nạp lần đầu</p>
+                    <h4 class="font-bold text-white">Thưởng nạp siêu khủng</h4>
+                    <p class="text-xs text-slate-400 mt-1">Gói 500K - 1M - 2M</p>
                 </div>
-                <div id="status-preview-promo1" class="text-xs font-bold px-2 py-1 rounded bg-slate-700 text-slate-400">Chi tiết</div>
+                <div class="text-xs font-bold px-2 py-1 rounded bg-slate-700 text-slate-400">Chi tiết</div>
             </div>
         </div>
 
-        <!-- Item 2: Trải nghiệm (New) -->
+        <!-- Item 2: Trải nghiệm -->
         <div class="glass-card rounded-2xl p-0 overflow-hidden cursor-pointer group" data-cat="free" onclick="openModal('promo2')">
             <div class="relative h-32 bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center overflow-hidden">
                 <i class="fa-solid fa-gift text-8xl text-white/10 absolute -left-4 -bottom-4 group-hover:scale-110 transition duration-500"></i>
                 <div class="text-center z-10">
-                    <h3 class="text-3xl font-black text-white drop-shadow-md">280K</h3>
+                    <h3 class="text-3xl font-black text-white drop-shadow-md">580K</h3>
                     <p class="text-sm text-white/90 font-medium uppercase tracking-wider">Tiền trải nghiệm</p>
                 </div>
                 <div class="absolute top-3 left-3 promo-free text-[10px] font-bold text-white px-2 py-1 rounded shadow-sm">FREE</div>
@@ -123,9 +134,9 @@
             <div class="p-4 flex justify-between items-center">
                 <div>
                     <h4 class="font-bold text-white">Tặng vốn khởi nghiệp</h4>
-                    <p class="text-xs text-slate-400 mt-1">Đăng ký nhận ngay 280.000 Coin</p>
+                    <p class="text-xs text-slate-400 mt-1">Đăng ký nhận ngay 580.000 Coin</p>
                 </div>
-                <div id="status-preview-promo2" class="text-xs font-bold px-2 py-1 rounded bg-slate-700 text-slate-400">Chi tiết</div>
+                <div class="text-xs font-bold px-2 py-1 rounded bg-slate-700 text-slate-400">Chi tiết</div>
             </div>
         </div>
 
@@ -179,46 +190,63 @@
                 
                 <h3 class="text-emerald-400 font-bold mb-2 text-sm">⚠ Lưu ý:</h3>
                 <ul class="list-disc list-inside text-slate-400 space-y-1 text-xs">
+                    <li>Vui lòng liên hệ CSKH để xét duyệt.</li>
                     <li>Một IP/Thiết bị chỉ được nhận 1 lần.</li>
                     <li>Nghiêm cấm hành vi bào khuyến mãi.</li>
-                    <li>Quyết định của Admin là quyết định cuối cùng.</li>
                 </ul>
             </div>
 
             <!-- Action Button -->
-            <button id="modal-action-btn" class="w-full mt-6 font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <span>Đăng Ký Ngay</span>
+            <button onclick="contactCSKH()" class="btn-tele w-full mt-6 font-bold py-3.5 rounded-xl text-white shadow-lg transition flex items-center justify-center gap-2">
+                <i class="fa-brands fa-telegram text-xl"></i>
+                <span>Liên hệ CSKH Nhận Thưởng</span>
             </button>
         </div>
     </div>
 </div>
 
 <script>
-    // === Dữ liệu Khuyến Mãi (Updated) ===
+    // === Dữ liệu Khuyến Mãi (Updated theo yêu cầu) ===
     const promoData = {
         'promo1': {
-            title: "NẠP ĐẦU 580K - 1.58M",
+            title: "THƯỞNG NẠP ĐẦU 100%",
             icon: "fa-sack-dollar",
             bg: "from-red-600 to-orange-600",
             desc: `
-                <p>Thưởng nóng cho hội viên mới nạp tiền lần đầu:</p>
-                <ul class="mt-2 space-y-1">
-                    <li>- Nạp <b>580.000</b> Coin nhận thêm thưởng.</li>
-                    <li>- Nạp <b>1.580.000</b> Coin nhận gói kích hoạt VIP.</li>
-                    <li>- Yêu cầu: 1 vòng cược lại trước khi rút.</li>
+                <p class="mb-2">Chương trình thưởng nạp đầu đặc biệt cho hội viên mới:</p>
+                <ul class="space-y-2 text-slate-200">
+                    <li class="bg-slate-700/50 p-2 rounded border border-slate-600">
+                        <div class="flex justify-between font-bold">
+                            <span>💵 Nạp 500.000</span>
+                            <span class="text-emerald-400">+ 500.000</span>
+                        </div>
+                    </li>
+                    <li class="bg-slate-700/50 p-2 rounded border border-slate-600">
+                        <div class="flex justify-between font-bold">
+                            <span>💵 Nạp 1.000.000</span>
+                            <span class="text-emerald-400">+ 880.000</span>
+                        </div>
+                    </li>
+                    <li class="bg-slate-700/50 p-2 rounded border border-slate-600">
+                        <div class="flex justify-between font-bold">
+                            <span>💵 Nạp 2.000.000</span>
+                            <span class="text-emerald-400">+ 1.680.000</span>
+                        </div>
+                    </li>
                 </ul>
+                <p class="mt-2 text-xs text-slate-400 italic">* Yêu cầu 1 vòng cược lại trước khi rút.</p>
             `
         },
         'promo2': {
-            title: "TẶNG 280K TRẢI NGHIỆM",
+            title: "TẶNG 580K TRẢI NGHIỆM",
             icon: "fa-gift",
             bg: "from-emerald-500 to-cyan-500",
             desc: `
                 <p>Quà tặng khởi nghiệp dành cho tân thủ:</p>
                 <ul class="mt-2 space-y-1">
-                    <li>- Nhận ngay <b>280.000 Coin</b> vào ví chính.</li>
+                    <li>- Nhận ngay <b>580.000 Coin</b> vào ví chính.</li>
                     <li>- Áp dụng cho tất cả trò chơi (Trừ Xổ số).</li>
-                    <li>- Thắng trên 500k được phép rút tiền.</li>
+                    <li>- Thắng đủ doanh thu cược được phép rút tiền.</li>
                 </ul>
             `
         },
@@ -226,12 +254,11 @@
             title: "HOÀN TRẢ 1.5%",
             icon: "fa-rotate-left",
             bg: "from-slate-700 to-slate-600",
-            desc: "Hoàn trả không giới hạn mỗi ngày. Tự động cộng vào 13:00."
+            desc: "Hoàn trả không giới hạn mỗi ngày. Tự động cộng vào 13:00 hàng ngày."
         }
     };
 
     let uid = localStorage.getItem("my_wallet_uid");
-    let currentPromoId = null;
 
     // === HÀM CHÍNH ===
 
@@ -239,7 +266,6 @@
         location.href = "home.html";
     }
 
-    // Lọc khuyến mãi
     function filterPromo(category) {
         document.querySelectorAll('.cat-btn').forEach(btn => {
             btn.className = "cat-btn px-5 py-2 rounded-full bg-white/10 text-slate-300 font-medium text-sm whitespace-nowrap hover:bg-white/20 transition";
@@ -260,8 +286,8 @@
         document.getElementById('empty-state').classList.toggle('hidden', hasItem);
     }
 
-    // Mở Modal
     function openModal(promoId) {
+        // Có thể comment dòng check uid này nếu muốn khách vãng lai cũng xem được
         if(!uid) {
             alert("Vui lòng đăng nhập để xem chi tiết!");
             return location.href = "index.html";
@@ -270,16 +296,10 @@
         const data = promoData[promoId];
         if(!data) return;
 
-        currentPromoId = promoId;
-
-        // Render Content
         document.getElementById('modal-title').innerText = data.title;
         document.getElementById('modal-desc').innerHTML = data.desc;
         document.getElementById('modal-icon').className = `fa-solid ${data.icon} text-6xl text-white/20 absolute`;
         document.getElementById('modal-header-bg').className = `h-32 bg-gradient-to-r ${data.bg} relative flex items-center justify-center transition-colors duration-300`;
-
-        // Check Status & Render Button
-        updateButtonState();
 
         document.getElementById('detail-modal').classList.remove('hidden');
     }
@@ -288,103 +308,14 @@
         document.getElementById('detail-modal').classList.add('hidden');
     }
 
-    // === LOGIC XỬ LÝ TRẠNG THÁI ===
-    
-    // Lấy trạng thái từ LocalStorage (Giả lập DB)
-    function getStatus(promoId) {
-        const key = `promo_status_${uid}_${promoId}`;
-        return localStorage.getItem(key) || 'none'; // none, pending, success, failed
-    }
-
-    function setStatus(promoId, status) {
-        const key = `promo_status_${uid}_${promoId}`;
-        localStorage.setItem(key, status);
-        updateButtonState();
-        updatePreviewBadge(promoId, status);
-    }
-
-    // Cập nhật nút bấm trong Modal
-    function updateButtonState() {
-        const status = getStatus(currentPromoId);
-        const btn = document.getElementById('modal-action-btn');
-
-        // Reset classes
-        btn.className = "w-full mt-6 font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2";
-        btn.onclick = null;
-
-        if (status === 'none') {
-            // Chưa đăng ký
-            btn.classList.add('bg-gradient-to-r', 'from-indigo-500', 'to-purple-600', 'hover:from-indigo-600', 'text-white', 'active:scale-95');
-            btn.innerHTML = '<span>Đăng Ký Tham Gia</span> <i class="fa-solid fa-arrow-right"></i>';
-            btn.onclick = handleRegister;
-        } else if (status === 'pending') {
-            // Đang xử lý (Vàng)
-            btn.classList.add('btn-pending');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Đang Xử Lý...</span>';
-        } else if (status === 'success') {
-            // Thành công (Xanh)
-            btn.classList.add('btn-success', 'text-white');
-            btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> <span>Đã Thành Công</span>';
-        } else if (status === 'failed') {
-            // Thất bại (Đỏ)
-            btn.classList.add('btn-failed', 'text-white');
-            btn.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> <span>Không Thành Công</span>';
-        }
-    }
-
-    // Xử lý khi bấm Đăng Ký
-    function handleRegister() {
-        if (!confirm("Xác nhận đăng ký tham gia khuyến mãi này?")) return;
-
-        // 1. Chuyển sang Đang Xử Lý
-        setStatus(currentPromoId, 'pending');
-
-        // 2. Giả lập Admin duyệt sau 5 giây (Để bạn test)
-        // Trong thực tế, bước này Admin làm trên trang Admin
-        setTimeout(() => {
-            // Random kết quả để test: 70% thành công, 30% thất bại
-            const isApproved = Math.random() > 0.3; 
-            const finalStatus = isApproved ? 'success' : 'failed';
-            
-            setStatus(currentPromoId, finalStatus);
-            
-            // Nếu modal đang mở thì cập nhật lại nút ngay lập tức
-            if(!document.getElementById('detail-modal').classList.contains('hidden')){
-                updateButtonState();
-            }
-        }, 5000); // 5 giây sau tự duyệt
-    }
-
-    // Cập nhật Badge bên ngoài danh sách (Optional UX)
-    function updatePreviewBadge(promoId, status) {
-        const badge = document.getElementById(`status-preview-${promoId}`);
-        if (!badge) return;
-
-        if (status === 'pending') {
-            badge.className = "text-xs font-bold px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/50";
-            badge.innerText = "Đang xử lý";
-        } else if (status === 'success') {
-            badge.className = "text-xs font-bold px-2 py-1 rounded bg-green-500/20 text-green-400 border border-green-500/50";
-            badge.innerText = "Đã nhận";
-        } else if (status === 'failed') {
-            badge.className = "text-xs font-bold px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/50";
-            badge.innerText = "Từ chối";
-        }
-    }
-
-    // Load trạng thái ban đầu khi vào trang
-    window.onload = function() {
-        if(uid) {
-            ['promo1', 'promo2'].forEach(pid => {
-                const s = getStatus(pid);
-                if(s !== 'none') updatePreviewBadge(pid, s);
-            });
-        }
+    // Chuyển hướng Tele CSKH
+    function contactCSKH() {
+        // Mở link Tele trong tab mới
+        window.open("https://t.me/HC88CSKH", "_blank");
     }
 
 </script>
 
 </body>
 </html>
-
 
