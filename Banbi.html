@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Pachinko (No Half)</title>
+    <title>Neon Pachinko (Physics Fix)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,7 +17,6 @@
         :root {
             --bg-dark: #020617;
             --neon-blue: #3b82f6;
-            --neon-purple: #a855f7;
             --neon-green: #22c55e;
             --neon-red: #ef4444;
             --neon-gold: #eab308;
@@ -135,7 +134,7 @@
             </div>
         </div>
         <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
-            <i class="fa-solid fa-bolt text-yellow-400 text-xs"></i>
+            <i class="fa-solid fa-shield-halved text-yellow-400 text-xs"></i>
             <span class="text-xs font-bold text-slate-200">NO-HALF</span>
         </div>
     </div>
@@ -229,11 +228,10 @@
     const ROWS = 10; 
     const PIN_R = 3;  
     const BALL_R = 5.5; 
-    const SPACING = 30; // Khoảng cách rộng hơn chút vì ít hàng hơn
+    const SPACING = 30; 
     
     // Multipliers Logic (No 0.5)
     // 11 Buckets: 5 | 0 | 2 | 0 | 1 | 1 | 1 | 0 | 2 | 0 | 5
-    // Win or Bust. Center is x1 (Refund)
     const MULTIPLIERS = [5, 0, 2, 0, 1, 1, 1, 0, 2, 0, 5];
     
     const COLORS = { 
@@ -247,7 +245,11 @@
     const categories = { default: 0x0001, ball: 0x0002, sensor: 0x0004, pin: 0x0008 };
 
     function initPhysics() {
-        engine = Engine.create();
+        // TĂNG ĐỘ CHÍNH XÁC VẬT LÝ ĐỂ TRÁNH LỖI XUYÊN TƯỜNG
+        engine = Engine.create({
+            positionIterations: 8,
+            velocityIterations: 8
+        });
         world = engine.world;
         engine.gravity.y = 1.4; 
 
@@ -281,12 +283,13 @@
         }
         Composite.add(world, pins);
 
-        // 2. FUNNEL
-        const funnelLeft = Bodies.rectangle(startX - 90, 40, 160, 10, { 
-            isStatic: true, angle: Math.PI / 4, render: { visible: true } 
+        // 2. FUNNEL (PHỄU SÂU HƠN ĐỂ TRÁNH KẸT)
+        // Góc dốc hơn để bóng trôi nhanh
+        const funnelLeft = Bodies.rectangle(startX - 90, 30, 180, 10, { 
+            isStatic: true, angle: Math.PI / 3.5, render: { visible: true } 
         });
-        const funnelRight = Bodies.rectangle(startX + 90, 40, 160, 10, { 
-            isStatic: true, angle: -Math.PI / 4, render: { visible: true } 
+        const funnelRight = Bodies.rectangle(startX + 90, 30, 180, 10, { 
+            isStatic: true, angle: -Math.PI / 3.5, render: { visible: true } 
         });
         Composite.add(world, [funnelLeft, funnelRight]);
 
@@ -306,10 +309,14 @@
         }
         Composite.add(world, sensors);
 
-        // 4. WALLS
+        // 4. WALLS & CEILING (QUAN TRỌNG: TRẦN NHÀ ĐỂ TRÁNH VĂNG RA)
         Composite.add(world, [
+            // Sàn trái
             Bodies.rectangle(-20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }),
-            Bodies.rectangle(GAME_WIDTH+20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true })
+            // Sàn phải
+            Bodies.rectangle(GAME_WIDTH+20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }),
+            // Trần nhà (Ngăn bóng văng lên trời)
+            Bodies.rectangle(GAME_WIDTH/2, -100, GAME_WIDTH, 50, { isStatic: true }) 
         ]);
 
         // 5. EVENTS
@@ -336,12 +343,12 @@
             ctx.save();
             ctx.translate(funnelLeft.position.x, funnelLeft.position.y);
             ctx.rotate(funnelLeft.angle);
-            ctx.fillRect(-80, -5, 160, 10);
+            ctx.fillRect(-90, -5, 180, 10);
             ctx.restore();
             ctx.save();
             ctx.translate(funnelRight.position.x, funnelRight.position.y);
             ctx.rotate(funnelRight.angle);
-            ctx.fillRect(-80, -5, 160, 10);
+            ctx.fillRect(-90, -5, 180, 10);
             ctx.restore();
 
             // Draw Pins
@@ -468,8 +475,9 @@
         app.activeBalls++;
         updateUI();
         
-        const noiseX = (Math.random() - 0.5) * 10; 
-        const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, 10, BALL_R, {
+        // SPAWN Ở VỊ TRÍ CAO VÀ NGẪU NHIÊN ĐỂ KHÔNG BỊ CHỒNG BÓNG
+        const noiseX = (Math.random() - 0.5) * 20; 
+        const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, -30, BALL_R, {
             restitution: 0.5, friction: 0.005, density: 0.08, label: 'ball',
             betAmount: betVal,
             collisionFilter: { category: categories.ball, mask: categories.default | categories.pin | categories.sensor }
