@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neon Pachinko (Visible Board)</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+
+        :root {
+            --bg-dark: #020617;
+            --neon-blue: #0ea5e9;
+            --neon-pink: #d946ef;
+            --neon-gold: #eab308;
+            --neon-red: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            /* Grid Background */
+            background-image: 
+                linear-gradient(rgba(14, 165, 233, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(14, 165, 233, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Rajdhani', sans-serif;
+            height: 100dvh;
+            overflow: hidden;
+            touch-action: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+        }
+
+        /* Canvas Wrapper - Quan trọng: Flex center và hidden overflow */
+        #game-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Căn giữa dọc */
+            padding: 10px;
+        }
+
+        /* Canvas tự co giãn để không bị mất hình */
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(14, 165, 233, 0.1);
+            border-radius: 12px;
+            background: rgba(2, 6, 23, 0.5); /* Nền tối cho canvas */
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Controls */
+        .control-panel {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            z-index: 20;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        .glass-input {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-family: monospace;
+        }
+
+        .btn-opt {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-opt.active {
+            background: rgba(14, 165, 233, 0.2);
+            border-color: var(--neon-blue);
+            color: white;
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.2);
+        }
+
+        .btn-drop {
+            background: linear-gradient(to bottom, #d946ef, #c026d3);
+            box-shadow: 0 4px 0 #86198f, 0 0 15px rgba(217, 70, 239, 0.4);
+            transition: all 0.1s;
+        }
+        .btn-drop:active:not(:disabled) { transform: translateY(4px); box-shadow: none; }
+        .btn-drop:disabled { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; transform: translateY(4px); box-shadow: none; }
+
+        .toast {
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--neon-blue);
+            color: #fff; padding: 10px 20px; border-radius: 20px;
+            font-size: 13px; font-weight: bold; z-index: 100; 
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast" class="toast">Thông báo</div>
+
+    <!-- HEADER -->
+    <div class="flex items-center justify-between p-3 bg-slate-900/90 backdrop-blur-sm border-b border-white/5 z-20 shrink-0">
+        <div class="flex items-center gap-3">
+            <a href="games.html" class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+            <div class="flex flex-col">
+                <span class="text-[9px] text-slate-400 font-bold tracking-wider uppercase">SỐ DƯ</span>
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-slate-600" id="statusDot"></div>
+                    <span class="font-mono text-lg font-bold text-white leading-none" id="uiBalance">---</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(217,70,239,0.2)]">
+            <i class="fa-solid fa-table-cells text-fuchsia-400 text-xs"></i>
+            <span class="text-xs font-bold text-slate-200">PLINKO</span>
+        </div>
+    </div>
+
+    <!-- GAME CANVAS AREA -->
+    <div id="game-container">
+        <!-- Canvas injected here -->
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="control-panel shrink-0">
+        <div class="w-full max-w-md mx-auto flex flex-col gap-3">
+            
+            <!-- Row 1: Bet & Balls -->
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Bet Amount -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase">Cược / Bóng</span>
+                    <div class="glass-input flex items-center px-2 h-9 relative">
+                        <span class="text-slate-500 font-bold mr-1 text-xs">$</span>
+                        <input type="number" id="betInput" value="2300" oninput="updateTotalCalc()"
+                            class="w-full bg-transparent text-white font-bold text-sm focus:outline-none">
+                    </div>
+                </div>
+                <!-- Ball Count -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-[9px] text-slate-400 font-bold uppercase">Số lượng</span>
+                    <div class="flex gap-1 h-9">
+                        <button onclick="setBallCount(1)" class="btn-opt flex-1 active" id="btn-b1">1</button>
+                        <button onclick="setBallCount(10)" class="btn-opt flex-1" id="btn-b10">10</button>
+                        <button onclick="setBallCount(25)" class="btn-opt flex-1" id="btn-b25">25</button>
+                        <button onclick="setBallCount(50)" class="btn-opt flex-1" id="btn-b50">50</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Info -->
+            <div class="flex justify-between items-center bg-slate-900/80 px-3 py-2 rounded border border-white/5" id="totalDisplayBox">
+                <span class="text-[10px] text-slate-400 font-bold">TỔNG CƯỢC:</span>
+                <div class="flex flex-col items-end">
+                    <span class="font-mono text-sm font-bold text-yellow-400" id="totalBetCalc">2,300</span>
+                    <span class="text-[9px] text-red-500 hidden animate-pulse" id="limitWarning">Vượt 530k!</span>
+                </div>
+            </div>
+
+            <!-- Drop Button -->
+            <button id="btnDrop" onclick="startDropSequence()" class="btn-drop w-full h-12 rounded-xl font-black text-lg text-white uppercase tracking-widest relative overflow-hidden group">
+                <span class="relative z-10 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-down"></i> THẢ <span id="btnBallCount">1</span> BÓNG
+                </span>
+            </button>
+            
+            <!-- Footer Stats -->
+            <div class="flex justify-between items-center px-1">
+                <span class="text-[9px] text-slate-500 font-mono">Limit: 530k</span>
+                <span class="text-[9px] text-slate-500 font-mono">Bóng: <span id="ballsCount" class="text-fuchsia-400 font-bold">0</span></span>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // --- 1. SUPABASE CONFIG ---
+    const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const WALLET_TABLE = 'users';
+    let supaUser = null;
+    let realtimeChannel = null;
+
+    // --- 2. GAME VARIABLES ---
+    const app = {
+        balance: 0,
+        betPerBall: 2300,
+        ballCount: 1,
+        minBet: 2300,
+        maxTotalBet: 530000,
+        activeBalls: 0,
+        dropping: false
+    };
+
+    // --- 3. PHYSICS ENGINE (MATTER.JS) ---
+    const Engine = Matter.Engine,
+          Render = Matter.Render,
+          Runner = Matter.Runner,
+          Bodies = Matter.Bodies,
+          Composite = Matter.Composite,
+          Events = Matter.Events;
+
+    const GAME_WIDTH = 380;
+    const GAME_HEIGHT = 560; // Chiều cao cố định của thế giới vật lý
+    const ROWS = 13; 
+    const PIN_R = 3; 
+    const BALL_R = 5.5; 
+    const SPACING = 26; 
+
+    // Multipliers (Risk Level)
+    const MULTIPLIERS = [100, 20, 8, 4, 2, 0.5, 0.2, 0.2, 0.5, 2, 4, 8, 20, 100];
+    const COLORS = { 100: '#ef4444', 20: '#f97316', 8: '#eab308', 4: '#84cc16', 2: '#22c55e', 0.5: '#0ea5e9', 0.2: '#64748b' };
+
+    let engine, world, runner, canvas, ctx;
+    const categories = { default: 0x0001, ball: 0x0002, sensor: 0x0004, pin: 0x0008 };
+
+    function initPhysics() {
+        engine = Engine.create();
+        world = engine.world;
+        engine.gravity.y = 1.3; 
+
+        // Canvas Creation
+        const container = document.getElementById('game-container');
+        canvas = document.createElement('canvas');
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+        // Style cho canvas để nó co giãn
+        canvas.style.width = 'auto';
+        canvas.style.height = 'auto';
+        canvas.style.maxWidth = '100%';
+        canvas.style.maxHeight = '100%';
+        container.appendChild(canvas);
+        ctx = canvas.getContext('2d');
+
+        // 1. PINS (Pyramid)
+        const pins = [];
+        const startX = GAME_WIDTH / 2;
+        const startY = 60; // Dịch lên chút
+
+        for (let row = 0; row < ROWS; row++) {
+            for (let col = 0; col <= row + 2; col++) { 
+                const x = startX - ((row + 2) * SPACING / 2) + (col * SPACING);
+                const y = startY + (row * SPACING);
+                const pin = Bodies.circle(x, y, PIN_R, {
+                    isStatic: true, friction: 0, restitution: 0.6,
+                    label: 'pin',
+                    collisionFilter: { category: categories.pin }
+                });
+                pins.push(pin);
+            }
+        }
+        Composite.add(world, pins);
+
+        // 2. SENSORS / BUCKETS
+        const bucketY = startY + (ROWS * SPACING) + 15;
+        const sensors = [];
+        const totalBuckets = MULTIPLIERS.length;
+        
+        for(let i = 0; i < totalBuckets; i++) {
+            const x = startX - ((totalBuckets - 1) * SPACING / 2) + (i * SPACING);
+            const y = bucketY + 10;
+            const sensor = Bodies.rectangle(x, y, SPACING - 2, 20, {
+                isStatic: true, isSensor: true, label: 'bucket-' + i,
+                collisionFilter: { category: categories.sensor }
+            });
+            sensors.push(sensor);
+        }
+        Composite.add(world, sensors);
+
+        // 3. WALLS (Ẩn)
+        Composite.add(world, [
+            Bodies.rectangle(-20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }),
+            Bodies.rectangle(GAME_WIDTH+20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true })
+        ]);
+
+        // 4. COLLISION
+        Events.on(engine, 'collisionStart', (event) => {
+            event.pairs.forEach(pair => {
+                const { bodyA, bodyB } = pair;
+                // Ball hit bucket
+                if (bodyA.label.includes('bucket') || bodyB.label.includes('bucket')) {
+                    const bucket = bodyA.label.includes('bucket') ? bodyA : bodyB;
+                    const ball = bodyA.label.includes('bucket') ? bodyB : bodyA;
+                    if(ball.label === 'ball') handleWin(bucket.label, ball);
+                }
+                // Ball hit pin (visual effect only)
+                if ((bodyA.label === 'ball' && bodyB.label === 'pin') || (bodyB.label === 'ball' && bodyA.label === 'pin')) {
+                   // Có thể thêm hiệu ứng lóe sáng ở đây nếu cần
+                }
+            });
+        });
+
+        runner = Runner.create();
+        Runner.run(runner, engine);
+
+        // 5. RENDER LOOP CUSTOM
+        (function render() {
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            
+            // Draw Background Elements (Grid/Lines) for Board Visibility
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            // Draw visual pyramid lines
+            ctx.beginPath();
+            ctx.moveTo(startX, startY - 20);
+            ctx.lineTo(startX - ((ROWS + 2) * SPACING / 2), bucketY);
+            ctx.lineTo(startX + ((ROWS + 2) * SPACING / 2), bucketY);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Draw Pins (White/Bright)
+            ctx.fillStyle = '#fff'; 
+            ctx.shadowColor = 'rgba(255,255,255,0.5)';
+            ctx.shadowBlur = 4;
+            pins.forEach(p => {
+                ctx.beginPath(); 
+                ctx.arc(p.position.x, p.position.y, PIN_R, 0, Math.PI * 2); 
+                ctx.fill();
+            });
+            ctx.shadowBlur = 0; // Reset shadow
+
+            // Draw Buckets
+            for(let i = 0; i < totalBuckets; i++) {
+                const x = startX - ((totalBuckets - 1) * SPACING / 2) + (i * SPACING);
+                const y = bucketY + 30;
+                const mul = MULTIPLIERS[i];
+                
+                // Box
+                ctx.fillStyle = COLORS[mul];
+                ctx.globalAlpha = 0.2; // Transparent bg
+                ctx.fillRect(x - 11, y - 12, 22, 24);
+                ctx.globalAlpha = 1.0;
+                
+                // Border
+                ctx.strokeStyle = COLORS[mul];
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x - 11, y - 12, 22, 24);
+                
+                // Text
+                ctx.font = 'bold 9px Orbitron';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#fff';
+                ctx.fillText(mul + 'x', x, y);
+            }
+
+            // Draw Balls
+            Composite.allBodies(world).forEach(b => {
+                if (b.label === 'ball') {
+                    ctx.beginPath();
+                    ctx.arc(b.position.x, b.position.y, BALL_R, 0, Math.PI * 2);
+                    ctx.fillStyle = '#d946ef';
+                    ctx.shadowColor = '#d946ef'; ctx.shadowBlur = 8;
+                    ctx.fill(); ctx.shadowBlur = 0;
+                }
+            });
+
+            requestAnimationFrame(render);
+        })();
+    }
+
+    // --- 4. LOGIC ---
+    function setBallCount(n) {
+        if(app.dropping) return;
+        app.ballCount = n;
+        document.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-b${n}`).classList.add('active');
+        document.getElementById('btnBallCount').innerText = n;
+        updateTotalCalc();
+    }
+
+    function updateTotalCalc() {
+        const val = parseInt(document.getElementById('betInput').value) || 0;
+        app.betPerBall = val;
+        const total = val * app.ballCount;
+        
+        const elTotal = document.getElementById('totalBetCalc');
+        const elWarn = document.getElementById('limitWarning');
+        const elBox = document.getElementById('totalDisplayBox');
+
+        elTotal.innerText = total.toLocaleString();
+
+        if (total > app.maxTotalBet) {
+            elTotal.classList.remove('text-yellow-400');
+            elTotal.classList.add('text-red-500');
+            elWarn.classList.remove('hidden');
+            elBox.classList.add('border-red-500', 'bg-red-500/10');
+            document.getElementById('btnDrop').classList.add('grayscale');
+        } else {
+            elTotal.classList.add('text-yellow-400');
+            elTotal.classList.remove('text-red-500');
+            elWarn.classList.add('hidden');
+            elBox.classList.remove('border-red-500', 'bg-red-500/10');
+            document.getElementById('btnDrop').classList.remove('grayscale');
+        }
+    }
+
+    async function startDropSequence() {
+        if(app.dropping) return;
+        const val = parseInt(document.getElementById('betInput').value);
+        if (isNaN(val) || val < app.minBet) return showToast(`Cược tối thiểu ${app.minBet}`);
+        
+        const totalCost = val * app.ballCount;
+        if (totalCost > app.maxTotalBet) return showToast(`Tổng cược quá giới hạn 530k!`);
+        if (app.balance < totalCost) return showToast('Số dư không đủ!');
+
+        app.balance -= totalCost;
+        updateUI();
+        syncBalanceToSupabase();
+
+        app.dropping = true;
+        document.getElementById('btnDrop').disabled = true;
+
+        let spawned = 0;
+        const interval = setInterval(() => {
+            spawnBall(val);
+            spawned++;
+            if(spawned >= app.ballCount) {
+                clearInterval(interval);
+                app.dropping = false;
+                document.getElementById('btnDrop').disabled = false;
+            }
+        }, 80); // Tốc độ bắn bóng
+    }
+
+    function spawnBall(betVal) {
+        app.activeBalls++;
+        updateUI();
+        // Random vị trí thả nhẹ (-10 đến +10 px)
+        const noiseX = (Math.random() - 0.5) * 10;
+        const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, 10, BALL_R, {
+            restitution: 0.5, friction: 0.002, density: 0.04, label: 'ball',
+            betAmount: betVal,
+            collisionFilter: { category: categories.ball, mask: categories.default | categories.pin | categories.sensor }
+        });
+        Composite.add(world, ball);
+    }
+
+    function handleWin(bucketLabel, ball) {
+        if(ball.hasFinished) return;
+        ball.hasFinished = true;
+
+        const idx = parseInt(bucketLabel.split('-')[1]);
+        const mul = MULTIPLIERS[idx];
+        const win = Math.floor(ball.betAmount * mul);
+
+        app.balance += win;
+        app.activeBalls--;
+        updateUI();
+        syncBalanceToSupabase();
+
+        // Visual Text
+        if (mul >= 1) {
+            const div = document.createElement('div');
+            div.className = 'absolute font-bold text-xs pointer-events-none animate-bounce z-50';
+            div.style.left = (ball.position.x + document.getElementById('game-container').offsetLeft) + 'px';
+            div.style.top = (ball.position.y + document.getElementById('game-container').offsetTop - 20) + 'px';
+            
+            let cl = 'text-white';
+            if(mul>=10) cl='text-yellow-400 text-lg shadow-black drop-shadow-md';
+            else if(mul>=2) cl='text-green-400';
+            div.innerHTML = `<span class="${cl}">${mul}x</span>`;
+            document.body.appendChild(div);
+            setTimeout(()=>div.remove(), 1000);
+        }
+
+        setTimeout(() => Composite.remove(world, ball), 50);
+    }
+
+    function updateUI() {
+        document.getElementById('uiBalance').innerText = app.balance.toLocaleString();
+        document.getElementById('ballsCount').innerText = app.activeBalls;
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.style.opacity = 1;
+        setTimeout(()=>t.style.opacity=0, 2000);
+    }
+
+    // --- SUPABASE ---
+    async function initSupabase() {
+        const uid = localStorage.getItem("my_wallet_uid");
+        if (!uid) { showToast("Chưa đăng nhập!"); return; }
+        supaUser = { id: uid };
+        document.getElementById('statusDot').classList.add('bg-green-500');
+        const { data } = await supabaseClient.from(WALLET_TABLE).select('balance').eq("id", uid).maybeSingle();
+        if(!data) { await supabaseClient.from(WALLET_TABLE).insert({id:uid, balance:0}); app.balance=0; }
+        else app.balance = data.balance || 0;
+        
+        updateUI(); updateTotalCalc(); setupRealtimeBalance(); initPhysics();
+    }
+
+    function setupRealtimeBalance() {
+        if (!supaUser) return;
+        if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = supabaseClient.channel('wallet-changes')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: WALLET_TABLE, filter: `id=eq.${supaUser.id}` },
+                (payload) => {
+                    if (payload.new.balance !== undefined && payload.new.balance !== app.balance) {
+                        app.balance = payload.new.balance;
+                        updateUI();
+                    }
+                }
+            ).subscribe();
+    }
+
+    async function syncBalanceToSupabase() {
+        if(!supaUser) return;
+        try { await supabaseClient.from(WALLET_TABLE).update({ balance: app.balance }).eq('id', supaUser.id); } catch(e){}
+    }
+
+    window.onload = initSupabase;
+
+</script>
+</body>
+</html>
+
+
