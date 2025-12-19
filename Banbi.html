@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Pachinko (Physics Fix)</title>
+    <title>Neon Pachinko (High Risk)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,6 +17,7 @@
         :root {
             --bg-dark: #020617;
             --neon-blue: #3b82f6;
+            --neon-purple: #a855f7;
             --neon-green: #22c55e;
             --neon-red: #ef4444;
             --neon-gold: #eab308;
@@ -25,9 +26,9 @@
         body {
             background-color: var(--bg-dark);
             background-image: 
-                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
+                linear-gradient(rgba(34, 197, 94, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 197, 94, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
             font-family: 'Rajdhani', sans-serif;
             height: 100dvh;
             overflow: hidden;
@@ -48,22 +49,23 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px;
+            padding: 5px;
         }
 
         canvas {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            border-radius: 16px;
-            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.7);
             border: 1px solid rgba(255,255,255,0.05);
-            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
         }
 
         /* Controls Panel */
         .control-panel {
-            background: rgba(2, 6, 23, 0.95);
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
             border-top: 1px solid rgba(255,255,255,0.1);
             padding: 12px;
             padding-bottom: calc(12px + env(safe-area-inset-bottom));
@@ -89,15 +91,15 @@
             transition: all 0.2s;
         }
         .btn-opt.active {
-            background: rgba(234, 179, 8, 0.2);
-            border-color: var(--neon-gold);
+            background: rgba(34, 197, 94, 0.2);
+            border-color: var(--neon-green);
             color: white;
-            box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
         }
 
         .btn-drop {
-            background: linear-gradient(180deg, #eab308, #ca8a04);
-            box-shadow: 0 4px 0 #854d0e, 0 0 20px rgba(234, 179, 8, 0.3);
+            background: linear-gradient(180deg, #22c55e, #16a34a);
+            box-shadow: 0 4px 0 #14532d, 0 0 20px rgba(34, 197, 94, 0.3);
             transition: all 0.1s;
         }
         .btn-drop:active:not(:disabled) { transform: translateY(4px); box-shadow: none; }
@@ -106,7 +108,7 @@
         .toast {
             position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95);
-            border: 1px solid var(--neon-gold);
+            border: 1px solid var(--neon-green);
             color: #fff; padding: 10px 20px; border-radius: 20px;
             font-size: 13px; font-weight: bold; z-index: 100; 
             opacity: 0; transition: opacity 0.3s; pointer-events: none;
@@ -133,9 +135,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
-            <i class="fa-solid fa-shield-halved text-yellow-400 text-xs"></i>
-            <span class="text-xs font-bold text-slate-200">NO-HALF</span>
+        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+            <i class="fa-solid fa-dice text-green-400 text-xs"></i>
+            <span class="text-xs font-bold text-slate-200">HIGH RISK</span>
         </div>
     </div>
 
@@ -188,7 +190,7 @@
             <!-- Footer Stats -->
             <div class="flex justify-between items-center px-1">
                 <span class="text-[9px] text-slate-500 font-mono">Limit: 530k</span>
-                <span class="text-[9px] text-slate-500 font-mono">Bóng: <span id="ballsCount" class="text-yellow-400 font-bold">0</span></span>
+                <span class="text-[9px] text-slate-500 font-mono">Bóng: <span id="ballsCount" class="text-green-400 font-bold">0</span></span>
             </div>
 
         </div>
@@ -222,22 +224,22 @@
           Composite = Matter.Composite,
           Events = Matter.Events;
 
-    // Board Config (10 Rows for 11 Buckets)
+    // Board Config (12 Rows for 13 Buckets)
     const GAME_WIDTH = 380; 
-    const GAME_HEIGHT = 560; 
-    const ROWS = 10; 
+    const GAME_HEIGHT = 580; 
+    const ROWS = 12; 
     const PIN_R = 3;  
     const BALL_R = 5.5; 
-    const SPACING = 30; 
+    const SPACING = 27; 
     
-    // Multipliers Logic (No 0.5)
-    // 11 Buckets: 5 | 0 | 2 | 0 | 1 | 1 | 1 | 0 | 2 | 0 | 5
-    const MULTIPLIERS = [5, 0, 2, 0, 1, 1, 1, 0, 2, 0, 5];
+    // Multipliers Logic (NO x1)
+    // 13 Slots: [5, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 5]
+    // Only 0 (Boom), 2 (Double), 5 (Big Win)
+    const MULTIPLIERS = [5, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 5];
     
     const COLORS = { 
         5: '#eab308',   // Vàng
         2: '#22c55e',   // Xanh lá
-        1: '#3b82f6',   // Xanh dương
         0: '#0f172a'    // Đen (Boom)
     };
 
@@ -245,13 +247,9 @@
     const categories = { default: 0x0001, ball: 0x0002, sensor: 0x0004, pin: 0x0008 };
 
     function initPhysics() {
-        // TĂNG ĐỘ CHÍNH XÁC VẬT LÝ ĐỂ TRÁNH LỖI XUYÊN TƯỜNG
-        engine = Engine.create({
-            positionIterations: 8,
-            velocityIterations: 8
-        });
+        engine = Engine.create({ positionIterations: 10, velocityIterations: 10 });
         world = engine.world;
-        engine.gravity.y = 1.4; 
+        engine.gravity.y = 1.5; 
 
         const container = document.getElementById('game-container');
         canvas = document.createElement('canvas');
@@ -283,17 +281,18 @@
         }
         Composite.add(world, pins);
 
-        // 2. FUNNEL (PHỄU SÂU HƠN ĐỂ TRÁNH KẸT)
-        // Góc dốc hơn để bóng trôi nhanh
-        const funnelLeft = Bodies.rectangle(startX - 90, 30, 180, 10, { 
-            isStatic: true, angle: Math.PI / 3.5, render: { visible: true } 
+        // 2. SIDE BUMPERS (VẬT CẢN ĐỂ ĐẨY BÓNG VÀO TRONG)
+        const bumperLeft = Bodies.rectangle(10, GAME_HEIGHT/2, 120, 20, { 
+            isStatic: true, angle: Math.PI / 2.5, render: { visible: true },
+            friction: 0, restitution: 0.8
         });
-        const funnelRight = Bodies.rectangle(startX + 90, 30, 180, 10, { 
-            isStatic: true, angle: -Math.PI / 3.5, render: { visible: true } 
+        const bumperRight = Bodies.rectangle(GAME_WIDTH - 10, GAME_HEIGHT/2, 120, 20, { 
+            isStatic: true, angle: -Math.PI / 2.5, render: { visible: true },
+            friction: 0, restitution: 0.8
         });
-        Composite.add(world, [funnelLeft, funnelRight]);
+        Composite.add(world, [bumperLeft, bumperRight]);
 
-        // 3. SENSORS
+        // 3. SENSORS (BUCKETS)
         const bucketY = startY + (ROWS * SPACING) + 15;
         const sensors = [];
         const totalBuckets = MULTIPLIERS.length;
@@ -309,13 +308,10 @@
         }
         Composite.add(world, sensors);
 
-        // 4. WALLS & CEILING (QUAN TRỌNG: TRẦN NHÀ ĐỂ TRÁNH VĂNG RA)
+        // 4. WALLS & CEILING
         Composite.add(world, [
-            // Sàn trái
-            Bodies.rectangle(-20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }),
-            // Sàn phải
+            Bodies.rectangle(-20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }), 
             Bodies.rectangle(GAME_WIDTH+20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }),
-            // Trần nhà (Ngăn bóng văng lên trời)
             Bodies.rectangle(GAME_WIDTH/2, -100, GAME_WIDTH, 50, { isStatic: true }) 
         ]);
 
@@ -338,17 +334,17 @@
         (function render() {
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             
-            // Draw Funnel
-            ctx.fillStyle = '#334155';
+            // Draw Bumpers
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
             ctx.save();
-            ctx.translate(funnelLeft.position.x, funnelLeft.position.y);
-            ctx.rotate(funnelLeft.angle);
-            ctx.fillRect(-90, -5, 180, 10);
+            ctx.translate(bumperLeft.position.x, bumperLeft.position.y);
+            ctx.rotate(bumperLeft.angle);
+            ctx.fillRect(-60, -10, 120, 20);
             ctx.restore();
             ctx.save();
-            ctx.translate(funnelRight.position.x, funnelRight.position.y);
-            ctx.rotate(funnelRight.angle);
-            ctx.fillRect(-90, -5, 180, 10);
+            ctx.translate(bumperRight.position.x, bumperRight.position.y);
+            ctx.rotate(bumperRight.angle);
+            ctx.fillRect(-60, -10, 120, 20);
             ctx.restore();
 
             // Draw Pins
@@ -396,8 +392,8 @@
                 if (b.label === 'ball') {
                     ctx.beginPath();
                     ctx.arc(b.position.x, b.position.y, BALL_R, 0, Math.PI * 2);
-                    ctx.fillStyle = '#eab308'; 
-                    ctx.shadowColor = '#eab308'; ctx.shadowBlur = 6;
+                    ctx.fillStyle = '#22c55e'; // Green Ball
+                    ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 6;
                     ctx.fill(); ctx.shadowBlur = 0;
                 }
             });
@@ -475,7 +471,6 @@
         app.activeBalls++;
         updateUI();
         
-        // SPAWN Ở VỊ TRÍ CAO VÀ NGẪU NHIÊN ĐỂ KHÔNG BỊ CHỒNG BÓNG
         const noiseX = (Math.random() - 0.5) * 20; 
         const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, -30, BALL_R, {
             restitution: 0.5, friction: 0.005, density: 0.08, label: 'ball',
@@ -518,7 +513,6 @@
             let cl = 'text-white';
             if(mul>=5) cl='text-yellow-400 text-xl font-black drop-shadow-md';
             else if(mul>=2) cl='text-green-400';
-            else if(mul===1) cl='text-blue-400 text-[10px]';
 
             div.innerHTML = `<span class="${cl}">${mul}x</span>`;
         }
