@@ -7,201 +7,226 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --bg-deep: #05080f;
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --accent: #6366f1;
+        }
+
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f172a;
-            color: white;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-deep);
+            color: #f1f5f9;
             min-height: 100vh;
-            /* Background đồng bộ với Heocon88 */
             background-image: 
-                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(244, 63, 94, 0.05) 0%, transparent 40%);
             background-attachment: fixed;
+            -webkit-tap-highlight-color: transparent;
         }
-        
-        .font-mono { font-family: 'Space Mono', monospace; }
 
-        /* Glassmorphism Panel */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        /* Glassmorphism subtle */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .glass-card:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Tabs */
+        .tab-btn {
+            position: relative;
             transition: all 0.3s ease;
-        }
-        
-        .glass-panel:active {
-            transform: scale(0.98);
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.15);
+            white-space: nowrap;
+            color: #94a3b8;
         }
 
-        .icon-box {
-            box-shadow: 0 0 15px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
+        .tab-btn.active {
+            color: #fff;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
         }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 2px;
+            background: #6366f1;
+            border-radius: 2px;
+        }
+
+        /* Hide scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .game-item { transition: all 0.3s ease; }
+        .game-item.hidden { display: none; opacity: 0; transform: scale(0.8); }
     </style>
 </head>
 
-<body class="flex flex-col pb-8">
+<body class="flex flex-col">
 
-    <!-- HEADER -->
-    <header class="sticky top-0 z-50 bg-[#0f172a]/80 backdrop-blur-xl border-b border-white/5 px-4 py-4 flex justify-between items-center">
-        
-        <!-- Nút Thoát về Home -->
-        <a href="home.html" class="flex items-center gap-3 text-slate-400 hover:text-white transition group">
-            <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-active:scale-95 transition">
-                <i class="fa-solid fa-chevron-left text-xs"></i>
-            </div>
-            <span class="font-bold text-sm">Trang chủ</span>
+    <!-- HEADER GỌN GÀNG -->
+    <header class="sticky top-0 z-[100] px-4 py-3 bg-[#05080f]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between">
+        <a href="home.html" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center active:scale-90 transition">
+            <i class="fa-solid fa-chevron-left text-xs text-slate-400"></i>
         </a>
 
-        <!-- Thông tin User -->
-        <div class="text-right">
-            <div class="text-[10px] text-slate-500 font-bold tracking-widest uppercase mb-0.5" id="user-id">LOADING...</div>
-            <div class="flex items-center gap-1.5 justify-end">
-                <span class="text-white font-mono font-bold text-lg tracking-tight" id="user-balance">0</span>
-                <span class="text-yellow-500 text-xs font-bold">COIN</span>
+        <div class="flex items-center gap-3">
+            <div class="text-right">
+                <div class="text-[9px] text-slate-500 font-bold uppercase tracking-tighter" id="user-uid">ID: ------</div>
+                <div class="flex items-center justify-end gap-1">
+                    <span class="text-white font-['JetBrains_Mono'] font-bold text-base" id="user-balance">0</span>
+                    <span class="text-yellow-500 text-[10px] font-black italic">COIN</span>
+                </div>
+            </div>
+            <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                <i class="fa-solid fa-wallet text-sm text-white"></i>
             </div>
         </div>
     </header>
 
-    <!-- DANH SÁCH GAME -->
-    <main class="flex-1 px-4 py-6 space-y-3">
+    <!-- TABS PHÂN LOẠI -->
+    <div class="sticky top-[61px] z-[90] bg-[#05080f]/60 backdrop-blur-md px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5">
+        <button onclick="filterGames('all')" class="tab-btn active px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-all">Tất cả</button>
+        <button onclick="filterGames('casino')" class="tab-btn px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-casino">Casino</button>
+        <button onclick="filterGames('mini')" class="tab-btn px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-mini">Mini</button>
+        <button onclick="filterGames('slots')" class="tab-btn px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-slots">Nổ hũ</button>
+        <button onclick="filterGames('lotto')" class="tab-btn px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-lotto">Xổ số</button>
+    </div>
 
-        <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Casino & Bài</h3>
-
-        <!-- Game: Baccarat (MỚI) -->
-        <a href="baccarat.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    <!-- DANH SÁCH GAME LƯỚI 3 CỘT -->
+    <main class="flex-1 px-3 py-4">
+        <div class="grid grid-cols-3 gap-2" id="game-grid">
             
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-white shrink-0 relative z-10">
-                <i class="fa-solid fa-layer-group text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0 relative z-10">
-                <div class="flex items-center gap-2">
-                    <h3 class="font-bold text-white text-sm">Baccarat Live</h3>
-                    <span class="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">HOT</span>
+            <!-- Casino -->
+            <a href="baccarat.html" data-category="casino" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-xl">
+                    <i class="fa-solid fa-layer-group"></i>
                 </div>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Sòng bài đẳng cấp quốc tế</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs relative z-10"></i>
-        </a>
+                <span class="text-[10px] font-bold text-center leading-tight">Baccarat</span>
+            </a>
 
-        <!-- Game: Xóc Đĩa -->
-        <a href="xocdia.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-r from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white shrink-0 relative z-10">
-                <i class="fa-solid fa-circle-half-stroke text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0 relative z-10">
-                <h3 class="font-bold text-white text-sm">Xóc Đĩa Tứ Linh</h3>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Chẵn lẻ - Cược là thắng</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs relative z-10"></i>
-        </a>
-
-        <!-- Game: Poker -->
-        <a href="quayhu001.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white shrink-0">
-                <i class="fa-solid fa-diamond text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-white text-sm">Slot Hoàng Gia</h3>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Đấu trí cùng cao thủ</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
-        </a>
-
-        <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 mt-6 pl-1">Mini Game & Xổ Số</h3>
-
-        <!-- Game: Xổ Số (MỚI) -->
-        <a href="lotto.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shrink-0 relative z-10">
-                <i class="fa-solid fa-ticket text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0 relative z-10">
-                <div class="flex items-center gap-2">
-                    <h3 class="font-bold text-white text-sm">Xổ Số 3 Miền</h3>
-                    <span class="bg-yellow-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded">1 ăn 99</span>
+            <!-- Mini: Xóc Đĩa -->
+            <a href="xocdia.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 text-xl">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
                 </div>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Thử vận may mỗi ngày</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs relative z-10"></i>
-        </a>
+                <span class="text-[10px] font-bold text-center leading-tight">Xóc Đĩa</span>
+            </a>
 
-        <!-- Game: Tài Xỉu -->
-        <a href="taixiu.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white shrink-0">
-                <i class="fa-solid fa-dice text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-white text-sm">Tài Xỉu MD5</h3>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Minh bạch - Xanh chín</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
-        </a>
+            <!-- Mini: Tài Xỉu -->
+            <a href="taixiu.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 text-xl">
+                    <i class="fa-solid fa-dice"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight">Tài Xỉu</span>
+            </a>
 
-        <!-- Game: Bầu Cua -->
-        <a href="baucua.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white shrink-0">
-                <i class="fa-solid fa-shrimp text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-white text-sm">Bầu Cua Truyền Kỳ</h3>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Dân gian đổi thưởng</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
-        </a>
+            <!-- Slots: Nổ hũ -->
+            <a href="quayhu001.html" data-category="slots" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 text-xl">
+                    <i class="fa-solid fa-gem"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight">Nổ hũ</span>
+            </a>
 
-        <!-- Game: Bắn Cá -->
-        <a href="bancavu.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white shrink-0">
-                <i class="fa-solid fa-fish-fins text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-white text-sm">Bắn Cá Vũ Trụ</h3>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Săn boss - Nổ hũ vàng</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
-        </a>
+            <!-- Lotto -->
+            <a href="lotto.html" data-category="lotto" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xl">
+                    <i class="fa-solid fa-ticket"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight">Xổ Số</span>
+            </a>
 
-        <!-- Game: click -->
-        <a href="click.html" class="glass-panel flex items-center gap-4 p-3 rounded-2xl relative group overflow-hidden">
-            <div class="icon-box w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-600 to-pink-600 flex items-center justify-center text-white shrink-0">
-                <i class="fa-solid fa-car-side text-lg"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-white text-sm">Ấn Là Tiền Về</h3>
-                <p class="text-xs text-slate-400 truncate mt-0.5">Đua top nhận quà</p>
-            </div>
-            <i class="fa-solid fa-chevron-right text-slate-600 text-xs"></i>
-        </a>
+            <!-- Bắn Cá -->
+            <a href="bancavu.html" data-category="slots" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 text-xl">
+                    <i class="fa-solid fa-fish-fins"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight">Bắn Cá</span>
+            </a>
 
+            <!-- Bầu Cua -->
+            <a href="baucua.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl">
+                    <i class="fa-solid fa-shrimp"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight">Bầu Cua</span>
+            </a>
+
+            <!-- Click -->
+            <a href="click.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-fuchsia-500/10 flex items-center justify-center text-fuchsia-500 text-xl">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight">Đập Lu</span>
+            </a>
+
+            <!-- Thêm ô giả lập (Coming Soon) -->
+            <div class="glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 opacity-40">
+                <div class="w-10 h-10 rounded-full bg-slate-500/10 flex items-center justify-center text-slate-500 text-xl">
+                    <i class="fa-solid fa-ellipsis"></i>
+                </div>
+                <span class="text-[9px] font-bold text-center leading-tight">Sắp có</span>
+            </div>
+
+        </div>
     </main>
 
     <script>
-        // --- CONFIGURATION ---
+        // Supabase Init
         const SUPABASE_URL = "https://sfbaytcmpgceapdcdyer.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8";
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Filter Logic
+        function filterGames(category) {
+            const games = document.querySelectorAll('.game-item');
+            const tabs = document.querySelectorAll('.tab-btn');
+
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.id === `tab-${category}`) tab.classList.add('active');
+            });
+
+            games.forEach(game => {
+                game.style.opacity = '0';
+                game.style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    if (category === 'all' || game.getAttribute('data-category') === category) {
+                        game.classList.remove('hidden');
+                        setTimeout(() => {
+                            game.style.opacity = '1';
+                            game.style.transform = 'scale(1)';
+                        }, 50);
+                    } else {
+                        game.classList.add('hidden');
+                    }
+                }, 200);
+            });
+        }
+
         window.onload = async function() {
-            // Lấy UID từ LocalStorage
             const uid = localStorage.getItem("my_wallet_uid");
             
             if (uid) {
-                // Hiển thị ID (cắt ngắn cho đẹp)
-                document.getElementById('user-id').innerText = "ID: " + uid.substring(0, 8).toUpperCase();
+                document.getElementById('user-uid').innerText = "ID: " + uid.substring(0, 8).toUpperCase();
 
-                // Lấy số dư từ Supabase
                 const { data: user, error } = await db
                     .from("users")
                     .select("balance")
@@ -209,16 +234,26 @@
                     .maybeSingle();
                 
                 if (user) {
-                    document.getElementById('user-balance').innerText = user.balance.toLocaleString('en-US');
+                    animateValue("user-balance", 0, user.balance, 1000);
                 }
-            } else {
-                document.getElementById('user-id').innerText = "GUEST";
-                document.getElementById('user-balance').innerText = "0";
             }
         };
-    </script>
 
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                obj.innerHTML = value.toLocaleString('en-US');
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+    </script>
 </body>
 </html>
-
 
