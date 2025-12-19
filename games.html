@@ -26,6 +26,7 @@
                 radial-gradient(circle at 100% 100%, rgba(244, 63, 94, 0.05) 0%, transparent 40%);
             background-attachment: fixed;
             -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
         }
 
         /* Glassmorphism subtle */
@@ -35,11 +36,26 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 16px;
             transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
 
         .glass-card:active {
-            transform: scale(0.92);
+            transform: scale(0.95);
             background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Hiệu ứng gợn sóng khi click */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            pointer-events: none;
+        }
+        @keyframes ripple {
+            to { transform: scale(4); opacity: 0; }
         }
 
         /* Tabs */
@@ -72,15 +88,19 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .game-item { transition: all 0.3s ease; }
+        .game-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .game-item.hidden { display: none; opacity: 0; transform: scale(0.8); }
+
+        /* Modal Animation */
+        .modal-enter { opacity: 0; transform: scale(0.9); pointer-events: none; }
+        .modal-active { opacity: 1; transform: scale(1); pointer-events: auto; }
     </style>
 </head>
 
-<body class="flex flex-col">
+<body class="flex flex-col select-none">
 
-    <!-- HEADER GỌN GÀNG -->
-    <header class="sticky top-0 z-[100] px-4 py-3 bg-[#05080f]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between">
+    <!-- HEADER -->
+    <header class="sticky top-0 z-[100] px-4 py-3 bg-[#05080f]/90 backdrop-blur-xl border-b border-white/5 flex items-center justify-between">
         <a href="home.html" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center active:scale-90 transition">
             <i class="fa-solid fa-chevron-left text-xs text-slate-400"></i>
         </a>
@@ -100,7 +120,7 @@
     </header>
 
     <!-- TABS PHÂN LOẠI -->
-    <div class="sticky top-[61px] z-[90] bg-[#05080f]/60 backdrop-blur-md px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5">
+    <div class="sticky top-[61px] z-[90] bg-[#05080f]/80 backdrop-blur-md px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-white/5">
         <button onclick="filterGames('all')" class="tab-btn active px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-all">Tất cả</button>
         <button onclick="filterGames('casino')" class="tab-btn px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-casino">Casino</button>
         <button onclick="filterGames('mini')" class="tab-btn px-4 py-1.5 rounded-lg text-[11px] font-bold" id="tab-mini">Mini</button>
@@ -109,82 +129,84 @@
     </div>
 
     <!-- DANH SÁCH GAME LƯỚI 3 CỘT -->
-    <main class="flex-1 px-3 py-4">
-        <div class="grid grid-cols-3 gap-2" id="game-grid">
+    <main class="flex-1 px-3 py-4 pb-20">
+        <div class="grid grid-cols-3 gap-3" id="game-grid">
             
             <!-- Casino -->
             <a href="baccarat.html" data-category="casino" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-xl">
+                <div class="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-xl shadow-[0_0_15px_rgba(99,102,241,0.3)]">
                     <i class="fa-solid fa-layer-group"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Baccarat</span>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Baccarat</span>
             </a>
 
             <!-- Mini: Xóc Đĩa -->
             <a href="xocdia.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 text-xl">
+                <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 text-xl shadow-[0_0_15px_rgba(244,63,94,0.3)]">
                     <i class="fa-solid fa-circle-half-stroke"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Xóc Đĩa</span>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Xóc Đĩa</span>
             </a>
 
             <!-- Mini: Tài Xỉu -->
             <a href="taixiu.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 text-xl">
+                <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 text-xl shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                     <i class="fa-solid fa-dice"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Tài Xỉu</span>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Tài Xỉu</span>
             </a>
 
-            <!-- Slots: Nổ hũ -->
-            <a href="quayhu001.html" data-category="slots" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 text-xl">
+            <!-- Slots: Nổ hũ (COMING SOON) -->
+            <div onclick="showComingSoon()" data-category="slots" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 cursor-pointer group">
+                <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 text-xl shadow-[0_0_15px_rgba(245,158,11,0.3)] group-active:scale-90 transition-transform">
                     <i class="fa-solid fa-gem"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Nổ hũ</span>
-            </a>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Nổ hũ</span>
+            </div>
 
-            <!-- Lotto -->
-            <a href="xoso.html" data-category="lotto" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xl">
+            <!-- Lotto (COMING SOON) -->
+            <div onclick="showComingSoon()" data-category="lotto" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 cursor-pointer group">
+                <div class="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] group-active:scale-90 transition-transform">
                     <i class="fa-solid fa-ticket"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Xổ Số</span>
-            </a>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Xổ Số</span>
+            </div>
 
-            <!-- Bắn Cá -->
-            <a href="bancavu.html" data-category="slots" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 text-xl">
+            <!-- Bắn Cá (COMING SOON) -->
+            <div onclick="showComingSoon()" data-category="slots" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 cursor-pointer group">
+                <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 text-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] group-active:scale-90 transition-transform">
                     <i class="fa-solid fa-fish-fins"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Bắn Cá</span>
-            </
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Bắn Cá</span>
+            </div>
+
             <!-- Bầu Cua -->
             <a href="baucua.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl">
+                <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl shadow-[0_0_15px_rgba(249,115,22,0.3)]">
                     <i class="fa-solid fa-shrimp"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Bầu Cua</span>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Bầu Cua</span>
             </a>
 
-            <!-- Bắn bi -->
-            <a href="Banbi.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl">
-                    <i class="fa-thin fa-ball-pile"></i>
+            <!-- Bắn bi (COMING SOON) -->
+            <div onclick="showComingSoon()" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 cursor-pointer group">
+                <div class="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center text-pink-500 text-xl shadow-[0_0_15px_rgba(236,72,153,0.3)] group-active:scale-90 transition-transform">
+                    <!-- Sử dụng icon bowling-ball vì ball-pile là pro icon -->
+                    <i class="fa-solid fa-bowling-ball"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Bắn Bi</span>
-            </a>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Bắn Bi</span>
+            </div>
 
             <!-- Click -->
             <a href="click.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-fuchsia-500/10 flex items-center justify-center text-fuchsia-500 text-xl">
+                <div class="w-10 h-10 rounded-full bg-fuchsia-500/10 flex items-center justify-center text-fuchsia-500 text-xl shadow-[0_0_15px_rgba(217,70,239,0.3)]">
                     <i class="fa-solid fa-hand-pointer"></i>
                 </div>
-                <span class="text-[10px] font-bold text-center leading-tight">Đập Lu</span>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Đập Lu</span>
             </a>
 
-            <!-- Thêm ô giả lập (Coming Soon) -->
-            <div class="glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 opacity-40">
+            <!-- Placeholder -->
+            <div class="glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 opacity-30">
                 <div class="w-10 h-10 rounded-full bg-slate-500/10 flex items-center justify-center text-slate-500 text-xl">
                     <i class="fa-solid fa-ellipsis"></i>
                 </div>
@@ -193,6 +215,27 @@
 
         </div>
     </main>
+
+    <!-- MODAL "SẮP RA MẮT" -->
+    <div id="coming-soon-modal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-[#1e293b] border border-white/10 p-6 rounded-2xl shadow-2xl transform scale-90 transition-all duration-300 max-w-[280px] w-full mx-4 text-center relative overflow-hidden">
+            <!-- Background Glow -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-20 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
+
+            <div class="relative z-10">
+                <div class="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/40 animate-pulse">
+                    <i class="fa-solid fa-rocket text-2xl text-white"></i>
+                </div>
+                <h3 class="text-white font-bold text-lg mb-1">Sắp Ra Mắt!</h3>
+                <p class="text-slate-400 text-xs mb-6 leading-relaxed">
+                    Trò chơi này đang được hoàn thiện.<br>Vui lòng quay lại sau nhé!
+                </p>
+                <button onclick="hideComingSoon()" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-sm transition active:scale-95">
+                    Đã Hiểu
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Supabase Init
@@ -228,6 +271,30 @@
             });
         }
 
+        // Modal Logic
+        const modal = document.getElementById('coming-soon-modal');
+        const modalContent = modal.querySelector('div');
+
+        function showComingSoon() {
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-90');
+            modalContent.classList.add('scale-100');
+            
+            // Haptic vibration on mobile if supported
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function hideComingSoon() {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-90');
+        }
+
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) hideComingSoon();
+        });
+
         window.onload = async function() {
             const uid = localStorage.getItem("my_wallet_uid");
             
@@ -253,7 +320,7 @@
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
                 const value = Math.floor(progress * (end - start) + start);
-                obj.innerHTML = value.toLocaleString('en-US');
+                if (obj) obj.innerHTML = value.toLocaleString('en-US');
                 if (progress < 1) {
                     window.requestAnimationFrame(step);
                 }
