@@ -111,7 +111,7 @@
                 </div>
                 <div class="text-center border-l border-white/5">
                     <p class="text-[10px] text-slate-500">Chu kỳ</p>
-                    <p class="text-sm font-bold text-white mt-1">3 Ngày</p>
+                    <p class="text-sm font-bold text-white mt-1">2 Ngày</p>
                 </div>
             </div>
         </div>
@@ -189,9 +189,9 @@
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // Logic Constants
-        const MIN_DEPOSIT = 30000;
-        const MAX_DEPOSIT = 900000;
-        const CYCLE_HOURS = 72; // 3 ngày
+        const MIN_DEPOSIT = 50000;
+        const MAX_DEPOSIT = 10000000;
+        const CYCLE_HOURS = 48; // 2 ngày
         
         // --- CẬP NHẬT LÃI SUẤT 499% / NĂM ---
         const INTEREST_PER_MINUTE = 0.000009494; 
@@ -381,7 +381,7 @@
 
                 // Nếu đã có hũ đang chạy thì không cho nạp
                 if (investmentData && investmentData.status === 'running') {
-                    showToast("Hũ hiện tại đang chạy, chờ hết 3 ngày rồi nạp tiếp!", "error");
+                    showToast("Hũ hiện tại đang chạy, chờ hết 2 ngày rồi nạp tiếp!", "error");
                     return;
                 }
 
@@ -456,7 +456,7 @@
                 if (invErr) throw invErr;
 
                 alert(
-                    `Chúc mừng! Chu kỳ 3 ngày đã kết thúc.\n` +
+                    `Chúc mừng! Chu kỳ 2 ngày đã kết thúc.\n` +
                     `Tổng nhận: ${formatCurrency(totalReturn)} đ\n` +
                     `(Gốc: ${formatCurrency(investmentData.amount)} + Lãi: ${formatCurrency(finalProfit)})`
                 );
