@@ -303,11 +303,11 @@
     <div class="top-bar">
         <a href="games.html" class="btn-exit">
             <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-            LOBBY
+            Trở Về
         </a>
         
         <div class="shoe-info">
-            SHOE<br>
+            Hộp Bài Còn Lại<br>
             <span class="shoe-count" id="uiCardsLeft">416 / 416</span>
         </div>
         
@@ -799,9 +799,9 @@
                 return true;
             };
 
-            if (!checkLimit('P', 'Player')) return;
-            if (!checkLimit('B', 'Banker')) return;
-            if (!checkLimit('T', 'Tie')) return;
+            if (!checkLimit('P', 'Nhà Con')) return;
+            if (!checkLimit('B', 'Nhà Cái')) return;
+            if (!checkLimit('T', 'Hoà')) return;
 
             if (app.balance < totalPend) return;
 
