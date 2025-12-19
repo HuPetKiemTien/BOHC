@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>XSMB Compact VIP</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Inconsolata:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --primary: #d32f2f;
+            --bg: #eceff1;
+            --surface: #ffffff;
+            --text: #263238;
+            --gold: #fbc02d;
+            --green: #2e7d32;
+            --gray: #b0bec5;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100dvh; /* Chiều cao cố định bằng màn hình */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Cấm cuộn trang web */
+        }
+
+        /* --- 1. HEADER (Cố định trên cùng) --- */
+        .header {
+            flex-shrink: 0;
+            background: var(--primary); color: #fff;
+            padding: 10px 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .btn-back {
+            background: rgba(255,255,255,0.2); border: none; padding: 5px 10px;
+            border-radius: 15px; color: #fff; font-size: 13px; font-weight: bold;
+            text-decoration: none; display: flex; align-items: center; gap: 5px;
+            cursor: pointer;
+        }
+        .bal-box { text-align: right; line-height: 1.2; }
+        .bal-val { font-family: 'Inconsolata', monospace; font-size: 16px; font-weight: 900; color: var(--gold); }
+
+        /* --- 2. TIMER BAR --- */
+        .timer-bar {
+            flex-shrink: 0;
+            background: #fff; padding: 8px 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+        .status { font-weight: bold; font-size: 13px; color: #555; text-transform: uppercase; }
+        .timer {
+            background: var(--primary); color: #fff; width: 32px; height: 32px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* --- 3. MAIN BOARD (Phần giữa - Cho phép cuộn nhẹ nếu màn hình bé) --- */
+        .board-area {
+            flex: 1; /* Chiếm toàn bộ khoảng trống còn lại */
+            overflow-y: auto; /* Chỉ cuộn riêng phần này nếu cần */
+            padding: 10px;
+            background: #eceff1;
+        }
+        
+        /* Bảng KQSX Grid Compact */
+        .kq-table {
+            background: #fff; width: 100%; border-collapse: collapse;
+            border-radius: 8px; overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 13px; /* Chữ nhỏ gọn */
+        }
+        .kq-table td { border: 1px solid #eee; text-align: center; padding: 6px 2px; color: #333; font-weight: bold; font-family: 'Inconsolata', monospace; }
+        .kq-table .lbl { background: #f5f5f5; color: #666; font-size: 11px; font-family: sans-serif; width: 12%; }
+        .kq-table .sp { color: var(--primary); font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+        .highlight { background: #fff9c4; color: var(--primary); animation: blink 0.5s 2; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* --- 4. CONTROL PANEL (Ghim dưới đáy) --- */
+        .control-panel {
+            flex-shrink: 0;
+            background: #fff;
+            padding: 10px 10px 20px 10px; /* Thêm padding bottom cho iPhone tai thỏ */
+            border-top: 1px solid #ccc;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 20;
+            position: relative;
+        }
+
+        /* Tabs Chọn Game */
+        .tabs { display: flex; gap: 5px; margin-bottom: 10px; background: #f5f5f5; padding: 4px; border-radius: 8px; }
+        .tab-btn {
+            flex: 1; border: none; background: transparent; padding: 8px 0;
+            font-size: 13px; font-weight: bold; color: #777; cursor: pointer; border-radius: 6px;
+        }
+        .tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+
+        /* Inputs Input nằm ngang */
+        .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .inp-group { flex: 1; position: relative; }
+        .inp-label { font-size: 10px; position: absolute; top: -6px; left: 8px; background: #fff; padding: 0 4px; color: var(--primary); font-weight: bold; }
+        .my-inp {
+            width: 100%; height: 44px; border: 1px solid #ccc; border-radius: 6px;
+            padding: 0 10px; font-size: 16px; font-weight: bold; outline: none;
+        }
+        .my-inp:focus { border-color: var(--primary); }
+
+        /* Nút Quick Pick (0-9) */
+        .quick-pick {
+            display: none; gap: 6px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 5px;
+        }
+        .qp-btn {
+            flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; border: 1px solid #ddd;
+            background: #fff; font-weight: bold; font-size: 14px;
+        }
+        .qp-btn:active { background: var(--primary); color: #fff; }
+
+        /* Action Row */
+        .action-row { display: flex; gap: 8px; align-items: center; }
+        .summary { font-size: 11px; color: #555; flex: 1; }
+        .summary b { color: var(--primary); font-size: 13px; }
+        
+        .btn-history {
+            width: 44px; height: 44px; background: #607d8b; border: none; border-radius: 8px;
+            color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-bet {
+            flex: 2; height: 44px; background: var(--primary); color: #fff; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 900; text-transform: uppercase; cursor: pointer;
+        }
+        .btn-bet:active { transform: scale(0.98); }
+        .btn-bet:disabled { background: #cfd8dc; }
+
+        /* --- MODAL HISTORY --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 100;
+            display: flex; align-items: flex-end; /* Trượt từ dưới lên */
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal.show { opacity: 1; pointer-events: auto; }
+        .modal-content {
+            width: 100%; height: 70vh; background: #fff;
+            border-radius: 20px 20px 0 0; padding: 20px;
+            display: flex; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.3s;
+        }
+        .modal.show .modal-content { transform: translateY(0); }
+        
+        .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .modal-title { font-weight: 900; font-size: 18px; color: #333; }
+        .btn-close { background: #eee; border: none; width: 30px; height: 30px; border-radius: 50%; font-weight: bold; cursor: pointer; }
+        
+        .history-list { flex: 1; overflow-y: auto; }
+        .ticket {
+            padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;
+        }
+        .ticket.win { background: #e8f5e9; }
+        .t-left { display: flex; flex-direction: column; gap: 2px; }
+        .t-mode { font-size: 10px; font-weight: bold; background: #ddd; padding: 2px 6px; border-radius: 4px; align-self: flex-start; }
+        .t-nums { font-weight: bold; font-size: 14px; color: #333; font-family: monospace; }
+        .t-money { font-size: 12px; color: #777; }
+        .t-right { font-weight: bold; font-size: 13px; text-align: right; }
+        .win-amt { color: var(--green); display: block; font-size: 14px; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.85); color: #fff; padding: 12px 24px;
+            border-radius: 30px; font-size: 13px; font-weight: bold;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 200; white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Header -->
+    <div class="header">
+        <a href="games.html" class="btn-back">⬅ Game</a>
+        <div class="bal-box">
+            <div style="font-size:10px; opacity:0.8;">VÍ TIỀN</div>
+            <div class="bal-val" id="uiBal">---</div>
+        </div>
+    </div>
+
+    <!-- 2. Timer -->
+    <div class="timer-bar">
+        <div class="status" id="statusText">ĐANG CƯỢC</div>
+        <div class="timer" id="uiTimer">45</div>
+    </div>
+
+    <!-- 3. Bảng Kết Quả (Scrollable) -->
+    <div class="board-area">
+        <table class="kq-table">
+            <tr><td class="lbl">ĐB</td><td colspan="3" class="sp" id="rs_db">-----</td></tr>
+            <tr><td class="lbl">G1</td><td colspan="3" id="rs_1">-----</td></tr>
+            <tr><td class="lbl">G2</td><td id="rs_2_1">-----</td><td colspan="2" id="rs_2_2">-----</td></tr>
+            <tr><td class="lbl" rowspan="2">G3</td><td id="rs_3_1">-----</td><td id="rs_3_2">-----</td><td id="rs_3_3">-----</td></tr>
+            <tr><td id="rs_3_4">-----</td><td id="rs_3_5">-----</td><td id="rs_3_6">-----</td></tr>
+            <tr><td class="lbl">G4</td><td id="rs_4_1">----</td><td id="rs_4_2">----</td><td id="rs_4_3">----</td></tr>
+            <tr><td class="lbl"></td><td colspan="3" id="rs_4_4">----</td></tr>
+            <tr><td class="lbl" rowspan="2">G5</td><td id="rs_5_1">----</td><td id="rs_5_2">----</td><td id="rs_5_3">----</td></tr>
+            <tr><td id="rs_5_4">----</td><td id="rs_5_5">----</td><td id="rs_5_6">----</td></tr>
+            <tr><td class="lbl">G6</td><td id="rs_6_1">---</td><td id="rs_6_2">---</td><td id="rs_6_3">---</td></tr>
+            <tr><td class="lbl">G7</td><td id="rs_7_1">--</td><td id="rs_7_2">--</td><td id="rs_7_3">-- <span id="rs_7_4" style="margin-left:5px">--</span></td></tr>
+        </table>
+        <div style="height: 20px;"></div> <!-- Spacer -->
+    </div>
+
+    <!-- 4. Control Panel (Fixed Bottom) -->
+    <div class="control-panel">
+        <div class="tabs">
+            <button class="tab-btn active" id="tabLO" onclick="setMode('LO')">LÔ (1:3.5)</button>
+            <button class="tab-btn" id="tabDE" onclick="setMode('DE')">ĐỀ (1:80)</button>
+            <button class="tab-btn" id="tabDUOI" onclick="setMode('DUOI')">ĐUÔI (1:9.5)</button>
+        </div>
+
+        <!-- Quick Pick (Hiện khi chọn Đuôi) -->
+        <div class="quick-pick" id="quickPick">
+            <!-- JS fill 0-9 -->
+        </div>
+
+        <div class="input-row">
+            <div class="inp-group" style="flex: 2;">
+                <span class="inp-label" id="lblInput">Chọn số (00-99)</span>
+                <input type="text" id="inpNum" class="my-inp" placeholder="01, 02, 03..." oninput="calcTotal()">
+            </div>
+            <div class="inp-group" style="flex: 1.5;">
+                <span class="inp-label">Cược (VNĐ)</span>
+                <input type="number" id="inpMoney" class="my-inp" placeholder="10k" step="1000" oninput="calcTotal()">
+            </div>
+        </div>
+
+        <div class="action-row">
+            <div class="summary">
+                Số lượng: <b id="uiCount">0</b> số <br>
+                Tổng: <b id="uiTotal">0</b> VNĐ
+            </div>
+            <button class="btn-history" onclick="toggleHistory(true)">📜</button>
+            <button class="btn-bet" id="btnBet" onclick="placeBet()">CƯỢC NGAY</button>
+        </div>
+    </div>
+
+    <!-- 5. History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-head">
+                <div class="modal-title">Lịch Sử Cược</div>
+                <button class="btn-close" onclick="toggleHistory(false)">✕</button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div style="text-align:center; color:#999; margin-top:20px;">Chưa có vé cược nào</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Thông báo</div>
+
+<script>
+    // --- SUPABASE CONFIG ---
+    const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let myUid = localStorage.getItem("my_wallet_uid");
+    let balance = 0;
+    
+    // Game Vars
+    let mode = 'LO';
+    let state = 'BETTING';
+    let timeLeft = 45;
+    let myBets = [];
+    let selectedNums = [];
+
+    // Result IDs
+    const drawOrder = [
+        ['rs_7_1','rs_7_2','rs_7_3','rs_7_4'], ['rs_6_1','rs_6_2','rs_6_3'],
+        ['rs_5_1','rs_5_2','rs_5_3','rs_5_4','rs_5_5','rs_5_6'], ['rs_4_1','rs_4_2','rs_4_3','rs_4_4'],
+        ['rs_3_1','rs_3_2','rs_3_3','rs_3_4','rs_3_5','rs_3_6'], ['rs_2_1','rs_2_2'], ['rs_1'], ['rs_db']
+    ];
+
+    // --- INIT ---
+    async function init() {
+        if (!myUid) {
+            alert("Vui lòng đăng nhập!");
+            window.location.href = 'baccarat.html';
+            return;
+        }
+
+        // Init Quick Pick Buttons
+        const qp = document.getElementById('quickPick');
+        for(let i=0; i<=9; i++) {
+            let b = document.createElement('button');
+            b.className = 'qp-btn'; b.innerText = i;
+            b.onclick = () => {
+                let curr = document.getElementById('inpNum').value;
+                document.getElementById('inpNum').value = curr ? curr + ',' + i : i;
+                calcTotal();
+            };
+            qp.appendChild(b);
+        }
+
+        // Load Balance
+        const { data } = await supabase.from('users').select('balance').eq('id', myUid).maybeSingle();
+        if(data) { balance = data.balance; updateBal(); }
+
+        // Realtime Balance
+        supabase.channel('xsmb_compact').on('postgres_changes', {event:'UPDATE', schema:'public', table:'users', filter:`id=eq.${myUid}`}, 
+        payload => { balance = payload.new.balance; updateBal(); }).subscribe();
+
+        setInterval(loop, 1000);
+    }
+    
+    function updateBal() { document.getElementById('uiBal').innerText = balance.toLocaleString(); }
+
+    // --- GAME LOOP ---
+    function loop() {
+        timeLeft--;
+        const timerEl = document.getElementById('uiTimer');
+        timerEl.innerText = timeLeft;
+
+        if (state === 'BETTING') {
+            timerEl.style.background = timeLeft <= 5 ? '#d32f2f' : '#2196f3';
+            
+            if (timeLeft <= 0) {
+                state = 'DRAWING';
+                timeLeft = 15;
+                document.getElementById('statusText').innerText = "ĐANG QUAY...";
+                document.getElementById('statusText').style.color = "#d32f2f";
+                document.getElementById('btnBet').disabled = true;
+                document.getElementById('inpNum').disabled = true;
+                showToast("🛑 ĐÃ ĐÓNG CƯỢC");
+                runDraw();
+            }
+        } else {
+            timerEl.style.background = '#4caf50';
+            if (timeLeft <= 0) resetGame();
+        }
+    }
+
+    function resetGame() {
+        state = 'BETTING';
+        timeLeft = 45;
+        document.getElementById('statusText').innerText = "ĐANG CƯỢC";
+        document.getElementById('statusText').style.color = "#555";
+        document.getElementById('btnBet').disabled = false;
+        document.getElementById('inpNum').disabled = false;
+        
+        myBets = [];
+        renderHistory();
+        
+        document.querySelectorAll('.highlight').forEach(e => e.classList.remove('highlight'));
+        drawOrder.flat().forEach(id => {
+            let el = document.getElementById(id);
+            if(id.includes('rs_7')) el.innerText = '--';
+            else if(id.includes('rs_6')) el.innerText = '---';
+            else if(id.includes('rs_5') || id.includes('rs_4')) el.innerText = '----';
+            else el.innerText = '-----';
+        });
+    }
+
+    // --- LOGIC ---
+    function setMode(m) {
+        mode = m;
+        ['LO','DE','DUOI'].forEach(id => {
+            document.getElementById('tab'+id).className = (id === m) ? 'tab-btn active' : 'tab-btn';
+        });
+        
+        const qp = document.getElementById('quickPick');
+        const inp = document.getElementById('inpNum');
+        const lbl = document.getElementById('lblInput');
+        
+        if (m === 'DUOI') {
+            qp.style.display = 'flex';
+            lbl.innerText = "Chọn đuôi (0-9)";
+            inp.placeholder = "0, 1, 9...";
+        } else {
+            qp.style.display = 'none';
+            lbl.innerText = "Chọn số (00-99)";
+            inp.placeholder = "01, 25, 99...";
+        }
+        calcTotal();
+    }
+
+    function calcTotal() {
+        const raw = document.getElementById('inpNum').value;
+        const money = parseInt(document.getElementById('inpMoney').value) || 0;
+        let nums = raw.match(/\d+/g);
+        selectedNums = [];
+
+        if(nums) {
+            let set = new Set();
+            nums.forEach(n => {
+                let v = parseInt(n);
+                if (mode === 'DUOI') {
+                    if(v >= 0 && v <= 9) set.add(v.toString());
+                } else {
+                    if(v >= 0 && v <= 99) set.add(v < 10 ? '0'+v : v.toString());
+                }
+            });
+            selectedNums = Array.from(set);
+        }
+
+        document.getElementById('uiCount').innerText = selectedNums.length;
+        document.getElementById('uiTotal').innerText = (selectedNums.length * money).toLocaleString();
+    }
+
+    async function placeBet() {
+        const money = parseInt(document.getElementById('inpMoney').value);
+        if(!money || money < 1000) return showToast("⚠️ Tối thiểu 1.000đ");
+        if(selectedNums.length === 0) return showToast("⚠️ Chưa chọn số");
+        
+        const total = selectedNums.length * money;
+        if(total > balance) return showToast("⚠️ Không đủ tiền");
+
+        if(mode === 'DE') {
+            let count = 0;
+            myBets.forEach(b => { if(b.mode === 'DE') count += b.nums.length; });
+            if(count + selectedNums.length > 65) return showToast("⚠️ Giới hạn ĐỀ 65 số");
+        }
+
+        balance -= total;
+        updateBal();
+        await supabase.from('users').update({balance: balance}).eq('id', myUid);
+
+        myBets.push({
+            mode: mode, nums: [...selectedNums], money: money, total: total, status: 'PENDING'
+        });
+
+        document.getElementById('inpNum').value = '';
+        calcTotal();
+        renderHistory();
+        showToast("✅ Đã đặt cược");
+    }
+
+    // --- DRAWING ---
+    async function runDraw() {
+        document.querySelectorAll('.highlight').forEach(e => e.classList.remove('highlight'));
+        let res = {};
+        
+        const rand = (d) => Math.floor(Math.random() * Math.pow(10, d)).toString().padStart(d, '0');
+        
+        const anim = (id) => new Promise(r => {
+            let d = 5;
+            if(id.includes('rs_7')) d = 2; else if(id.includes('rs_6')) d = 3; else if(id.includes('rs_5') || id.includes('rs_4')) d = 4;
+            
+            let el = document.getElementById(id);
+            let s = 0;
+            let i = setInterval(() => {
+                el.innerText = rand(d);
+                s++;
+                if(s > 5) { clearInterval(i); let v = rand(d); el.innerText = v; res[id] = v; r(); }
+            }, 60);
+        });
+
+        for(let g of drawOrder) await Promise.all(g.map(id => anim(id)));
+        
+        checkWin(res);
+    }
+
+    async function checkWin(res) {
+        let totalWin = 0;
+        let db = res['rs_db'];
+
+        myBets.forEach(b => {
+            if(b.status !== 'PENDING') return;
+            let w = 0;
+            
+            b.nums.forEach(n => {
+                let h = 0;
+                if(b.mode === 'LO') {
+                    for(let k in res) if(res[k].endsWith(n)) { h++; document.getElementById(k).classList.add('highlight'); }
+                    if(h > 0) w += (b.money * 3.5 * h);
+                } else if(b.mode === 'DE') {
+                    if(db.endsWith(n)) { h=1; document.getElementById('rs_db').classList.add('highlight'); w += (b.money * 80); }
+                } else if(b.mode === 'DUOI') {
+                    if(db.slice(-1) === n) { h=1; document.getElementById('rs_db').classList.add('highlight'); w += (b.money * 9.5); }
+                }
+            });
+
+            if(w > 0) { b.status = 'WIN'; b.win = w; totalWin += w; }
+            else b.status = 'LOSE';
+        });
+
+        if(totalWin > 0) {
+            balance += totalWin;
+            updateBal();
+            await supabase.from('users').update({balance: balance}).eq('id', myUid);
+            showToast(`🎉 THẮNG: +${totalWin.toLocaleString()}đ`);
+            // Mở lịch sử lên để xem tiền thắng
+            toggleHistory(true);
+        } else {
+            showToast("Kết thúc vòng quay");
+        }
+        renderHistory();
+    }
+
+    // --- UI HELPERS ---
+    function toggleHistory(show) {
+        const m = document.getElementById('historyModal');
+        if(show) { m.classList.add('show'); renderHistory(); }
+        else m.classList.remove('show');
+    }
+
+    function renderHistory() {
+        const l = document.getElementById('historyList');
+        l.innerHTML = '';
+        if(myBets.length === 0) { l.innerHTML = '<div style="text-align:center; color:#999; margin-top:20px;">Chưa có vé cược nào</div>'; return; }
+
+        myBets.slice().reverse().forEach(b => {
+            let st = '<span style="color:#777">Chờ KQ</span>';
+            let cls = '';
+            if(b.status === 'WIN') { st = `<span class="win-amt">+${b.win.toLocaleString()}</span>`; cls = 'win'; }
+            else if(b.status === 'LOSE') { st = '<span style="color:#d32f2f">Thua</span>'; }
+
+            let div = document.createElement('div');
+            div.className = `ticket ${cls}`;
+            div.innerHTML = `
+                <div class="t-left">
+                    <span class="t-mode">${b.mode === 'LO' ? 'LÔ' : (b.mode === 'DE' ? 'ĐỀ' : 'ĐUÔI')}</span>
+                    <span class="t-nums">${b.nums.join(', ')}</span>
+                    <span class="t-money">Cược: ${b.total.toLocaleString()}</span>
+                </div>
+                <div class="t-right">${st}</div>
+            `;
+            l.appendChild(div);
+        });
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.style.opacity = 1;
+        setTimeout(() => t.style.opacity = 0, 3000);
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
+
+
