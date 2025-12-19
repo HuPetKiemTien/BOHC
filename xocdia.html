@@ -283,7 +283,8 @@
     const CONFIG = {
       PERIOD: 40000,
       PHASES: { SHAKE: 3000, BET: 28000, LOCK: 32000, REVEAL: 40000 },
-      ODDS: { CHAN: 0.96, LE: 0.96, '4D': 12, '4T': 12, '3D1T': 2.6, '3T1D': 2.6 }
+      ODDS: { CHAN: 0.96, LE: 0.96, '4D': 12, '4T': 12, '3D1T': 2.6, '3T1D': 2.6 },
+      LIMITS: { MIN: 2300, MAX: 500000 }
     };
 
     // ===== 3. GAME LOGIC =====
@@ -333,9 +334,17 @@
 
         await game.loadBalance();
         game.setupRealtimeBalance();
+        
+        // --- FIX 1: UPDATE ROUND ID IMMEDIATELY ---
+        const now = Date.now();
+        game.roundId = Math.floor(now / CONFIG.PERIOD); 
+        
         await game.checkPendingState();
 
+        // --- FIX 2: RENDER ROADMAP BASED ON CURRENT ID ---
         game.renderRoadmap();
+        
+        // Immediately trigger loop to sync UI
         game.loop();
         setInterval(game.loop, 100);
       },
@@ -457,7 +466,7 @@
               bowl.classList.add("open");
               game.highlightWin(res);
               game.payout(res);
-              game.addRoadmap(res);
+              game.addRoadmap(res); // Will update roadmap dynamically
             }, 500);
           }
         }
@@ -476,6 +485,7 @@
       },
 
       newRound: (id) => {
+        // console.log("New Round ID:", id);
         game.roundId = id;
         game.resolved = false;
         
@@ -492,6 +502,9 @@
         document.getElementById("modal-result").classList.remove("show");
         
         game.clearPendingState();
+        
+        // --- FIX 3: RE-RENDER ROADMAP ON NEW ROUND ---
+        game.renderRoadmap();
       },
 
       // --- BETTING ---
@@ -510,6 +523,12 @@
         if (type === 'CHAN' && currentLe > 0) return app.showToast("Không cược Chẵn & Lẻ cùng lúc", "error");
         if (type === 'LE' && currentChan > 0) return app.showToast("Không cược Chẵn & Lẻ cùng lúc", "error");
         
+        // CHECK MAX LIMIT
+        const currentTotal = game.bets.pending[type] + game.bets.confirmed[type];
+        if (currentTotal + game.currentChip > CONFIG.LIMITS.MAX) {
+            return app.showToast(`Cược tối đa ${CONFIG.LIMITS.MAX.toLocaleString()}!`, "error");
+        }
+
         const totalPending = Object.values(game.bets.pending).reduce((a,b)=>a+b,0);
         if (totalPending + game.currentChip > app.user.balance) return app.showToast("Số dư không đủ!", "error");
 
@@ -531,7 +550,11 @@
            if (game.bets.lastRound[k] > 0) {
                if (k === 'CHAN' && (game.bets.pending['LE'] + game.bets.confirmed['LE'] > 0)) continue;
                if (k === 'LE' && (game.bets.pending['CHAN'] + game.bets.confirmed['CHAN'] > 0)) continue;
-               game.bets.pending[k] += game.bets.lastRound[k];
+               
+               const current = game.bets.pending[k] + game.bets.confirmed[k];
+               if (current + game.bets.lastRound[k] <= CONFIG.LIMITS.MAX) {
+                   game.bets.pending[k] += game.bets.lastRound[k];
+               }
            }
         }
         game.updateBadges();
@@ -545,6 +568,17 @@
         for (let k in game.bets.pending) total += game.bets.pending[k];
         
         if (total === 0) return;
+        
+        // CHECK MIN LIMIT
+        for (let k in game.bets.pending) {
+            if (game.bets.pending[k] > 0) {
+                const finalAmt = game.bets.pending[k] + game.bets.confirmed[k];
+                if (finalAmt < CONFIG.LIMITS.MIN) {
+                    return app.showToast(`Cược tối thiểu ${CONFIG.LIMITS.MIN.toLocaleString()}!`, "error");
+                }
+            }
+        }
+
         if (total > app.user.balance) return app.showToast("Số dư không đủ!", "error");
 
         app.user.balance -= total;
@@ -562,7 +596,6 @@
         app.showToast("Đặt cược thành công!", "success");
       },
 
-      // --- CORE FIX: PAYOUT & SHOW MODAL ---
       payout: async (res) => {
         let winTotal = 0;
         let played = false;
@@ -601,15 +634,11 @@
         const dEl = document.getElementById("mod-desc");
         const wEl = document.getElementById("mod-win");
 
-        // 1. Text Update
         tEl.innerText = title;
         dEl.innerText = sub;
-
-        // 2. Color Update (Explicit Class Reset)
         tEl.className = "text-6xl font-oswald font-bold mb-2 drop-shadow-md italic " + 
           (title === "CHẴN" ? "text-purple-400" : "text-orange-400");
 
-        // 3. Amount Logic
         if (win > 0) {
            wEl.innerText = "+" + win.toLocaleString();
            wEl.className = "text-3xl font-black text-green-400 animate-bounce";
@@ -618,7 +647,6 @@
            wEl.className = "text-xl font-bold text-slate-500";
         }
 
-        // 4. Show & Auto Hide
         modal.classList.add("show");
         if (game.modalTimeout) clearTimeout(game.modalTimeout);
         game.modalTimeout = setTimeout(() => {
@@ -626,7 +654,6 @@
         }, 5000);
       },
 
-      // --- HELPERS ---
       updateBadges: () => {
         let hasChan = (game.bets.pending['CHAN'] + game.bets.confirmed['CHAN']) > 0;
         let hasLe = (game.bets.pending['LE'] + game.bets.confirmed['LE']) > 0;
@@ -706,7 +733,13 @@
       renderRoadmap: () => {
         const rm = document.getElementById("roadmap");
         rm.innerHTML = "";
-        for(let i=18; i>0; i--) game.addRoadmap(game.getResult(game.roundId - i));
+        // Draw last 18 rounds up to current-1
+        // We use game.roundId (which is now correctly set in init)
+        for(let i=18; i>0; i--) {
+            if (game.roundId - i >= 0) {
+                game.addRoadmap(game.getResult(game.roundId - i));
+            }
+        }
       },
 
       addRoadmap: (res) => {
