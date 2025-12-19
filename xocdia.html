@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
+  <!-- Thêm viewport-fit=cover để hỗ trợ tràn viền -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Xóc Đĩa Global VIP - HC88</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -16,7 +17,10 @@
         extend: {
           fontFamily: { oswald: ['Oswald', 'sans-serif'], roboto: ['Roboto', 'sans-serif'] },
           colors: { gold: '#FFD700', 'gold-dark': '#B8860B', plate: '#E5E7EB' },
-          boxShadow: { 'glow': '0 0 15px rgba(255, 215, 0, 0.5)', 'glow-red': '0 0 15px rgba(239, 68, 68, 0.5)' }
+          boxShadow: { 'glow': '0 0 15px rgba(255, 215, 0, 0.5)', 'glow-red': '0 0 15px rgba(239, 68, 68, 0.5)' },
+          screens: {
+            'short': { 'raw': '(max-height: 700px)' } // Cấu hình riêng cho màn hình thấp
+          }
         }
       }
     }
@@ -28,29 +32,41 @@
       background: radial-gradient(circle at 50% -20%, #1e293b 0%, #020617 100%);
       color: white; overflow: hidden; touch-action: manipulation; user-select: none;
       -webkit-tap-highlight-color: transparent; font-family: 'Roboto', sans-serif;
+      /* Fix chiều cao trên mobile */
+      height: 100vh; /* Fallback */
+      height: 100dvh; 
     }
     
     /* GLASS PANEL */
     .glass {
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
+      background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     }
 
-    /* 3D BOWL & PLATE */
+    /* 3D BOWL & PLATE - RESPONSIVE SIZE */
     .plate-container {
-      width: 280px; height: 280px; margin: 0 auto;
+      width: 260px; height: 260px; margin: 0 auto;
       display: flex; align-items: center; justify-content: center; position: relative;
+      transition: transform 0.3s;
     }
+    /* Thu nhỏ bát đĩa trên màn hình thấp */
+    @media (max-height: 700px) {
+      .plate-container { transform: scale(0.85); }
+    }
+    @media (max-height: 600px) {
+      .plate-container { transform: scale(0.75); margin-top: -20px; }
+    }
+
     .plate {
-      position: absolute; width: 260px; height: 260px; border-radius: 50%;
+      position: absolute; width: 240px; height: 240px; border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #4b5563, #1f2937);
       box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.1);
       border: 6px solid #374151; z-index: 1;
     }
     .bowl {
-      position: absolute; width: 240px; height: 240px; border-radius: 50%;
+      position: absolute; width: 220px; height: 220px; border-radius: 50%;
       background: radial-gradient(circle at 35% 35%, #64748b, #0f172a);
       box-shadow: 
         inset 0 10px 30px rgba(255,255,255,0.15), 
@@ -62,14 +78,14 @@
       content: ''; position: absolute; inset: 10px; border-radius: 50%;
       border: 1px solid rgba(255,255,255,0.05);
     }
-    .bowl-icon { font-size: 60px; color: rgba(255,255,255,0.05); }
+    .bowl-icon { font-size: 50px; color: rgba(255,255,255,0.05); }
     
-    .bowl.open { transform: translate(50px, -150px) rotate(15deg); }
+    .bowl.open { transform: translate(40px, -130px) rotate(15deg); }
     .bowl.shaking { animation: shake 0.4s ease-in-out infinite; }
     @keyframes shake { 0%,100%{transform:translate(0,0) rotate(0)} 25%{transform:translate(-5px,5px) rotate(-5deg)} 75%{transform:translate(5px,-5px) rotate(5deg)} }
 
     /* COINS */
-    .coin { width: 40px; height: 40px; border-radius: 50%; position: absolute; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transition: all 0.5s; }
+    .coin { width: 36px; height: 36px; border-radius: 50%; position: absolute; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transition: all 0.5s; }
     .c-red { background: radial-gradient(circle at 35% 35%, #ef4444, #991b1b); border: 2px solid #b91c1c; }
     .c-white { background: radial-gradient(circle at 35% 35%, #ffffff, #94a3b8); border: 2px solid #cbd5e1; }
 
@@ -93,17 +109,17 @@
 
     /* CHIPS */
     .chip { 
-      width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      font-weight: 900; font-size: 11px; cursor: pointer; border: 2px dashed rgba(255,255,255,0.4);
+      font-weight: 900; font-size: 10px; cursor: pointer; border: 2px dashed rgba(255,255,255,0.4);
       transition: transform 0.2s; position: relative;
     }
-    .chip.active { transform: translateY(-8px) scale(1.1); border-style: solid; border-color: #fbbf24; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+    .chip.active { transform: translateY(-5px) scale(1.1); border-style: solid; border-color: #fbbf24; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
     .bg-1k { background: #64748b; } .bg-5k { background: #3b82f6; } .bg-10k { background: #ef4444; }
     .bg-50k { background: #a855f7; } .bg-100k { background: #f59e0b; color: black; } .bg-500k { background: #10b981; color: black; }
 
     /* ROADMAP DOTS */
-    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .dot-chan { background: #3b82f6; border: 1px solid #1d4ed8; }
     .dot-le { background: #ef4444; border: 1px solid #b91c1c; }
     .dot-special { box-shadow: 0 0 0 1px #FFD700; }
@@ -120,48 +136,51 @@
     
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #555; display: inline-block; }
     .status-dot.online { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+    
+    /* SAFE AREA PADDING UTILITY */
+    .pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
   </style>
 </head>
-<body class="flex flex-col h-screen">
+<body class="flex flex-col">
 
   <!-- HEADER -->
-  <header class="h-14 bg-slate-900/90 border-b border-white/5 flex items-center justify-between px-4 fixed top-0 w-full z-50">
-    <div class="flex items-center gap-3">
-      <a href="games.html" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-white/10 active:bg-slate-700">
-        <i class="fa-solid fa-chevron-left"></i>
+  <header class="h-12 bg-slate-900/90 border-b border-white/5 flex items-center justify-between px-3 fixed top-0 w-full z-50 shrink-0">
+    <div class="flex items-center gap-2">
+      <a href="games.html" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 border border-white/10 active:bg-slate-700">
+        <i class="fa-solid fa-chevron-left text-sm"></i>
       </a>
       <div>
-        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Global Table</div>
-        <div class="flex items-center gap-1.5 font-oswald text-lg leading-none">
+        <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Global Table</div>
+        <div class="flex items-center gap-1.5 font-oswald text-base leading-none">
           <span class="text-white">XÓC ĐĨA</span>
           <span class="text-gold font-bold">VIP</span>
         </div>
       </div>
     </div>
     <div class="text-right">
-      <div class="text-[10px] text-slate-500 font-bold" id="user-id">ID: ...</div>
-      <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-0.5 rounded-full border border-white/5 mt-0.5">
+      <div class="text-[9px] text-slate-500 font-bold" id="user-id">ID: ...</div>
+      <div class="flex items-center gap-2 bg-slate-800/50 px-2.5 py-0.5 rounded-full border border-white/5 mt-0.5">
         <span id="conn-dot" class="status-dot"></span>
-        <i class="fa-solid fa-wallet text-gold text-xs"></i>
-        <span id="balance" class="font-oswald text-base text-white">---</span>
+        <i class="fa-solid fa-wallet text-gold text-[10px]"></i>
+        <span id="balance" class="font-oswald text-sm text-white">---</span>
       </div>
     </div>
   </header>
 
   <!-- MAIN AREA -->
-  <main class="flex-1 mt-14 flex flex-col relative">
+  <main class="flex-1 mt-12 flex flex-col relative w-full overflow-hidden">
     
     <!-- STATUS BAR -->
-    <div class="h-10 flex items-center justify-center px-4 z-30 mt-2">
-      <div class="glass px-6 py-1 rounded-full flex items-center gap-4 border border-emerald-500/20 shadow-lg">
-        <span id="status-txt" class="text-[10px] font-black text-emerald-300 uppercase tracking-widest">ĐANG CƯỢC</span>
-        <span class="w-[1px] h-3 bg-white/10"></span>
-        <span id="timer" class="font-oswald font-bold text-lg text-white">--</span>
+    <div class="h-8 flex items-center justify-center px-4 z-30 mt-2 shrink-0">
+      <div class="glass px-4 py-0.5 rounded-full flex items-center gap-3 border border-emerald-500/20 shadow-lg">
+        <span id="status-txt" class="text-[9px] font-black text-emerald-300 uppercase tracking-widest">ĐANG CƯỢC</span>
+        <span class="w-[1px] h-2 bg-white/10"></span>
+        <span id="timer" class="font-oswald font-bold text-base text-white">--</span>
       </div>
     </div>
 
-    <!-- GAME TABLE -->
-    <div class="flex-1 flex items-center justify-center -mt-6">
+    <!-- GAME TABLE (Flexible space) -->
+    <div class="flex-1 flex items-center justify-center -mt-4 relative">
       <div class="plate-container">
         <div class="plate">
           <div id="coins-container" class="absolute inset-0 z-10"></div>
@@ -172,63 +191,63 @@
       </div>
     </div>
 
-    <!-- CONTROL PANEL -->
-    <div class="glass rounded-t-[2.5rem] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-40 relative pb-4">
+    <!-- CONTROL PANEL - FIXED AT BOTTOM WITH SAFE AREA -->
+    <div class="glass rounded-t-[2rem] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-40 relative pb-safe">
       
       <!-- ROADMAP -->
-      <div class="px-5 py-2.5 border-b border-white/5 flex items-center justify-between mb-2 bg-black/20 rounded-t-[2.5rem]">
-        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Cầu Gần Nhất</span>
-        <div id="roadmap" class="flex items-center gap-1.5 overflow-hidden justify-end"></div>
+      <div class="px-4 py-1.5 border-b border-white/5 flex items-center justify-between mb-2 bg-black/20 rounded-t-[2rem]">
+        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Cầu</span>
+        <div id="roadmap" class="flex items-center gap-1 overflow-hidden justify-end h-3"></div>
       </div>
 
-      <div class="px-4 space-y-3">
-        <!-- SCORE BETS -->
-        <div class="grid grid-cols-4 gap-2">
-          <button class="bet-btn bg-slate-800/50 rounded-xl h-14 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('4D')">
-            <div class="flex gap-0.5"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div></div>
-            <span class="text-[9px] text-slate-400 mt-1">x12</span>
+      <div class="px-3 space-y-2">
+        <!-- SCORE BETS (Compacted) -->
+        <div class="grid grid-cols-4 gap-1.5">
+          <button class="bet-btn bg-slate-800/50 rounded-lg h-12 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('4D')">
+            <div class="flex gap-0.5 scale-75"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div></div>
+            <span class="text-[8px] text-slate-400 mt-0.5">x12</span>
             <div id="badge-4D" class="marker hidden">0</div>
           </button>
-          <button class="bet-btn bg-slate-800/50 rounded-xl h-14 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('3D1T')">
-            <div class="flex gap-0.5"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div></div>
-            <span class="text-[9px] text-slate-400 mt-1">x2.6</span>
+          <button class="bet-btn bg-slate-800/50 rounded-lg h-12 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('3D1T')">
+            <div class="flex gap-0.5 scale-75"><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div></div>
+            <span class="text-[8px] text-slate-400 mt-0.5">x2.6</span>
             <div id="badge-3D1T" class="marker hidden">0</div>
           </button>
-          <button class="bet-btn bg-slate-800/50 rounded-xl h-14 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('3T1D')">
-            <div class="flex gap-0.5"><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div></div>
-            <span class="text-[9px] text-slate-400 mt-1">x2.6</span>
+          <button class="bet-btn bg-slate-800/50 rounded-lg h-12 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('3T1D')">
+            <div class="flex gap-0.5 scale-75"><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-red-500"></div></div>
+            <span class="text-[8px] text-slate-400 mt-0.5">x2.6</span>
             <div id="badge-3T1D" class="marker hidden">0</div>
           </button>
-          <button class="bet-btn bg-slate-800/50 rounded-xl h-14 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('4T')">
-            <div class="flex gap-0.5"><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div></div>
-            <span class="text-[9px] text-slate-400 mt-1">x12</span>
+          <button class="bet-btn bg-slate-800/50 rounded-lg h-12 flex flex-col items-center justify-center border border-white/5" onclick="game.placeBet('4T')">
+            <div class="flex gap-0.5 scale-75"><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div><div class="w-1.5 h-1.5 rounded-full bg-white"></div></div>
+            <span class="text-[8px] text-slate-400 mt-0.5">x12</span>
             <div id="badge-4T" class="marker hidden">0</div>
           </button>
         </div>
 
-        <!-- CHAN / LE -->
-        <div class="grid grid-cols-2 gap-3">
-          <button id="btn-CHAN" class="bet-btn bg-gradient-to-br from-purple-900/40 to-slate-900/40 border border-purple-500/20 rounded-2xl h-16 px-4 flex justify-between items-center" onclick="game.placeBet('CHAN')">
+        <!-- CHAN / LE (Compacted) -->
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-CHAN" class="bet-btn bg-gradient-to-br from-purple-900/40 to-slate-900/40 border border-purple-500/20 rounded-xl h-14 px-3 flex justify-between items-center" onclick="game.placeBet('CHAN')">
             <div>
-              <div class="font-oswald text-2xl text-purple-400 font-bold drop-shadow-md">CHẴN</div>
-              <div class="text-[8px] text-purple-300/50 uppercase tracking-widest">Even</div>
+              <div class="font-oswald text-xl text-purple-400 font-bold drop-shadow-md">CHẴN</div>
+              <div class="text-[7px] text-purple-300/50 uppercase tracking-widest">Even</div>
             </div>
-            <span class="text-xs font-bold text-purple-300">x0.96</span>
+            <span class="text-[10px] font-bold text-purple-300">x0.96</span>
             <div id="badge-CHAN" class="marker hidden">0</div>
           </button>
 
-          <button id="btn-LE" class="bet-btn bg-gradient-to-br from-orange-900/40 to-slate-900/40 border border-orange-500/20 rounded-2xl h-16 px-4 flex justify-between items-center" onclick="game.placeBet('LE')">
+          <button id="btn-LE" class="bet-btn bg-gradient-to-br from-orange-900/40 to-slate-900/40 border border-orange-500/20 rounded-xl h-14 px-3 flex justify-between items-center" onclick="game.placeBet('LE')">
             <div>
-              <div class="font-oswald text-2xl text-orange-400 font-bold drop-shadow-md">LẺ</div>
-              <div class="text-[8px] text-orange-300/50 uppercase tracking-widest">Odd</div>
+              <div class="font-oswald text-xl text-orange-400 font-bold drop-shadow-md">LẺ</div>
+              <div class="text-[7px] text-orange-300/50 uppercase tracking-widest">Odd</div>
             </div>
-            <span class="text-xs font-bold text-orange-300">x0.96</span>
+            <span class="text-[10px] font-bold text-orange-300">x0.96</span>
             <div id="badge-LE" class="marker hidden">0</div>
           </button>
         </div>
 
         <!-- CHIPS -->
-        <div class="flex justify-between items-center py-2 overflow-x-auto gap-2 scrollbar-hide">
+        <div class="flex justify-between items-center py-1 overflow-x-auto gap-2 scrollbar-hide">
           <div class="chip bg-1k" onclick="game.setChip(1000, this)">1k</div>
           <div class="chip bg-5k" onclick="game.setChip(5000, this)">5k</div>
           <div class="chip bg-10k active" onclick="game.setChip(10000, this)">10k</div>
@@ -238,12 +257,12 @@
         </div>
 
         <!-- ACTIONS -->
-        <div class="grid grid-cols-4 gap-2 h-12">
-          <button onclick="game.cancelBets()" class="rounded-xl bg-slate-800 border border-white/10 text-slate-400 text-[10px] font-bold uppercase active:scale-95 transition">Hủy</button>
+        <div class="grid grid-cols-4 gap-2 h-10 mb-1">
+          <button onclick="game.cancelBets()" class="rounded-lg bg-slate-800 border border-white/10 text-slate-400 text-[9px] font-bold uppercase active:scale-95 transition">Hủy</button>
           
-          <button onclick="game.rebet()" class="rounded-xl bg-slate-700 border border-white/10 text-white text-[10px] font-bold uppercase active:scale-95 transition">Cược lại</button>
+          <button onclick="game.rebet()" class="rounded-lg bg-slate-700 border border-white/10 text-white text-[9px] font-bold uppercase active:scale-95 transition">Cược lại</button>
 
-          <button onclick="game.confirmBets()" class="col-span-2 rounded-xl bg-gradient-to-r from-gold-dark to-gold text-black font-black text-sm uppercase shadow-lg shadow-gold/20 active:scale-95 transition flex items-center justify-center gap-2">
+          <button onclick="game.confirmBets()" class="col-span-2 rounded-lg bg-gradient-to-r from-gold-dark to-gold text-black font-black text-xs uppercase shadow-lg shadow-gold/20 active:scale-95 transition flex items-center justify-center gap-2">
             ĐẶT CƯỢC <i class="fa-solid fa-check"></i>
           </button>
         </div>
@@ -254,20 +273,20 @@
 
   <!-- MODAL RESULT -->
   <div id="modal-result" class="modal-overlay">
-    <div class="modal-content bg-slate-900 border-2 border-gold/30 rounded-3xl p-8 w-72 text-center shadow-2xl relative overflow-hidden">
+    <div class="modal-content bg-slate-900 border-2 border-gold/30 rounded-3xl p-6 w-64 text-center shadow-2xl relative overflow-hidden">
       <!-- Glow effect -->
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent"></div>
       
-      <div id="mod-title" class="text-6xl font-oswald font-bold text-gold mb-2 drop-shadow-md italic">--</div>
-      <div id="mod-desc" class="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-6">--</div>
-      <div id="mod-win" class="text-2xl font-black text-white"></div>
+      <div id="mod-title" class="text-5xl font-oswald font-bold text-gold mb-1 drop-shadow-md italic">--</div>
+      <div id="mod-desc" class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">--</div>
+      <div id="mod-win" class="text-xl font-black text-white"></div>
     </div>
   </div>
 
   <!-- TOAST -->
-  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-full flex items-center gap-3 opacity-0 pointer-events-none transition-all duration-300 z-[200] border border-white/10 shadow-xl">
-    <i id="toast-icon" class="fa-solid fa-info-circle"></i>
-    <span id="toast-msg" class="text-[11px] font-bold text-white uppercase tracking-wider">Thông báo</span>
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-full flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 z-[200] border border-white/10 shadow-xl w-max max-w-[90%]">
+    <i id="toast-icon" class="fa-solid fa-info-circle text-xs"></i>
+    <span id="toast-msg" class="text-[10px] font-bold text-white uppercase tracking-wider truncate">Thông báo</span>
   </div>
 
   <script>
@@ -297,9 +316,9 @@
         const i = document.getElementById("toast-icon");
         document.getElementById("toast-msg").innerText = msg;
         
-        if (type === 'error') { i.className = "fa-solid fa-circle-xmark text-red-500"; }
-        else if (type === 'success') { i.className = "fa-solid fa-circle-check text-green-500"; }
-        else { i.className = "fa-solid fa-info-circle text-blue-500"; }
+        if (type === 'error') { i.className = "fa-solid fa-circle-xmark text-red-500 text-xs"; }
+        else if (type === 'success') { i.className = "fa-solid fa-circle-check text-green-500 text-xs"; }
+        else { i.className = "fa-solid fa-info-circle text-blue-500 text-xs"; }
         
         t.classList.remove("opacity-0", "pointer-events-none");
         setTimeout(() => t.classList.add("opacity-0", "pointer-events-none"), 3000);
@@ -335,16 +354,12 @@
         await game.loadBalance();
         game.setupRealtimeBalance();
         
-        // --- FIX 1: UPDATE ROUND ID IMMEDIATELY ---
         const now = Date.now();
         game.roundId = Math.floor(now / CONFIG.PERIOD); 
         
         await game.checkPendingState();
-
-        // --- FIX 2: RENDER ROADMAP BASED ON CURRENT ID ---
         game.renderRoadmap();
         
-        // Immediately trigger loop to sync UI
         game.loop();
         setInterval(game.loop, 100);
       },
@@ -440,23 +455,23 @@
 
         if (cyc < CONFIG.PHASES.SHAKE) {
           game.setPhase('SHAKE');
-          st.innerText = "ĐANG XÓC"; st.className = "text-[10px] font-black text-blue-300 uppercase tracking-widest";
+          st.innerText = "ĐANG XÓC"; st.className = "text-[9px] font-black text-blue-300 uppercase tracking-widest";
           tm.innerText = "";
           bowl.classList.add("shaking"); bowl.classList.remove("open");
         } else if (cyc < CONFIG.PHASES.BET) {
           game.setPhase('BET');
-          st.innerText = "ĐẶT CƯỢC"; st.className = "text-[10px] font-black text-emerald-300 uppercase tracking-widest";
+          st.innerText = "ĐẶT CƯỢC"; st.className = "text-[9px] font-black text-emerald-300 uppercase tracking-widest";
           const left = Math.ceil((CONFIG.PHASES.BET - cyc)/1000);
           tm.innerText = left;
           bowl.classList.remove("shaking");
         } else if (cyc < CONFIG.PHASES.LOCK) {
           game.setPhase('LOCK');
-          st.innerText = "CHỜ MỞ"; st.className = "text-[10px] font-black text-rose-300 uppercase tracking-widest";
+          st.innerText = "CHỜ MỞ"; st.className = "text-[9px] font-black text-rose-300 uppercase tracking-widest";
           tm.innerText = "--";
           bowl.classList.remove("shaking");
         } else {
           game.setPhase('REVEAL');
-          st.innerText = "KẾT QUẢ"; st.className = "text-[10px] font-black text-gold uppercase tracking-widest";
+          st.innerText = "KẾT QUẢ"; st.className = "text-[9px] font-black text-gold uppercase tracking-widest";
           
           if (!game.resolved) {
             game.resolved = true;
@@ -466,7 +481,7 @@
               bowl.classList.add("open");
               game.highlightWin(res);
               game.payout(res);
-              game.addRoadmap(res); // Will update roadmap dynamically
+              game.addRoadmap(res); 
             }, 500);
           }
         }
@@ -485,7 +500,6 @@
       },
 
       newRound: (id) => {
-        // console.log("New Round ID:", id);
         game.roundId = id;
         game.resolved = false;
         
@@ -502,8 +516,6 @@
         document.getElementById("modal-result").classList.remove("show");
         
         game.clearPendingState();
-        
-        // --- FIX 3: RE-RENDER ROADMAP ON NEW ROUND ---
         game.renderRoadmap();
       },
 
@@ -523,7 +535,6 @@
         if (type === 'CHAN' && currentLe > 0) return app.showToast("Không cược Chẵn & Lẻ cùng lúc", "error");
         if (type === 'LE' && currentChan > 0) return app.showToast("Không cược Chẵn & Lẻ cùng lúc", "error");
         
-        // CHECK MAX LIMIT
         const currentTotal = game.bets.pending[type] + game.bets.confirmed[type];
         if (currentTotal + game.currentChip > CONFIG.LIMITS.MAX) {
             return app.showToast(`Cược tối đa ${CONFIG.LIMITS.MAX.toLocaleString()}!`, "error");
@@ -569,7 +580,6 @@
         
         if (total === 0) return;
         
-        // CHECK MIN LIMIT
         for (let k in game.bets.pending) {
             if (game.bets.pending[k] > 0) {
                 const finalAmt = game.bets.pending[k] + game.bets.confirmed[k];
@@ -636,15 +646,15 @@
 
         tEl.innerText = title;
         dEl.innerText = sub;
-        tEl.className = "text-6xl font-oswald font-bold mb-2 drop-shadow-md italic " + 
+        tEl.className = "text-5xl font-oswald font-bold mb-1 drop-shadow-md italic " + 
           (title === "CHẴN" ? "text-purple-400" : "text-orange-400");
 
         if (win > 0) {
            wEl.innerText = "+" + win.toLocaleString();
-           wEl.className = "text-3xl font-black text-green-400 animate-bounce";
+           wEl.className = "text-xl font-black text-green-400 animate-bounce";
         } else {
            wEl.innerText = "THỬ LẠI MAY MẮN";
-           wEl.className = "text-xl font-bold text-slate-500";
+           wEl.className = "text-lg font-bold text-slate-500";
         }
 
         modal.classList.add("show");
@@ -682,12 +692,13 @@
       renderCoins: (coins) => {
         const c = document.getElementById("coins-container");
         c.innerHTML = "";
-        const pos = [{x:80,y:80},{x:80,y:140},{x:140,y:80},{x:140,y:140}];
+        // Giảm tọa độ render một chút để phù hợp với size đĩa mới
+        const pos = [{x:70,y:70},{x:70,y:130},{x:130,y:70},{x:130,y:130}];
         coins.forEach((r, i) => {
           const d = document.createElement("div");
           d.className = `coin ${r?'c-red':'c-white'}`;
-          const rx = (Math.random()-0.5)*20;
-          const ry = (Math.random()-0.5)*20;
+          const rx = (Math.random()-0.5)*15;
+          const ry = (Math.random()-0.5)*15;
           d.style.left = (pos[i].x + rx) + "px";
           d.style.top = (pos[i].y + ry) + "px";
           c.appendChild(d);
@@ -733,8 +744,6 @@
       renderRoadmap: () => {
         const rm = document.getElementById("roadmap");
         rm.innerHTML = "";
-        // Draw last 18 rounds up to current-1
-        // We use game.roundId (which is now correctly set in init)
         for(let i=18; i>0; i--) {
             if (game.roundId - i >= 0) {
                 game.addRoadmap(game.getResult(game.roundId - i));
