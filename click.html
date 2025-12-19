@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Crash Multiplier</title>
+    <title>Neon Click Multiplier (97% RTP)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,52 +17,69 @@
             --neon-green: #22c55e;
             --neon-red: #ef4444;
             --neon-yellow: #eab308;
-            --glass: rgba(15, 23, 42, 0.7);
         }
 
         body {
             background-color: var(--bg-dark);
             background-image: 
-                radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.15), transparent 40%),
+                radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.1), transparent 40%),
                 linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 20px 20px, 20px 20px;
+            background-size: 100% 100%, 30px 30px, 30px 30px;
             font-family: 'Rajdhani', sans-serif;
-            height: 100dvh; /* Dynamic Viewport Height */
+            height: 100dvh;
             overflow: hidden;
             touch-action: manipulation;
             color: white;
             display: flex;
             flex-direction: column;
+            user-select: none;
         }
 
-        /* --- REACTOR (Main Visual) --- */
-        .reactor-wrapper {
+        /* --- REACTOR (Nút Bơm) --- */
+        .reactor-container {
             position: relative;
             width: 260px;
             height: 260px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: auto; /* Center in flex container */
+            cursor: pointer;
+            transition: transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+            margin: auto;
         }
+        
+        .reactor-container:active { transform: scale(0.98); }
 
         .reactor-ring {
             position: absolute;
-            inset: 0;
+            inset: -10px;
             border-radius: 50%;
             border: 2px dashed rgba(14, 165, 233, 0.3);
             animation: spin 10s linear infinite;
+            pointer-events: none;
+        }
+        .reactor-ring::before {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            border-radius: 50%;
+            border-top: 4px solid #0ea5e9;
+            border-right: 4px solid transparent;
+            border-bottom: 4px solid #0ea5e9;
+            border-left: 4px solid transparent;
+            animation: spin-reverse 5s linear infinite;
         }
         
         .reactor-core {
-            width: 90%;
-            height: 90%;
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, #1e293b, #020617);
             box-shadow: 
                 inset 0 0 30px rgba(0,0,0,0.9),
-                0 0 20px rgba(14, 165, 233, 0.1);
+                0 0 20px rgba(14, 165, 233, 0.2);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -73,38 +90,48 @@
             transition: all 0.2s;
         }
 
-        /* Game States Visuals */
-        .state-idle .reactor-core { border-color: #334155; }
-        .state-running .reactor-core { 
+        /* States */
+        .state-locked .reactor-core { 
+            border-color: #334155; 
+            filter: grayscale(100%);
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        
+        .state-playing .reactor-core {
             border-color: var(--neon-green);
             box-shadow: 0 0 40px rgba(34, 197, 94, 0.3);
+            animation: pulse-green 1s infinite;
         }
-        .state-running .reactor-ring { border-color: var(--neon-green); animation-duration: 3s; }
-        
-        .state-crashed .reactor-core { 
+        .state-playing:active .reactor-core {
+            transform: scale(0.95);
+            border-color: #fff;
+            box-shadow: 0 0 60px rgba(34, 197, 94, 0.6);
+        }
+
+        .state-crash .reactor-core {
             border-color: var(--neon-red);
-            box-shadow: 0 0 50px rgba(239, 68, 68, 0.5);
+            background: #1a0505;
+            box-shadow: 0 0 50px rgba(239, 68, 68, 0.6);
             animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
-        .state-crashed .reactor-ring { border-color: var(--neon-red); animation: none; }
+        .state-crash .reactor-ring { border-color: var(--neon-red); animation: none; }
 
-        .state-won .reactor-core {
-            border-color: var(--neon-yellow);
-            box-shadow: 0 0 50px rgba(234, 179, 8, 0.5);
-        }
-
-        /* Typography */
-        .multi-display {
+        .multi-text {
             font-family: 'Orbitron', sans-serif;
             font-size: 3.5rem;
             font-weight: 900;
             line-height: 1;
-            font-variant-numeric: tabular-nums;
             text-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
-        
-        /* Animations */
+
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.8); }
+            100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+        }
         @keyframes shake {
             10%, 90% { transform: translate3d(-1px, 0, 0); }
             20%, 80% { transform: translate3d(2px, 0, 0); }
@@ -112,7 +139,7 @@
             40%, 60% { transform: translate3d(4px, 0, 0); }
         }
 
-        /* Controls */
+        /* --- CONTROLS --- */
         .control-panel {
             background: rgba(2, 6, 23, 0.95);
             backdrop-filter: blur(10px);
@@ -120,17 +147,15 @@
             padding: 16px;
             padding-bottom: calc(16px + env(safe-area-inset-bottom));
             border-radius: 24px 24px 0 0;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
             z-index: 20;
+            width: 100%;
         }
 
-        .input-group {
+        .glass-input {
             background: rgba(30, 41, 59, 0.5);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px;
-            display: flex;
-            align-items: center;
-            padding: 4px;
+            font-family: monospace;
         }
 
         .btn-action {
@@ -147,51 +172,26 @@
             overflow: hidden;
             border: none;
             color: white;
-            text-shadow: 0 2px 0 rgba(0,0,0,0.2);
         }
-        
-        .btn-bet {
+
+        .btn-start {
             background: linear-gradient(to bottom, #3b82f6, #2563eb);
-            box-shadow: 0 6px 0 #1e40af, 0 10px 20px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 6px 0 #1e40af;
         }
-        .btn-bet:active:not(:disabled) { transform: translateY(6px); box-shadow: none; }
-        
+        .btn-start:active { transform: translateY(6px); box-shadow: none; }
+
         .btn-cashout {
             background: linear-gradient(to bottom, #eab308, #ca8a04);
-            box-shadow: 0 6px 0 #854d0e, 0 10px 20px rgba(234, 179, 8, 0.4);
+            box-shadow: 0 6px 0 #854d0e;
         }
         .btn-cashout:active { transform: translateY(6px); box-shadow: none; }
 
-        .btn-action:disabled {
+        .btn-disabled {
             background: #334155;
-            box-shadow: none;
             color: #94a3b8;
+            box-shadow: none;
             cursor: not-allowed;
-            transform: translateY(6px);
         }
-
-        /* History Bar */
-        .history-bar {
-            display: flex;
-            gap: 8px;
-            padding: 10px 16px;
-            overflow-x: auto;
-            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
-            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
-        }
-        .history-pill {
-            flex-shrink: 0;
-            padding: 4px 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            font-family: monospace;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .pill-win { color: var(--neon-green); border-color: rgba(34, 197, 94, 0.3); background: rgba(34, 197, 94, 0.1); }
-        .pill-lose { color: var(--neon-red); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); }
-        .pill-big { color: var(--neon-yellow); border-color: rgba(234, 179, 8, 0.3); background: rgba(234, 179, 8, 0.1); box-shadow: 0 0 10px rgba(234,179,8,0.2); }
 
         .toast {
             position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
@@ -201,434 +201,415 @@
             font-size: 13px; font-weight: bold; z-index: 100; 
             opacity: 0; transition: opacity 0.3s; pointer-events: none;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            white-space: nowrap;
         }
+        .toast.success { border-color: var(--neon-green); color: var(--neon-green); }
     </style>
 </head>
 <body>
 
-    <!-- Notification Toast -->
     <div id="toast" class="toast">Thông báo</div>
 
-    <!-- 1. Header Area -->
-    <div class="flex items-center justify-between p-4 bg-slate-900/50 backdrop-blur-sm border-b border-white/5 z-20">
+    <!-- 1. HEADER (Cố định, không bị đè) -->
+    <div class="flex items-center justify-between p-4 bg-slate-900/50 backdrop-blur-sm border-b border-white/5 z-20 shrink-0 h-[70px]">
         <div class="flex items-center gap-3">
-            <a href="games.html" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors border border-slate-700">
+            <a href="games.html" class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
                 <i class="fa-solid fa-chevron-left"></i>
             </a>
             <div class="flex flex-col">
                 <span class="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Tài khoản</span>
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-slate-600" id="statusDot"></div>
-                    <span class="font-mono text-lg font-bold text-white leading-none" id="uiBalance">---</span>
+                    <span class="font-mono text-xl font-bold text-white leading-none" id="uiBalance">---</span>
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/50 border border-slate-700">
-            <i class="fa-solid fa-users text-xs text-sky-500"></i>
-            <span class="text-xs font-bold text-slate-300">LIVE</span>
+        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-gamepad text-cyan-400 text-xs"></i>
+            <span class="text-xs font-bold text-slate-300">CLICKER</span>
         </div>
     </div>
 
-    <!-- 2. History Bar -->
-    <div class="bg-slate-900/30 border-b border-white/5">
-        <div class="history-bar" id="historyBar">
-            <!-- JS will populate -->
-            <div class="history-pill pill-win">1.20x</div>
-            <div class="history-pill pill-lose">1.05x</div>
-            <div class="history-pill pill-big">5.43x</div>
-            <div class="history-pill pill-win">2.10x</div>
+    <!-- 2. GAME AREA (Co giãn tự động) -->
+    <div class="flex-1 flex flex-col items-center justify-center relative w-full overflow-hidden min-h-0">
+        
+        <div id="tutorialText" class="absolute top-4 text-slate-500 text-xs font-bold tracking-[0.2em] transition-all animate-bounce">
+            ĐẶT CƯỢC ĐỂ BẮT ĐẦU
         </div>
-    </div>
 
-    <!-- 3. Main Stage (Flex Grow to fill space) -->
-    <div class="flex-1 flex flex-col items-center justify-center relative w-full overflow-hidden">
-        
-        <!-- Background Elements -->
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-sky-900/10 via-transparent to-transparent opacity-50"></div>
-        
-        <!-- Game Area -->
-        <div id="gameContainer" class="reactor-wrapper state-idle">
+        <!-- Lò phản ứng -->
+        <div id="reactorBtn" class="reactor-container state-locked" onclick="clickPump()">
             <div class="reactor-ring"></div>
             <div class="reactor-core">
-                <div class="text-[10px] font-bold tracking-[0.3em] text-slate-500 mb-1" id="statusText">SẴN SÀNG</div>
-                <div class="multi-display text-slate-200 transition-colors" id="multiValue">1.00x</div>
-                <div class="text-sm font-mono text-green-400 mt-2 opacity-0 transition-opacity" id="winAmount">+0</div>
+                <div class="text-[10px] font-bold tracking-[0.3em] text-slate-500 mb-2 transition-colors" id="statusText">LOCKED</div>
+                <div class="multi-text text-slate-500/50 transition-all" id="multiValue">WAIT</div>
+                <div class="text-xs text-cyan-400 mt-2 font-mono opacity-0 transition-opacity" id="tapHint">NHẤN ĐỂ BƠM</div>
             </div>
         </div>
-
     </div>
 
-    <!-- 4. Control Panel (Fixed Bottom) -->
-    <div class="control-panel">
+    <!-- 3. CONTROLS (Cố định dưới đáy) -->
+    <div class="control-panel shrink-0">
         <div class="w-full max-w-md mx-auto flex flex-col gap-4">
             
-            <!-- Bet Input Section -->
+            <!-- Input Cược -->
             <div class="flex gap-3 h-14">
-                <div class="input-group flex-1">
-                    <button class="w-10 h-full text-slate-400 hover:text-white font-bold text-lg" onclick="adjustBet(0.5)">½</button>
-                    <div class="flex-1 flex flex-col justify-center px-2 border-x border-white/10 h-full bg-slate-900/50">
-                        <span class="text-[10px] text-slate-500 font-bold uppercase">Mức Cược</span>
-                        <input type="number" id="betInput" value="2300" class="w-full bg-transparent text-white font-mono font-bold text-lg focus:outline-none p-0">
-                    </div>
-                    <button class="w-10 h-full text-slate-400 hover:text-white font-bold text-lg" onclick="adjustBet(2)">2x</button>
+                <div class="glass-input flex-1 flex items-center px-4 relative">
+                    <span class="text-slate-500 font-bold mr-2">$</span>
+                    <input type="number" id="betInput" value="2300" 
+                        class="w-full bg-transparent text-white font-bold text-xl focus:outline-none"
+                        placeholder="Cược">
                 </div>
-                <div class="flex flex-col gap-1 w-20">
-                    <button onclick="setBet(10000)" class="flex-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 border border-slate-700">10K</button>
-                    <button onclick="setBet(50000)" class="flex-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-[10px] font-bold text-slate-300 border border-slate-700">50K</button>
+                <div class="flex gap-1">
+                    <button onclick="setBet(2300)" class="bg-slate-800 hover:bg-slate-700 w-12 rounded-xl text-[10px] font-bold text-slate-400 border border-slate-700 transition-colors">2.3K</button>
+                    <button onclick="setBet(10000)" class="bg-slate-800 hover:bg-slate-700 w-12 rounded-xl text-[10px] font-bold text-slate-400 border border-slate-700 transition-colors">10K</button>
+                    <button onclick="setBet(50000)" class="bg-slate-800 hover:bg-slate-700 w-12 rounded-xl text-[10px] font-bold text-slate-400 border border-slate-700 transition-colors">50K</button>
+                    <button onclick="setBet(530000)" class="bg-slate-800 hover:bg-slate-700 w-12 rounded-xl text-[10px] font-bold text-orange-400 border border-slate-700 transition-colors">MAX</button>
                 </div>
             </div>
 
-            <!-- Action Button -->
-            <button id="mainBtn" onclick="handleAction()" class="btn-action btn-bet">
-                <span id="btnText">CƯỢC NGAY</span>
-                <div id="btnSub" class="text-[10px] opacity-60 font-normal normal-case tracking-normal mt-1">Vòng mới bắt đầu</div>
+            <!-- Nút Hành Động -->
+            <button id="btnAction" onclick="handleAction()" class="btn-action btn-start group">
+                <div class="flex flex-col items-center leading-none">
+                    <span id="btnMainText">CƯỢC NGAY</span>
+                    <span id="btnSubText" class="text-[10px] opacity-60 font-normal mt-1 normal-case tracking-normal">Bắt đầu vòng mới</span>
+                </div>
+                <div id="cashVal" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-sm font-mono bg-black/30 px-2 py-1 rounded text-yellow-300">
+                    +0
+                </div>
             </button>
             
-            <div class="text-center">
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Min: 2.3K - Max: 530K</span>
+            <div class="text-center -mt-2">
+                <span class="text-[9px] text-slate-600 font-mono">MIN: 2,300 - MAX: 530,000</span>
             </div>
+
         </div>
     </div>
 
 <script>
-    // --- 1. SUPABASE CONFIG (Same as Baccarat) ---
+    // --- 1. SUPABASE CONFIG (TỪ FILE BACCARAT) ---
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     
-    let supabaseClient;
-    try {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (e) {
-        console.error("Supabase init failed", e);
-    }
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const WALLET_TABLE = 'users';
+    const WALLET_BALANCE_COLUMN = 'balance';
+    
+    let supaUser = null;
+    let realtimeChannel = null;
 
-    // --- 2. GAME VARIABLES ---
-    const CONFIG = {
-        minBet: 2300,
-        maxBet: 530000,
-        houseEdge: 0.03, // 3% -> 97% RTP
-    };
-
-    let state = {
+    // --- 2. GAME STATE ---
+    let app = {
         balance: 0,
-        bet: 2300,
-        gameStatus: 'IDLE', // IDLE, RUNNING, CASHOUT, CRASHED
-        currentMulti: 1.00,
+        bet: 0,
+        step: 0,
+        playing: false,
         crashPoint: 0,
-        startTime: 0,
-        history: [], // Stores last 20 results
-        userId: null
+        MIN_BET: 2300,
+        MAX_BET: 530000
     };
 
-    let animFrameId;
-
-    // --- 3. DOM ELEMENTS ---
+    // Elements
     const el = {
-        balance: document.getElementById('uiBalance'),
+        bal: document.getElementById('uiBalance'),
         statusDot: document.getElementById('statusDot'),
-        betInput: document.getElementById('betInput'),
-        mainBtn: document.getElementById('mainBtn'),
-        btnText: document.getElementById('btnText'),
-        btnSub: document.getElementById('btnSub'),
-        container: document.getElementById('gameContainer'),
+        reactor: document.getElementById('reactorBtn'),
         multi: document.getElementById('multiValue'),
-        statusText: document.getElementById('statusText'),
-        winAmount: document.getElementById('winAmount'),
-        history: document.getElementById('historyBar'),
+        status: document.getElementById('statusText'),
+        hint: document.getElementById('tapHint'),
+        tutorial: document.getElementById('tutorialText'),
+        input: document.getElementById('betInput'),
+        btn: document.getElementById('btnAction'),
+        btnMain: document.getElementById('btnMainText'),
+        btnSub: document.getElementById('btnSubText'),
+        cashVal: document.getElementById('cashVal'),
         toast: document.getElementById('toast')
     };
 
-    // --- 4. CORE FUNCTIONS ---
+    // --- 3. SUPABASE FUNCTIONS ---
+    async function initSupabase() {
+        try {
+            const uid = localStorage.getItem("my_wallet_uid");
+            if (!uid) {
+                showToast("Vui lòng đăng nhập lại!", "alert");
+                setTimeout(() => window.location.href = "index.html", 2000);
+                return;
+            }
 
-    async function init() {
-        const uid = localStorage.getItem("my_wallet_uid");
-        if (!uid) {
-            showToast("Chưa đăng nhập! Đang chuyển hướng...");
-            setTimeout(() => window.location.href = 'index.html', 1500);
-            return;
-        }
+            supaUser = { id: uid };
+            el.statusDot.classList.add('bg-green-500'); // Online indicator
+            el.statusDot.classList.remove('bg-slate-600');
 
-        state.userId = uid;
-        
-        // Fetch Balance
-        if (supabaseClient) {
             const { data, error } = await supabaseClient
-                .from("users")
-                .select("balance")
+                .from(WALLET_TABLE)
+                .select(WALLET_BALANCE_COLUMN)
                 .eq("id", uid)
                 .maybeSingle();
 
-            if (data) {
-                state.balance = data.balance;
-                el.statusDot.classList.remove('bg-slate-600');
-                el.statusDot.classList.add('bg-green-500', 'shadow-[0_0_8px_#22c55e]');
+            if (!data) {
+                // Tự tạo user nếu chưa có (Demo logic)
+                await supabaseClient.from(WALLET_TABLE).insert({ id: uid, balance: 0 });
+                app.balance = 0;
+            } else {
+                app.balance = data.balance || 0;
             }
-        } else {
-            // Fallback for demo without supabase loaded
-            state.balance = 100000;
+
+            updateDisplay();
+            setupRealtimeBalance();
+            showToast(`Đã kết nối ví: ${uid.substring(0,6)}...`, 'success');
+
+        } catch (err) {
+            console.error(err);
+            showToast("Lỗi kết nối ví!", "alert");
         }
-
-        updateUI();
-        generateFakeHistory(); // Populate history bar visually
     }
 
-    function updateUI() {
-        el.balance.innerText = state.balance.toLocaleString('vi-VN');
-        el.betInput.value = state.bet;
+    function setupRealtimeBalance() {
+        if (!supaUser) return;
+        if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+        realtimeChannel = supabaseClient.channel('wallet-changes')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: WALLET_TABLE, filter: `id=eq.${supaUser.id}` },
+                (payload) => {
+                    const newBal = payload.new[WALLET_BALANCE_COLUMN];
+                    if (newBal !== undefined && newBal !== app.balance) {
+                        app.balance = newBal;
+                        updateDisplay();
+                    }
+                }
+            ).subscribe();
     }
 
-    function adjustBet(multiplier) {
-        let val = parseInt(el.betInput.value) || CONFIG.minBet;
-        val = Math.floor(val * multiplier);
-        if (val < CONFIG.minBet) val = CONFIG.minBet;
-        if (val > CONFIG.maxBet) val = CONFIG.maxBet;
-        setBet(val);
+    async function syncBalanceToSupabase() {
+        if (!supaUser) return;
+        try {
+            await supabaseClient.from(WALLET_TABLE).update({ [WALLET_BALANCE_COLUMN]: app.balance }).eq('id', supaUser.id);
+        } catch (e) { console.error('Sync Exception:', e); }
     }
 
-    function setBet(amount) {
-        if (state.gameStatus !== 'IDLE') return;
-        if (amount > CONFIG.maxBet) amount = CONFIG.maxBet;
-        state.bet = amount;
-        el.betInput.value = amount;
-    }
-
-    // Input event listener to sync state
-    el.betInput.addEventListener('change', (e) => {
-        let val = parseInt(e.target.value);
-        if (val < CONFIG.minBet) val = CONFIG.minBet;
-        if (val > CONFIG.maxBet) val = CONFIG.maxBet;
-        state.bet = val;
-        e.target.value = val;
-    });
+    // --- 4. GAME LOGIC (GIỮ NGUYÊN CƠ CHẾ CLICK) ---
+    
+    // Mỗi step 10 = 0.1x profit
+    const mul = () => app.step / 100;
 
     function handleAction() {
-        if (state.gameStatus === 'IDLE' || state.gameStatus === 'CRASHED' || state.gameStatus === 'CASHOUT') {
+        if (!app.playing) {
             startGame();
-        } else if (state.gameStatus === 'RUNNING') {
+        } else {
             cashOut();
         }
     }
 
-    async function startGame() {
-        // Validation
-        const betAmount = parseInt(el.betInput.value);
-        if (isNaN(betAmount) || betAmount < CONFIG.minBet) {
-            showToast(`Cược tối thiểu ${CONFIG.minBet.toLocaleString()}!`);
-            return;
+    function setBet(amount) {
+        if (!app.playing) {
+            el.input.value = Math.floor(amount);
         }
-        if (betAmount > state.balance) {
-            showToast("Số dư không đủ!");
-            return;
-        }
-
-        // Deduct Balance
-        state.bet = betAmount;
-        state.balance -= state.bet;
-        updateUI();
-        syncBalance();
-
-        // Calculate Crash Point (Pareto Distribution)
-        // RTP 97% -> 0.97 / (1 - rand)
-        // To prevent instant crash at 1.00 too often, logic often used is max(1.00, result)
-        // Instant crash chance: approx 3% (1/33 rounds)
-        const r = Math.random();
-        state.crashPoint = Math.max(1.00, Math.floor((0.97 / (1 - r)) * 100) / 100);
-        
-        // Setup State
-        state.gameStatus = 'RUNNING';
-        state.currentMulti = 1.00;
-        state.startTime = Date.now();
-        
-        // UI Reset
-        el.container.className = 'reactor-wrapper state-running';
-        el.mainBtn.className = 'btn-action btn-cashout';
-        el.btnText.innerText = "NHẬN TIỀN";
-        el.btnSub.innerText = `+${state.bet.toLocaleString()}`;
-        el.multi.innerText = "1.00x";
-        el.multi.style.color = "#fff";
-        el.statusText.innerText = "ĐANG BAY...";
-        el.statusText.className = "text-[10px] font-bold tracking-[0.3em] text-green-400 mb-1 animate-pulse";
-        el.winAmount.style.opacity = "0";
-        el.betInput.disabled = true;
-
-        // Loop
-        runGameLoop();
     }
 
-    function runGameLoop() {
-        if (state.gameStatus !== 'RUNNING') return;
-
-        const now = Date.now();
-        const elapsed = now - state.startTime;
+    async function startGame() {
+        const val = parseInt(el.input.value);
         
-        // Growth formula: Exponential growth
-        // Multiplier = e^(k * t)
-        // Adjust k to change speed. 0.00006 is a generic speed
-        const speed = 0.00006;
-        state.currentMulti = Math.floor(Math.exp(speed * elapsed) * 100) / 100;
+        // KIỂM TRA LIMITS
+        if (isNaN(val) || val < app.MIN_BET) return showToast(`Cược tối thiểu ${app.MIN_BET.toLocaleString()}`);
+        if (val > app.MAX_BET) return showToast(`Cược tối đa ${app.MAX_BET.toLocaleString()}`);
+        if (app.balance < val) return showToast("Số dư không đủ!");
 
-        // Update UI
-        el.multi.innerText = state.currentMulti.toFixed(2) + "x";
+        app.bet = val;
+        app.balance -= app.bet;
+        app.step = 0;
+        app.playing = true;
         
-        // Calculate current potential win
-        const currentWin = Math.floor(state.bet * state.currentMulti);
-        el.btnSub.innerText = `+${currentWin.toLocaleString()}`;
+        // Sync balance ngay
+        syncBalanceToSupabase();
 
-        // Color phases
-        if (state.currentMulti > 2.0) el.multi.style.color = "#22c55e"; // Green
-        if (state.currentMulti > 10.0) el.multi.style.color = "#eab308"; // Gold
+        // TẠO ĐIỂM NỔ (RTP 97%)
+        // Công thức: CrashPoint = 0.97 / (1 - rand)
+        app.crashPoint = 0.97 / Math.random();
+        
+        // UI Start
+        el.reactor.className = "reactor-container state-playing";
+        
+        el.btn.className = "btn-action btn-cashout group";
+        el.btnMain.innerText = "NHẬN TIỀN";
+        el.btnSub.innerText = "Dừng lại & Bảo toàn vốn";
+        el.cashVal.classList.remove("hidden");
+        el.cashVal.innerText = "+0";
 
-        // Check Crash
-        if (state.currentMulti >= state.crashPoint) {
-            crash();
-        } else {
-            animFrameId = requestAnimationFrame(runGameLoop);
+        el.multi.innerText = "+0.00x";
+        el.multi.style.color = "#fff";
+        el.multi.style.opacity = "1";
+        el.multi.style.fontSize = "3.5rem";
+
+        el.status.innerText = "ĐANG CHƠI";
+        el.status.className = "text-[10px] font-bold tracking-[0.3em] text-green-400 mb-2 animate-pulse";
+        
+        el.hint.style.opacity = "1";
+        el.tutorial.innerText = "NHẤN VÀO VÒNG TRÒN ĐỂ BƠM!";
+        el.tutorial.className = "absolute top-4 text-cyan-400 text-xs font-bold tracking-[0.2em] animate-bounce";
+        
+        el.input.disabled = true;
+
+        updateDisplay();
+
+        // Instant Bust Check (< 1.0) ~3% chance
+        if (app.crashPoint < 1.0) {
+            setTimeout(() => crash(), 200);
         }
+    }
+
+    // LOGIC CLICK BƠM
+    function clickPump() {
+        if (!app.playing) {
+            // Animation lắc nhẹ khi chưa start
+            el.reactor.classList.add("translate-x-1");
+            setTimeout(() => el.reactor.classList.remove("translate-x-1"), 200);
+            return;
+        }
+
+        // Tăng lợi nhuận: +0.1x mỗi lần click
+        app.step += 10;
+        const profit_mul = mul();
+        const total_mul = 1 + profit_mul; // Tổng hệ số (Vốn 1 + Lãi)
+
+        // KIỂM TRA NỔ
+        if (total_mul > app.crashPoint) {
+            crash();
+            return;
+        }
+
+        // Feedback màu sắc
+        if (profit_mul > 0.5) {
+             el.multi.style.color = "#22c55e"; // Green
+             el.status.innerText = "LÃI NGON";
+        }
+        if (profit_mul > 1.5) {
+             el.multi.style.color = "#f59e0b"; // Orange
+             el.status.innerText = "RỦI RO CAO";
+             el.status.className = "text-[10px] font-bold tracking-[0.3em] text-yellow-500 mb-2";
+        }
+        if (profit_mul > 3.0) {
+             el.multi.style.color = "#ef4444"; // Red
+             el.status.innerText = "CỰC CĂNG";
+             el.status.className = "text-[10px] font-bold tracking-[0.3em] text-red-500 mb-2 animate-ping";
+        }
+
+        // Animation Core
+        const core = el.reactor.querySelector('.reactor-core');
+        core.style.transform = "scale(0.95)";
+        setTimeout(() => core.style.transform = "scale(1)", 100);
+
+        updateDisplay();
     }
 
     function crash() {
-        state.gameStatus = 'CRASHED';
-        cancelAnimationFrame(animFrameId);
+        app.playing = false;
+        app.step = 0;
 
-        // UI
-        el.multi.innerText = state.crashPoint.toFixed(2) + "x";
-        el.container.className = 'reactor-wrapper state-crashed';
-        el.statusText.innerText = "NỔ TUNG!";
-        el.statusText.className = "text-[10px] font-bold tracking-[0.3em] text-red-500 mb-1";
+        el.reactor.className = "reactor-container state-crash";
+        el.multi.innerText = "CRASH";
+        el.multi.style.color = "#ef4444";
         
-        resetButton();
-        addToHistory(state.crashPoint, false);
-        syncBalance(); // Sync just to be safe
-    }
+        el.status.innerText = "MẤT CƯỢC";
+        el.hint.style.opacity = "0";
 
-    function cashOut() {
-        state.gameStatus = 'CASHOUT';
-        cancelAnimationFrame(animFrameId);
+        // Reset Button
+        el.btn.className = "btn-action btn-disabled";
+        el.btn.disabled = true;
+        el.btnMain.innerText = "ĐÃ NỔ";
+        el.btnSub.innerText = "Đang đặt lại...";
+        el.cashVal.classList.add("hidden");
 
-        const winAmount = Math.floor(state.bet * state.currentMulti);
-        state.balance += winAmount;
+        if(navigator.vibrate) navigator.vibrate(200);
 
-        // UI
-        el.container.className = 'reactor-wrapper state-won';
-        el.statusText.innerText = "CHIẾN THẮNG";
-        el.statusText.className = "text-[10px] font-bold tracking-[0.3em] text-yellow-400 mb-1";
-        el.multi.style.color = "#eab308";
-        
-        el.winAmount.innerText = `+${winAmount.toLocaleString()}`;
-        el.winAmount.style.opacity = "1";
-        el.winAmount.className = "text-xl font-mono font-bold text-yellow-400 mt-2 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all transform translate-y-0";
+        syncBalanceToSupabase();
 
-        updateUI();
-        syncBalance();
-        resetButton();
-        addToHistory(state.currentMulti, true);
-    }
-
-    function resetButton() {
-        el.mainBtn.disabled = true;
-        el.btnText.innerText = state.gameStatus === 'CASHOUT' ? "THẮNG" : "NỔ";
-        el.btnSub.innerText = "Chờ ván mới...";
-        
         setTimeout(() => {
-            state.gameStatus = 'IDLE';
-            el.container.className = 'reactor-wrapper state-idle';
-            el.mainBtn.className = 'btn-action btn-bet';
-            el.mainBtn.disabled = false;
-            el.btnText.innerText = "CƯỢC NGAY";
-            el.btnSub.innerText = "Vòng mới bắt đầu";
-            el.statusText.innerText = "SẴN SÀNG";
-            el.statusText.className = "text-[10px] font-bold tracking-[0.3em] text-slate-500 mb-1";
-            el.multi.innerText = "1.00x";
-            el.multi.style.color = "#cbd5e1";
-            el.winAmount.style.opacity = "0";
-            el.betInput.disabled = false;
+            resetToIdle();
         }, 2000);
     }
 
-    // --- 5. HELPERS ---
+    function cashOut() {
+        if (!app.playing) return;
 
-    async function syncBalance() {
-        if (state.userId && supabaseClient) {
-            await supabaseClient
-                .from("users")
-                .update({ balance: state.balance })
-                .eq("id", state.userId);
-        }
+        // Tính tiền
+        const profit = Math.floor(app.bet * mul());
+        const totalReturn = app.bet + profit;
+        
+        app.balance += totalReturn;
+        
+        app.playing = false;
+        app.step = 0;
+        
+        syncBalanceToSupabase();
+
+        el.reactor.className = "reactor-container"; 
+        el.multi.innerText = "WIN";
+        el.multi.style.color = "#fbbf24"; // Gold
+        
+        el.status.innerText = "+" + totalReturn.toLocaleString();
+        el.status.className = "text-xl text-yellow-400 font-bold tracking-widest mb-2";
+        el.hint.style.opacity = "0";
+
+        // Button State
+        el.btn.className = "btn-action btn-disabled opacity-80";
+        el.btn.disabled = true;
+        el.btnMain.innerText = "THẮNG LỚN";
+        el.btnSub.innerText = "Tiền đã về ví";
+        el.cashVal.classList.add("hidden");
+
+        setTimeout(() => {
+            resetToIdle();
+        }, 2000);
+
+        updateDisplay();
     }
 
-    function addToHistory(point, won) {
-        // Add to array
-        state.history.unshift({ point, won });
-        if (state.history.length > 20) state.history.pop();
+    function resetToIdle() {
+        el.reactor.className = "reactor-container state-locked";
+        el.multi.innerText = "WAIT";
+        el.multi.style.fontSize = "3.5rem";
+        el.multi.style.color = "rgba(100,116,139, 0.5)";
+        
+        el.status.innerText = "LOCKED";
+        el.status.className = "text-[10px] font-bold tracking-[0.3em] text-slate-500 mb-2";
+        
+        el.tutorial.innerText = "ĐẶT CƯỢC ĐỂ BẮT ĐẦU";
+        el.tutorial.className = "absolute top-4 text-slate-500 text-xs font-bold tracking-[0.2em] transition-all animate-bounce";
 
-        // Render Pill
-        const div = document.createElement('div');
-        let typeClass = 'pill-lose';
-        if (won) typeClass = 'pill-win'; 
-        // Note: For history, usually we show the Crash Point regardless of user win,
-        // but showing the cashout point indicates user action. 
-        // Standard Crash games show the CRASH point in history.
-        // Let's fix logic: History always shows CRASH POINT.
+        el.btn.className = "btn-action btn-start group";
+        el.btn.disabled = false;
+        el.btnMain.innerText = "CƯỢC NGAY";
+        el.btnSub.innerText = "Bắt đầu vòng mới";
         
-        // Correct Logic:
-        // If user cashed out at 1.5x, but it crashed at 10x, history should show 10x (Green/Gold).
-        // If it crashed at 1.2x, history shows 1.2x (Red).
-        
-        // Since my logic above passes `currentMulti` for cashout, 
-        // technically the crash point was destined to be `state.crashPoint`.
-        // Let's use `state.crashPoint` for history bar always.
-        
-        const isHigh = state.crashPoint >= 10;
-        const isGood = state.crashPoint >= 2;
-        
-        let visualClass = 'pill-lose';
-        if (state.crashPoint >= 2) visualClass = 'pill-win';
-        if (state.crashPoint >= 10) visualClass = 'pill-big';
-
-        div.className = `history-pill ${visualClass}`;
-        div.innerText = state.crashPoint.toFixed(2) + "x";
-        
-        // Animation
-        div.style.opacity = '0';
-        div.style.transform = 'translateX(-20px)';
-        el.history.prepend(div);
-        
-        // Trigger reflow
-        div.offsetHeight; 
-        
-        div.style.transition = 'all 0.3s ease';
-        div.style.opacity = '1';
-        div.style.transform = 'translateX(0)';
-
-        if (el.history.children.length > 20) {
-            el.history.lastElementChild.remove();
-        }
+        el.input.disabled = false;
     }
 
-    function generateFakeHistory() {
-        for(let i=0; i<10; i++) {
-            const p = Math.max(1.00, Math.floor((0.97 / (1 - Math.random())) * 100) / 100);
-            let visualClass = 'pill-lose';
-            if (p >= 2) visualClass = 'pill-win';
-            if (p >= 10) visualClass = 'pill-big';
+    function updateDisplay() {
+        el.bal.innerText = app.balance.toLocaleString();
+        
+        if (app.playing) {
+            const currentProfitMul = mul();
+            el.multi.innerText = "+" + currentProfitMul.toFixed(2) + "x";
             
-            const div = document.createElement('div');
-            div.className = `history-pill ${visualClass}`;
-            div.innerText = p.toFixed(2) + "x";
-            el.history.appendChild(div);
+            const totalReceive = Math.floor(app.bet * (1 + currentProfitMul));
+            el.cashVal.innerText = "Nhận: " + totalReceive.toLocaleString();
         }
     }
 
-    function showToast(msg) {
+    function showToast(msg, type) {
         el.toast.innerText = msg;
+        el.toast.className = `toast ${type === 'success' ? 'success' : ''}`;
         el.toast.style.opacity = 1;
         setTimeout(() => el.toast.style.opacity = 0, 3000);
     }
 
     // --- INIT ---
-    window.onload = init;
+    window.onload = initSupabase;
+
+    // Chặn zoom double click
+    document.addEventListener('dblclick', function(event) { event.preventDefault(); }, { passive: false });
 
 </script>
 </body>
 </html>
+
 
