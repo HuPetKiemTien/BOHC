@@ -273,7 +273,7 @@
   </div>
 
   <script>
-    // ===== 1. SUPABASE CONFIGURATION (FROM BACCARAT FILE) =====
+    // ===== 1. SUPABASE CONFIGURATION =====
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     
@@ -304,7 +304,7 @@
         else { i.className = "fa-solid fa-info-circle text-blue-500"; }
         
         t.classList.remove("opacity-0", "pointer-events-none");
-        setTimeout(() => t.classList.add("opacity-0", "pointer-events-none"), 2000);
+        setTimeout(() => t.classList.add("opacity-0", "pointer-events-none"), 3000);
       }
     };
 
@@ -320,9 +320,9 @@
       },
       currentChip: 10000,
 
-      // --- INIT WITH SUPABASE LOGIC ---
+      // --- INIT WITH SUPABASE & RECOVERY ---
       init: async () => {
-        // 1. Check LocalStorage
+        // 1. Check Auth
         const uid = localStorage.getItem("my_wallet_uid");
         if (!uid) {
           alert("Vui lòng đăng nhập lại!");
@@ -330,18 +330,82 @@
           return;
         }
 
-        // 2. Setup User Obj
         app.user = { id: uid, balance: 0 };
         document.getElementById("user-id").innerText = "ID: " + uid.substring(0, 8).toUpperCase();
         document.getElementById("conn-dot").classList.add("online");
 
-        // 3. Load Balance
+        // 2. Load Balance
         await game.loadBalance();
         game.setupRealtimeBalance();
 
-        // 4. Start Game
+        // 3. CHECK PENDING BETS (RECOVERY LOGIC)
+        await game.checkPendingState();
+
+        // 4. Start Loop
         game.renderRoadmap();
         setInterval(game.loop, 100);
+      },
+
+      // --- PERSISTENCE LOGIC (FIX FOR EXITING GAME) ---
+      savePendingState: () => {
+        const data = {
+            roundId: game.roundId,
+            bets: game.bets.confirmed,
+            timestamp: Date.now()
+        };
+        localStorage.setItem("xd_pending_bet", JSON.stringify(data));
+      },
+
+      clearPendingState: () => {
+        localStorage.removeItem("xd_pending_bet");
+      },
+
+      checkPendingState: async () => {
+        const raw = localStorage.getItem("xd_pending_bet");
+        if (!raw) return;
+
+        try {
+            const data = JSON.parse(raw);
+            const now = Date.now();
+            const currentRound = Math.floor(now / CONFIG.PERIOD);
+
+            // Case A: Round has passed -> Calculate Result & Refund/Pay
+            if (data.roundId < currentRound) {
+                console.log("Found old bet for round", data.roundId);
+                const res = game.getResult(data.roundId);
+                let winAmt = 0;
+                
+                for (let k in data.bets) {
+                    let isWin = false;
+                    if (k === 'CHAN' && res.isChan) isWin = true;
+                    if (k === 'LE' && !res.isChan) isWin = true;
+                    if (k === '4D' && res.reds === 4) isWin = true;
+                    if (k === '4T' && res.reds === 0) isWin = true;
+                    if (k === '3D1T' && res.reds === 3) isWin = true;
+                    if (k === '3T1D' && res.reds === 1) isWin = true;
+                    
+                    if (isWin) winAmt += data.bets[k] * (1 + CONFIG.ODDS[k]);
+                }
+
+                if (winAmt > 0) {
+                    const final = Math.floor(winAmt);
+                    app.user.balance += final;
+                    await game.syncBalance();
+                    app.showToast(`Bạn thắng ${final.toLocaleString()} ván trước!`, 'success');
+                } else {
+                    app.showToast(`Kết quả ván trước: ${res.txt} ${res.sub}`, 'info');
+                }
+                game.clearPendingState();
+            } 
+            // Case B: Round is still active -> Restore Bet UI
+            else if (data.roundId === currentRound) {
+                console.log("Restoring active bet for round", data.roundId);
+                game.bets.confirmed = data.bets;
+                game.updateBadges();
+            }
+        } catch (e) {
+            console.error("Recovery error:", e);
+        }
       },
 
       loadBalance: async () => {
@@ -353,17 +417,14 @@
             .maybeSingle();
 
           if (!data) {
-             // Create if not exists
              await supabaseClient.from(WALLET_TABLE).insert({ id: app.user.id, balance: 0 });
              app.user.balance = 0;
           } else {
              app.user.balance = data[WALLET_BALANCE_COLUMN] || 0;
           }
           game.updateBalanceUI();
-          app.showToast(`Đã kết nối ví: ${app.user.id.substring(0,6)}...`, 'success');
         } catch (err) {
           console.error(err);
-          app.showToast("Lỗi kết nối ví!", "error");
         }
       },
 
@@ -379,7 +440,6 @@
             (payload) => {
               const newBal = payload.new[WALLET_BALANCE_COLUMN];
               if (newBal !== undefined && newBal !== app.user.balance) {
-                console.log('Realtime update:', newBal);
                 app.user.balance = newBal;
                 game.updateBalanceUI();
               }
@@ -395,12 +455,6 @@
             .from(WALLET_TABLE)
             .update({ [WALLET_BALANCE_COLUMN]: app.user.balance })
             .eq('id', app.user.id);
-
-          if (error) {
-             console.error('Sync Error:', error);
-             app.showToast('Lỗi đồng bộ tiền!', 'error');
-             await game.loadBalance(); // Revert on error
-          }
         } catch (e) { console.error('Sync Ex:', e); }
       },
 
@@ -545,8 +599,10 @@
         }
         game.updateBadges();
         
-        // Sync to Supabase
+        // Sync & SAVE STATE
         await game.syncBalance();
+        game.savePendingState(); // <--- CRITICAL FIX
+        
         app.showToast("Đặt cược thành công!", "success");
       },
 
@@ -578,6 +634,8 @@
           } else {
              game.showModal(res.txt, res.sub, 0);
           }
+          // CLEAR PENDING STATE AFTER PAYOUT
+          game.clearPendingState();
         }
       },
 
