@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Pachinko (Boom Edition)</title>
+    <title>Neon Pachinko (No Half)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,19 +16,19 @@
 
         :root {
             --bg-dark: #020617;
-            --neon-blue: #0ea5e9;
-            --neon-pink: #d946ef;
-            --neon-gold: #eab308;
+            --neon-blue: #3b82f6;
+            --neon-purple: #a855f7;
+            --neon-green: #22c55e;
             --neon-red: #ef4444;
-            --neon-gray: #475569;
+            --neon-gold: #eab308;
         }
 
         body {
             background-color: var(--bg-dark);
             background-image: 
-                linear-gradient(rgba(239, 68, 68, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(239, 68, 68, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
             font-family: 'Rajdhani', sans-serif;
             height: 100dvh;
             overflow: hidden;
@@ -49,40 +49,39 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 5px;
+            padding: 10px;
         }
 
         canvas {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            box-shadow: 0 0 40px rgba(239, 68, 68, 0.15);
-            border-radius: 12px;
-            background: rgba(2, 6, 23, 0.8);
-            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
         }
 
-        /* Controls */
+        /* Controls Panel */
         .control-panel {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(2, 6, 23, 0.95);
             border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 10px;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom));
-            z-index: 20;
+            padding: 12px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom));
             width: 100%;
             flex-shrink: 0;
+            z-index: 50;
         }
 
         .glass-input {
-            background: rgba(30, 41, 59, 0.8);
+            background: rgba(30, 41, 59, 0.6);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 8px;
             font-family: monospace;
         }
 
         .btn-opt {
-            background: rgba(30, 41, 59, 0.5);
+            background: rgba(30, 41, 59, 0.4);
             border: 1px solid rgba(255,255,255,0.1);
             color: #94a3b8;
             border-radius: 6px;
@@ -91,15 +90,15 @@
             transition: all 0.2s;
         }
         .btn-opt.active {
-            background: rgba(239, 68, 68, 0.2);
-            border-color: var(--neon-red);
+            background: rgba(234, 179, 8, 0.2);
+            border-color: var(--neon-gold);
             color: white;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
         }
 
         .btn-drop {
-            background: linear-gradient(to bottom, #ef4444, #b91c1c);
-            box-shadow: 0 4px 0 #7f1d1d, 0 0 20px rgba(239, 68, 68, 0.4);
+            background: linear-gradient(180deg, #eab308, #ca8a04);
+            box-shadow: 0 4px 0 #854d0e, 0 0 20px rgba(234, 179, 8, 0.3);
             transition: all 0.1s;
         }
         .btn-drop:active:not(:disabled) { transform: translateY(4px); box-shadow: none; }
@@ -108,7 +107,7 @@
         .toast {
             position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95);
-            border: 1px solid var(--neon-red);
+            border: 1px solid var(--neon-gold);
             color: #fff; padding: 10px 20px; border-radius: 20px;
             font-size: 13px; font-weight: bold; z-index: 100; 
             opacity: 0; transition: opacity 0.3s; pointer-events: none;
@@ -135,9 +134,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(239,68,68,0.3)]">
-            <i class="fa-solid fa-bomb text-red-500 text-xs animate-pulse"></i>
-            <span class="text-xs font-bold text-slate-200">BOOM MODE</span>
+        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+            <i class="fa-solid fa-bolt text-yellow-400 text-xs"></i>
+            <span class="text-xs font-bold text-slate-200">NO-HALF</span>
         </div>
     </div>
 
@@ -183,13 +182,14 @@
             <!-- Drop Button -->
             <button id="btnDrop" onclick="startDropSequence()" class="btn-drop w-full h-12 rounded-xl font-black text-lg text-white uppercase tracking-widest relative overflow-hidden group">
                 <span class="relative z-10 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-bomb"></i> THẢ <span id="btnBallCount">1</span> BÓNG
+                    <i class="fa-solid fa-angles-down"></i> THẢ <span id="btnBallCount">1</span> BÓNG
                 </span>
             </button>
             
+            <!-- Footer Stats -->
             <div class="flex justify-between items-center px-1">
-                <span class="text-[9px] text-slate-500 font-mono">Limit: 530k | Max Win: 1000x</span>
-                <span class="text-[9px] text-slate-500 font-mono">Bóng: <span id="ballsCount" class="text-red-400 font-bold">0</span></span>
+                <span class="text-[9px] text-slate-500 font-mono">Limit: 530k</span>
+                <span class="text-[9px] text-slate-500 font-mono">Bóng: <span id="ballsCount" class="text-yellow-400 font-bold">0</span></span>
             </div>
 
         </div>
@@ -223,26 +223,24 @@
           Composite = Matter.Composite,
           Events = Matter.Events;
 
-    // Board Config (Hard Mode)
-    const GAME_WIDTH = 390; 
-    const GAME_HEIGHT = 600; 
-    const ROWS = 16;  // Tăng số hàng để tăng độ khó (Bell curve hẹp hơn)
+    // Board Config (10 Rows for 11 Buckets)
+    const GAME_WIDTH = 380; 
+    const GAME_HEIGHT = 560; 
+    const ROWS = 10; 
     const PIN_R = 3;  
-    const BALL_R = 4.5; // Bóng nhỏ hơn để lọt khe tốt hơn
-    const SPACING = 22; // Khoảng cách hẹp hơn
+    const BALL_R = 5.5; 
+    const SPACING = 30; // Khoảng cách rộng hơn chút vì ít hàng hơn
     
-    // Multipliers & Colors (17 Buckets for 16 Rows)
-    // Cấu trúc: [Jackpot, Boom, High, Boom, Med, Boom, Safe, Center(Lowest), Safe, Boom, Med, Boom, High, Boom, Jackpot]
-    const MULTIPLIERS = [1000, 0, 100, 0, 25, 0, 5, 0, 0.2, 0, 5, 0, 25, 0, 100, 0, 1000];
+    // Multipliers Logic (No 0.5)
+    // 11 Buckets: 5 | 0 | 2 | 0 | 1 | 1 | 1 | 0 | 2 | 0 | 5
+    // Win or Bust. Center is x1 (Refund)
+    const MULTIPLIERS = [5, 0, 2, 0, 1, 1, 1, 0, 2, 0, 5];
     
-    // Màu sắc
     const COLORS = { 
-        1000: '#ef4444', // Đỏ rực
-        100: '#f97316',  // Cam
-        25: '#eab308',   // Vàng
-        5: '#22c55e',    // Xanh lá
-        0.2: '#0ea5e9',  // Xanh dương
-        0: '#1e293b'     // Xám đen (Boom)
+        5: '#eab308',   // Vàng
+        2: '#22c55e',   // Xanh lá
+        1: '#3b82f6',   // Xanh dương
+        0: '#0f172a'    // Đen (Boom)
     };
 
     let engine, world, runner, canvas, ctx;
@@ -251,13 +249,12 @@
     function initPhysics() {
         engine = Engine.create();
         world = engine.world;
-        engine.gravity.y = 1.6; // Trọng lực mạnh hơn chút để rơi nhanh
+        engine.gravity.y = 1.4; 
 
         const container = document.getElementById('game-container');
         canvas = document.createElement('canvas');
         canvas.width = GAME_WIDTH;
         canvas.height = GAME_HEIGHT;
-        // Auto scale css
         canvas.style.width = 'auto';
         canvas.style.height = 'auto';
         canvas.style.maxWidth = '100%';
@@ -265,7 +262,7 @@
         container.appendChild(canvas);
         ctx = canvas.getContext('2d');
 
-        // 1. PINS (Pyramid)
+        // 1. PINS
         const pins = [];
         const startX = GAME_WIDTH / 2;
         const startY = 80;
@@ -284,17 +281,16 @@
         }
         Composite.add(world, pins);
 
-        // 2. FUNNEL (KHUNG PHỄU TRÊN)
-        // Hai thanh chéo để hứng bóng vào giữa
-        const funnelLeft = Bodies.rectangle(startX - 100, 40, 200, 10, { 
+        // 2. FUNNEL
+        const funnelLeft = Bodies.rectangle(startX - 90, 40, 160, 10, { 
             isStatic: true, angle: Math.PI / 4, render: { visible: true } 
         });
-        const funnelRight = Bodies.rectangle(startX + 100, 40, 200, 10, { 
+        const funnelRight = Bodies.rectangle(startX + 90, 40, 160, 10, { 
             isStatic: true, angle: -Math.PI / 4, render: { visible: true } 
         });
         Composite.add(world, [funnelLeft, funnelRight]);
 
-        // 3. SENSORS / BUCKETS
+        // 3. SENSORS
         const bucketY = startY + (ROWS * SPACING) + 15;
         const sensors = [];
         const totalBuckets = MULTIPLIERS.length;
@@ -310,13 +306,13 @@
         }
         Composite.add(world, sensors);
 
-        // 4. WALLS (Bảo vệ 2 bên)
+        // 4. WALLS
         Composite.add(world, [
-            Bodies.rectangle(-30, GAME_HEIGHT/2, 60, GAME_HEIGHT, { isStatic: true }),
-            Bodies.rectangle(GAME_WIDTH+30, GAME_HEIGHT/2, 60, GAME_HEIGHT, { isStatic: true })
+            Bodies.rectangle(-20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }),
+            Bodies.rectangle(GAME_WIDTH+20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true })
         ]);
 
-        // 5. COLLISION EVENT
+        // 5. EVENTS
         Events.on(engine, 'collisionStart', (event) => {
             event.pairs.forEach(pair => {
                 const { bodyA, bodyB } = pair;
@@ -340,12 +336,12 @@
             ctx.save();
             ctx.translate(funnelLeft.position.x, funnelLeft.position.y);
             ctx.rotate(funnelLeft.angle);
-            ctx.fillRect(-100, -5, 200, 10);
+            ctx.fillRect(-80, -5, 160, 10);
             ctx.restore();
             ctx.save();
             ctx.translate(funnelRight.position.x, funnelRight.position.y);
             ctx.rotate(funnelRight.angle);
-            ctx.fillRect(-100, -5, 200, 10);
+            ctx.fillRect(-80, -5, 160, 10);
             ctx.restore();
 
             // Draw Pins
@@ -361,23 +357,30 @@
                 const mul = MULTIPLIERS[i];
                 
                 // Box
-                ctx.fillStyle = COLORS[mul] || COLORS[0.2];
-                // Nếu là Boom (0) thì làm tối
-                if (mul === 0) ctx.fillStyle = COLORS[0];
+                ctx.fillStyle = COLORS[mul] || '#334155';
+                if(mul === 0) ctx.fillStyle = '#1e293b'; 
 
-                ctx.fillRect(x - (SPACING/2) + 1, y - 10, SPACING - 2, 20);
-                
+                const w = SPACING - 2;
+                const h = 24;
+                ctx.beginPath();
+                ctx.roundRect(x - w/2, y - h/2, w, h, 4);
+                ctx.fill();
+
+                if(mul === 0) {
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
                 // Text
-                ctx.font = 'bold 8px Orbitron';
+                ctx.font = 'bold 11px Rajdhani';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#fff';
                 
                 if (mul === 0) {
-                     // Vẽ icon sọ hoặc X
-                     ctx.fillStyle = '#64748b';
-                     ctx.fillText('X', x, y);
+                     ctx.fillText('💣', x, y + 1);
                 } else {
-                     ctx.fillText(mul, x, y);
+                     ctx.fillText(mul + 'x', x, y + 1);
                 }
             }
 
@@ -386,8 +389,8 @@
                 if (b.label === 'ball') {
                     ctx.beginPath();
                     ctx.arc(b.position.x, b.position.y, BALL_R, 0, Math.PI * 2);
-                    ctx.fillStyle = '#ef4444'; // Red Ball
-                    ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 6;
+                    ctx.fillStyle = '#eab308'; 
+                    ctx.shadowColor = '#eab308'; ctx.shadowBlur = 6;
                     ctx.fill(); ctx.shadowBlur = 0;
                 }
             });
@@ -436,10 +439,10 @@
     async function startDropSequence() {
         if(app.dropping) return;
         const val = parseInt(document.getElementById('betInput').value);
-        if (isNaN(val) || val < app.minBet) return showToast(`Cược tối thiểu ${app.minBet}`);
+        if (isNaN(val) || val < app.minBet) return showToast(`Tối thiểu ${app.minBet}`);
         
         const totalCost = val * app.ballCount;
-        if (totalCost > app.maxTotalBet) return showToast(`Tổng cược quá giới hạn 530k!`);
+        if (totalCost > app.maxTotalBet) return showToast(`Tổng cược quá 530k!`);
         if (app.balance < totalCost) return showToast('Số dư không đủ!');
 
         app.balance -= totalCost;
@@ -458,16 +461,15 @@
                 app.dropping = false;
                 document.getElementById('btnDrop').disabled = false;
             }
-        }, 70); 
+        }, 80); 
     }
 
     function spawnBall(betVal) {
         app.activeBalls++;
         updateUI();
         
-        // Random nhỏ ở đỉnh phễu
-        const noiseX = (Math.random() - 0.5) * 15; 
-        const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, 0, BALL_R, {
+        const noiseX = (Math.random() - 0.5) * 10; 
+        const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, 10, BALL_R, {
             restitution: 0.5, friction: 0.005, density: 0.08, label: 'ball',
             betAmount: betVal,
             collisionFilter: { category: categories.ball, mask: categories.default | categories.pin | categories.sensor }
@@ -483,7 +485,6 @@
         const mul = MULTIPLIERS[idx];
         const win = Math.floor(ball.betAmount * mul);
 
-        // Nếu mul = 0 (Boom) -> Không cộng tiền
         if (mul > 0) {
             app.balance += win;
         }
@@ -492,7 +493,6 @@
         updateUI();
         syncBalanceToSupabase();
 
-        // Visual Float Text
         showFloatingText(win, mul, ball.position.x, ball.position.y);
 
         setTimeout(() => Composite.remove(world, ball), 50);
@@ -500,19 +500,17 @@
 
     function showFloatingText(amount, mul, x, y) {
         const div = document.createElement('div');
-        div.className = 'absolute font-bold text-xs pointer-events-none animate-bounce z-50 text-center';
+        div.className = 'absolute font-bold text-xs pointer-events-none animate-bounce z-50 text-center select-none';
         div.style.left = (x + document.getElementById('game-container').offsetLeft) + 'px';
-        div.style.top = (y + document.getElementById('game-container').offsetTop - 20) + 'px';
+        div.style.top = (y + document.getElementById('game-container').offsetTop - 25) + 'px';
         
-        let html = '';
         if (mul === 0) {
-            div.innerHTML = `<span class="text-slate-500 text-lg">BOOM</span>`;
+            div.innerHTML = `<span class="text-slate-500 text-lg drop-shadow-md">💥</span>`;
         } else {
             let cl = 'text-white';
-            if(mul>=100) cl='text-red-500 text-xl font-black drop-shadow-md';
-            else if(mul>=10) cl='text-yellow-400 text-lg';
+            if(mul>=5) cl='text-yellow-400 text-xl font-black drop-shadow-md';
             else if(mul>=2) cl='text-green-400';
-            else if(mul<1) cl='text-sky-400 opacity-80';
+            else if(mul===1) cl='text-blue-400 text-[10px]';
 
             div.innerHTML = `<span class="${cl}">${mul}x</span>`;
         }
