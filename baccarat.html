@@ -344,24 +344,24 @@
     <!-- Controls -->
     <div class="mid-section">
         <div class="table-limits">
-            <span>P/B: 2K - 250K</span>
-            <span class="hl">TIE: 2K - 25K</span>
+            <span>P/B: 2K - 500k</span>
+            <span class="hl">TIE: 2K - 300K</span>
         </div>
         <div class="bet-table">
             <div class="bet-box" id="zoneP" onclick="game.placeBet('P')">
-                <span class="lbl-t cl-p">PLAYER</span>
+                <span class="lbl-t cl-p">Nhà Con</span>
                 <span class="lbl-o">1 : 1</span>
                 <div class="current-bet" id="betValP">0</div>
                 <div class="chip-on-table" id="pendP">+0</div>
             </div>
             <div class="bet-box tie" id="zoneT" onclick="game.placeBet('T')">
-                <span class="lbl-t cl-t">TIE</span>
+                <span class="lbl-t cl-t">Hoà</span>
                 <span class="lbl-o">1 : 8</span>
                 <div class="current-bet" id="betValT">0</div>
                 <div class="chip-on-table" id="pendT">+0</div>
             </div>
             <div class="bet-box" id="zoneB" onclick="game.placeBet('B')">
-                <span class="lbl-t cl-b">BANKER</span>
+                <span class="lbl-t cl-b">Nhà Cái</span>
                 <span class="lbl-o">0.95</span>
                 <div class="current-bet" id="betValB">0</div>
                 <div class="chip-on-table" id="pendB">+0</div>
@@ -631,18 +631,18 @@
     const app = {
         eng: new BaccaratEngine(),
         state: 'BETTING',
-        timer: 20,
+        timer: 25,
         balance: 0, 
         bet: { P:0, B:0, T:0 },
         pend: { P:0, B:0, T:0 },
         chip: 10000,
-        nextPhaseTime: 0,
+        nextPhaseTime: 3,
         loopId: null,
 
         // TABLE LIMITS
         MIN_BET: 2000,
-        MAX_BET: 250000,
-        MAX_BET_TIE: 25000,
+        MAX_BET: 500000,
+        MAX_BET_TIE: 300000,
 
         async init() {
             // 1. Init Supabase & Load Balance
@@ -896,7 +896,7 @@
         },
         showResult(winner, profit, shuffled) {
             const t = document.getElementById('resTitle'); const m = document.getElementById('resMoney');
-            t.innerText = winner === 'P' ? "PLAYER WIN" : (winner === 'B' ? "BANKER WIN" : "TIE GAME");
+            t.innerText = winner === 'P' ? "Nhà Con Thắng" : (winner === 'B' ? "Nhà Cái Thắng" : "Hoà");
             t.style.color = winner === 'P' ? 'var(--player)' : (winner === 'B' ? 'var(--banker)' : 'var(--tie)');
             m.innerText = (profit > 0 ? "+" : "") + profit.toLocaleString('vi-VN');
             m.style.color = profit > 0 ? 'var(--gold)' : (profit < 0 ? '#aaa' : '#fff');
