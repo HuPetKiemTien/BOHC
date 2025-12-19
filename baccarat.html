@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Baccarat Pro - Realtime Sync</title>
+    <title>Baccarat Pro - Session Recovery</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Noto+Serif:wght@700&display=swap" rel="stylesheet">
     <!-- THÊM SUPABASE LIBRARY -->
@@ -392,16 +392,9 @@
     </div>
 
 <script>
-    /**
-     * BACCARAT ENGINE + ROBUST SUPABASE INTEGRATION
-     */
-    
     // --- 1. SUPABASE CONFIG ---
-    // Sử dụng thông tin bạn đã cung cấp
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
-    
-    // !!! QUAN TRỌNG: Đảm bảo bảng này tồn tại và có RLS policy cho phép SELECT/UPDATE
     const WALLET_TABLE = 'users';              
     const WALLET_BALANCE_COLUMN = 'balance'; 
 
@@ -410,11 +403,8 @@
     let realtimeChannel = null;
 
     // --- SUPABASE HELPER FUNCTIONS ---
-    
-    // --- ĐÂY LÀ HÀM ĐÃ SỬA THEO HƯỚNG DẪN CỦA BẠN (SỬ DỤNG LOCALSTORAGE) ---
     async function initSupabase() {
       try {
-        // 1. LẤY UID DÙNG CHUNG TOÀN HỆ THỐNG
         const uid = localStorage.getItem("my_wallet_uid");
         if (!uid) {
           alert("Vui lòng đăng nhập lại!");
@@ -422,32 +412,25 @@
           return;
         }
 
-        // 2. GIẢ LẬP USER (KHÔNG DÙNG SUPABASE AUTH)
         supaUser = { id: uid };
         document.getElementById('uiStatusDot').classList.add('online');
 
-        // 3. LẤY SỐ DƯ TỪ BẢNG users
         const { data, error } = await supabaseClient
           .from("users")
           .select("balance")
           .eq("id", uid)
           .maybeSingle();
 
-        // 4. CHƯA CÓ USER → TẠO
         if (!data) {
-          await supabaseClient.from("users").insert({
-            id: uid,
-            balance: 0
-          });
+          await supabaseClient.from("users").insert({ id: uid, balance: 0 });
           app.balance = 0;
         } else {
           app.balance = data.balance || 0;
         }
 
-        // 5. UPDATE GIAO DIỆN
         game.updateBal();
         setupRealtimeBalance();
-        app.showToast(`Đã kết nối ví: ${uid}`, 'success');
+        app.showToast(`Đã kết nối ví: ${uid.substring(0,8)}...`, 'success');
 
       } catch (err) {
         console.error(err);
@@ -455,73 +438,32 @@
       }
     }
 
-    // (Hàm này giữ lại để tham khảo, nhưng initSupabase ở trên đã xử lý việc load lần đầu)
     async function loadBalance() {
         if (!supaUser) return;
-        
         const { data, error } = await supabaseClient
-            .from(WALLET_TABLE)
-            .select(WALLET_BALANCE_COLUMN)
-            .eq('id', supaUser.id)
-            .maybeSingle(); 
-
-        if (error) {
-            console.error('Lỗi lấy tiền:', error);
-            app.showToast('Lỗi đọc số dư từ Database!', 'alert');
-        } else if (data) {
-            app.balance = data[WALLET_BALANCE_COLUMN] || 0;
-            game.updateBal();
-        }
+            .from(WALLET_TABLE).select(WALLET_BALANCE_COLUMN).eq('id', supaUser.id).maybeSingle(); 
+        if (data) { app.balance = data[WALLET_BALANCE_COLUMN] || 0; game.updateBal(); }
     }
 
     function setupRealtimeBalance() {
         if (!supaUser) return;
-
-        // Hủy kênh cũ nếu có
         if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-
-        realtimeChannel = supabaseClient
-            .channel('wallet-changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: WALLET_TABLE,
-                    filter: `id=eq.${supaUser.id}`
-                },
+        realtimeChannel = supabaseClient.channel('wallet-changes')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: WALLET_TABLE, filter: `id=eq.${supaUser.id}` },
                 (payload) => {
-                    // Khi Database thay đổi, cập nhật UI ngay lập tức
                     const newBal = payload.new[WALLET_BALANCE_COLUMN];
                     if (newBal !== undefined && newBal !== app.balance) {
-                        console.log('Realtime update:', newBal);
-                        app.balance = newBal;
-                        game.updateBal();
+                        app.balance = newBal; game.updateBal();
                     }
                 }
-            )
-            .subscribe();
+            ).subscribe();
     }
 
     async function syncBalanceToSupabase() {
         if (!supaUser) return;
-        
-        // Sử dụng await để đảm bảo lệnh gửi đi thành công (hoặc bắt lỗi)
         try {
-            const { error } = await supabaseClient
-                .from(WALLET_TABLE)
-                .update({ [WALLET_BALANCE_COLUMN]: app.balance })
-                .eq('id', supaUser.id);
-
-            if (error) {
-                console.error('Sync Error:', error);
-                app.showToast('Lỗi đồng bộ tiền! Kiểm tra mạng/quyền.', 'alert');
-                // Nếu lỗi, nên reload lại số dư thực tế từ DB để tránh lệch
-                await loadBalance(); 
-            }
-        } catch (e) {
-            console.error('Sync Exception:', e);
-        }
+            await supabaseClient.from(WALLET_TABLE).update({ [WALLET_BALANCE_COLUMN]: app.balance }).eq('id', supaUser.id);
+        } catch (e) { console.error('Sync Exception:', e); }
     }
 
     // --- 2. GAME LOGIC ---
@@ -602,13 +544,13 @@
         }
     }
 
-    // --- MAIN CONTROLLER ---
+    // --- MAIN CONTROLLER WITH RECOVERY ---
     const DB_KEY = 'baccarat_pro_data_v3';
+    const BET_KEY = 'baccarat_pending_bet'; // New key for active bet
 
     class Persistence {
         static save(state) {
             const data = {
-                // Not saving balance locally anymore to trust Supabase
                 history: state.engine.history,
                 cards: state.engine.shoe.cards,
                 cutIdx: state.engine.shoe.cutCardIdx,
@@ -626,6 +568,18 @@
                 return { ...data, cards };
             } catch(e) { return null; }
         }
+        
+        // --- NEW RECOVERY METHODS ---
+        static saveBet(bets) {
+            localStorage.setItem(BET_KEY, JSON.stringify(bets));
+        }
+        static loadBet() {
+            const raw = localStorage.getItem(BET_KEY);
+            return raw ? JSON.parse(raw) : null;
+        }
+        static clearBet() {
+            localStorage.removeItem(BET_KEY);
+        }
     }
 
     const app = {
@@ -639,17 +593,14 @@
         nextPhaseTime: 3,
         loopId: null,
 
-        // TABLE LIMITS
-        MIN_BET: 2000,
-        MAX_BET: 500000,
-        MAX_BET_TIE: 300000,
+        MIN_BET: 2000, MAX_BET: 500000, MAX_BET_TIE: 300000,
 
         async init() {
-            // 1. Init Supabase & Load Balance
             await initSupabase();
 
-            // 2. Load Game State (Shoe, Time)
             const saved = Persistence.load();
+            const pendingBet = Persistence.loadBet(); // Check if user had a bet
+
             if (saved) {
                 if (saved.cards && saved.cards.length > 0) {
                     this.eng.shoe.cards = saved.cards;
@@ -661,21 +612,53 @@
                 const now = Date.now();
                 const diff = now - saved.timestamp;
                 const roundsMissed = Math.floor(diff / this.eng.roundTime);
+
+                // --- RECOVERY LOGIC START ---
                 if (roundsMissed > 0) {
-                    // app.showToast(`Đã qua ${roundsMissed} ván khi bạn vắng mặt.`, 'info');
-                    for (let i = 0; i < roundsMissed; i++) this.eng.playRound();
+                    // Played past rounds to catch up
+                    for (let i = 0; i < roundsMissed; i++) {
+                        const res = this.eng.playRound();
+                        
+                        // IF we are in the FIRST missed round AND we had a bet
+                        if (i === 0 && pendingBet) {
+                            let winAmt = 0;
+                            if (res.winner === 'P') winAmt = pendingBet.P * 2;
+                            else if (res.winner === 'B') winAmt = pendingBet.B * 1.95;
+                            else if (res.winner === 'T') winAmt = (pendingBet.T * 9) + pendingBet.P + pendingBet.B;
+                            if (res.winner === 'T' && winAmt === 0) winAmt = pendingBet.P + pendingBet.B; // Tie refund
+
+                            if (winAmt > 0) {
+                                this.balance += winAmt;
+                                syncBalanceToSupabase();
+                                app.showToast(`Bạn đã thắng ${winAmt.toLocaleString()} khi vắng mặt!`, 'success');
+                            } else {
+                                app.showToast(`Kết quả ván trước: ${res.winner === 'P' ? 'Nhà Con' : (res.winner==='B'?'Nhà Cái':'Hoà')}`, 'info');
+                            }
+                            Persistence.clearBet(); // Bet handled
+                        }
+                    }
                     Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: now });
+                } else {
+                    // No full round missed, but maybe we reloaded during same round
+                    if (pendingBet) {
+                        this.bet = pendingBet; // Restore visual bet
+                        game.renderChips(); // Update UI
+                        // Don't clear bet here, let the game resolve naturally
+                    }
                 }
+                // --- RECOVERY LOGIC END ---
+
                 const timeInCycle = diff % this.eng.roundTime;
                 this.nextPhaseTime = now + (this.eng.roundTime - timeInCycle);
             } else {
                 this.eng.shoe.init();
                 this.nextPhaseTime = Date.now() + 20000;
+                Persistence.clearBet(); // Clear old junk if any
             }
+            
             game.renderRoadmap(this.eng.history);
             game.updateShoeCount();
             
-            // Ẩn toast loading ban đầu
             if(document.getElementById('toast').innerText === 'Đang kết nối ví tiền...') {
                  document.getElementById('toast').style.opacity = 0;
             }
@@ -720,12 +703,15 @@
                     game.updateBal(); 
                 }
 
-                // CẬP NHẬT TIỀN THẮNG LÊN SUPABASE
                 syncBalanceToSupabase();
                 
                 game.showResult(res.winner, profit, res.shuffled);
                 game.renderRoadmap(this.eng.history);
                 this.bet = {P:0,B:0,T:0}; 
+                
+                // --- CLEAR PENDING BET AFTER RESOLUTION ---
+                Persistence.clearBet();
+                
                 Persistence.save({ balance: this.balance, engine: this.eng, phaseStartTime: this.nextPhaseTime });
             });
         },
@@ -747,34 +733,13 @@
         },
         placeBet(side) {
             if (app.state !== 'BETTING') return;
-            
-            // 1. One Side Rule
-            if (side === 'P') {
-                if (app.bet.B > 0 || app.pend.B > 0) {
-                    app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!");
-                    return;
-                }
-            } else if (side === 'B') {
-                if (app.bet.P > 0 || app.pend.P > 0) {
-                    app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!");
-                    return;
-                }
-            }
+            if (side === 'P' && (app.bet.B > 0 || app.pend.B > 0)) { app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!"); return; }
+            else if (side === 'B' && (app.bet.P > 0 || app.pend.P > 0)) { app.showToast("Chỉ được cược 1 bên (Con hoặc Cái)!"); return; }
 
-            // 2. Max Limit Check
             const currentTotal = app.bet[side] + app.pend[side];
             const limit = (side === 'T') ? app.MAX_BET_TIE : app.MAX_BET;
-
-            if (currentTotal + app.chip > limit) {
-                app.showToast(`Cược tối đa cửa này là ${limit/1000}K!`);
-                return;
-            }
-
-            // 3. Balance Check
-            if (app.balance < app.pend.P + app.pend.B + app.pend.T + app.chip) {
-                app.showToast("Số dư không đủ!");
-                return;
-            }
+            if (currentTotal + app.chip > limit) { app.showToast(`Cược tối đa cửa này là ${limit/1000}K!`); return; }
+            if (app.balance < app.pend.P + app.pend.B + app.pend.T + app.chip) { app.showToast("Số dư không đủ!"); return; }
             
             app.pend[side] += app.chip;
             this.renderChips();
@@ -789,20 +754,15 @@
             const totalPend = app.pend.P + app.pend.B + app.pend.T;
             if (totalPend === 0) return;
 
-            // Min Limit Check
             const checkLimit = (side, name) => {
                 const amt = app.bet[side] + app.pend[side];
-                if (amt > 0 && amt < app.MIN_BET) {
-                    app.showToast(`Cược ${name} tối thiểu ${app.MIN_BET/1000}K!`);
-                    return false;
-                }
+                if (amt > 0 && amt < app.MIN_BET) { app.showToast(`Cược ${name} tối thiểu ${app.MIN_BET/1000}K!`); return false; }
                 return true;
             };
 
             if (!checkLimit('P', 'Nhà Con')) return;
             if (!checkLimit('B', 'Nhà Cái')) return;
             if (!checkLimit('T', 'Hoà')) return;
-
             if (app.balance < totalPend) return;
 
             app.balance -= totalPend;
@@ -814,49 +774,28 @@
             this.updateBal();
             this.renderChips();
             
-            // TRỪ TIỀN CƯỢC TRÊN SUPABASE
             await syncBalanceToSupabase();
+            
+            // --- SAVE BET TO STORAGE FOR RECOVERY ---
+            Persistence.saveBet(app.bet);
         },
         renderChips() {
             ['P','B','T'].forEach(k => {
                 const pendEl = document.getElementById('pend'+k);
                 const betEl = document.getElementById('betVal'+k);
-                
-                if (app.pend[k] > 0) {
-                    pendEl.innerText = "+" + (app.pend[k]/1000) + "k";
-                    pendEl.classList.add('show');
-                } else { pendEl.classList.remove('show'); }
-
-                if (app.bet[k] > 0) {
-                    betEl.innerText = (app.bet[k]/1000) + "k";
-                    betEl.classList.add('active');
-                } else { betEl.classList.remove('active'); }
-
+                if (app.pend[k] > 0) { pendEl.innerText = "+" + (app.pend[k]/1000) + "k"; pendEl.classList.add('show'); } else { pendEl.classList.remove('show'); }
+                if (app.bet[k] > 0) { betEl.innerText = (app.bet[k]/1000) + "k"; betEl.classList.add('active'); } else { betEl.classList.remove('active'); }
                 if (k === 'P' || k === 'B') {
                     let other = k === 'P' ? 'B' : 'P';
                     let totalBetOnThis = app.bet[k] + app.pend[k];
-                    
-                    if (totalBetOnThis > 0) {
-                        document.getElementById('zone'+other).classList.add('disabled');
-                    } else {
-                        if (app.bet[other] + app.pend[other] === 0) {
-                            document.getElementById('zone'+other).classList.remove('disabled');
-                        }
-                    }
+                    if (totalBetOnThis > 0) { document.getElementById('zone'+other).classList.add('disabled'); } else { if (app.bet[other] + app.pend[other] === 0) { document.getElementById('zone'+other).classList.remove('disabled'); } }
                 }
             });
-            
             const allZero = (app.bet.P+app.pend.P === 0) && (app.bet.B+app.pend.B === 0);
-            if(allZero) {
-                document.getElementById('zoneP').classList.remove('disabled');
-                document.getElementById('zoneB').classList.remove('disabled');
-            }
-
+            if(allZero) { document.getElementById('zoneP').classList.remove('disabled'); document.getElementById('zoneB').classList.remove('disabled'); }
             document.getElementById('btnConfirm').disabled = (app.pend.P + app.pend.B + app.pend.T === 0);
         },
-        updateBal() { 
-            document.getElementById('uiBal').innerText = app.balance.toLocaleString('vi-VN'); 
-        },
+        updateBal() { document.getElementById('uiBal').innerText = app.balance.toLocaleString('vi-VN'); },
         updateTimer(val, wait) {
             const el = document.getElementById('uiTimer'); el.innerText = val;
             if(wait) { el.classList.add('wait'); el.classList.remove('alert'); } 
