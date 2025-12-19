@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Pachinko (Visible Board)</title>
+    <title>Neon Pachinko (Boom Edition)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,15 +20,15 @@
             --neon-pink: #d946ef;
             --neon-gold: #eab308;
             --neon-red: #ef4444;
+            --neon-gray: #475569;
         }
 
         body {
             background-color: var(--bg-dark);
-            /* Grid Background */
             background-image: 
-                linear-gradient(rgba(14, 165, 233, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(14, 165, 233, 0.05) 1px, transparent 1px);
-            background-size: 20px 20px;
+                linear-gradient(rgba(239, 68, 68, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(239, 68, 68, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
             font-family: 'Rajdhani', sans-serif;
             height: 100dvh;
             overflow: hidden;
@@ -39,7 +39,7 @@
             user-select: none;
         }
 
-        /* Canvas Wrapper - Quan trọng: Flex center và hidden overflow */
+        /* Canvas Wrapper */
         #game-container {
             flex: 1;
             position: relative;
@@ -48,18 +48,17 @@
             overflow: hidden;
             display: flex;
             justify-content: center;
-            align-items: center; /* Căn giữa dọc */
-            padding: 10px;
+            align-items: center;
+            padding: 5px;
         }
 
-        /* Canvas tự co giãn để không bị mất hình */
         canvas {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            box-shadow: 0 0 30px rgba(14, 165, 233, 0.1);
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.15);
             border-radius: 12px;
-            background: rgba(2, 6, 23, 0.5); /* Nền tối cho canvas */
+            background: rgba(2, 6, 23, 0.8);
             border: 1px solid rgba(255,255,255,0.1);
         }
 
@@ -68,8 +67,8 @@
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(10px);
             border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 12px;
-            padding-bottom: calc(12px + env(safe-area-inset-bottom));
+            padding: 10px;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
             z-index: 20;
             width: 100%;
             flex-shrink: 0;
@@ -92,15 +91,15 @@
             transition: all 0.2s;
         }
         .btn-opt.active {
-            background: rgba(14, 165, 233, 0.2);
-            border-color: var(--neon-blue);
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--neon-red);
             color: white;
-            box-shadow: 0 0 10px rgba(14, 165, 233, 0.2);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
         }
 
         .btn-drop {
-            background: linear-gradient(to bottom, #d946ef, #c026d3);
-            box-shadow: 0 4px 0 #86198f, 0 0 15px rgba(217, 70, 239, 0.4);
+            background: linear-gradient(to bottom, #ef4444, #b91c1c);
+            box-shadow: 0 4px 0 #7f1d1d, 0 0 20px rgba(239, 68, 68, 0.4);
             transition: all 0.1s;
         }
         .btn-drop:active:not(:disabled) { transform: translateY(4px); box-shadow: none; }
@@ -109,7 +108,7 @@
         .toast {
             position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
             background: rgba(15, 23, 42, 0.95);
-            border: 1px solid var(--neon-blue);
+            border: 1px solid var(--neon-red);
             color: #fff; padding: 10px 20px; border-radius: 20px;
             font-size: 13px; font-weight: bold; z-index: 100; 
             opacity: 0; transition: opacity 0.3s; pointer-events: none;
@@ -136,9 +135,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(217,70,239,0.2)]">
-            <i class="fa-solid fa-table-cells text-fuchsia-400 text-xs"></i>
-            <span class="text-xs font-bold text-slate-200">PLINKO</span>
+        <div class="bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700 flex items-center gap-2 shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+            <i class="fa-solid fa-bomb text-red-500 text-xs animate-pulse"></i>
+            <span class="text-xs font-bold text-slate-200">BOOM MODE</span>
         </div>
     </div>
 
@@ -153,7 +152,6 @@
             
             <!-- Row 1: Bet & Balls -->
             <div class="grid grid-cols-2 gap-3">
-                <!-- Bet Amount -->
                 <div class="flex flex-col gap-1">
                     <span class="text-[9px] text-slate-400 font-bold uppercase">Cược / Bóng</span>
                     <div class="glass-input flex items-center px-2 h-9 relative">
@@ -162,7 +160,6 @@
                             class="w-full bg-transparent text-white font-bold text-sm focus:outline-none">
                     </div>
                 </div>
-                <!-- Ball Count -->
                 <div class="flex flex-col gap-1">
                     <span class="text-[9px] text-slate-400 font-bold uppercase">Số lượng</span>
                     <div class="flex gap-1 h-9">
@@ -186,14 +183,13 @@
             <!-- Drop Button -->
             <button id="btnDrop" onclick="startDropSequence()" class="btn-drop w-full h-12 rounded-xl font-black text-lg text-white uppercase tracking-widest relative overflow-hidden group">
                 <span class="relative z-10 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-arrow-down"></i> THẢ <span id="btnBallCount">1</span> BÓNG
+                    <i class="fa-solid fa-bomb"></i> THẢ <span id="btnBallCount">1</span> BÓNG
                 </span>
             </button>
             
-            <!-- Footer Stats -->
             <div class="flex justify-between items-center px-1">
-                <span class="text-[9px] text-slate-500 font-mono">Limit: 530k</span>
-                <span class="text-[9px] text-slate-500 font-mono">Bóng: <span id="ballsCount" class="text-fuchsia-400 font-bold">0</span></span>
+                <span class="text-[9px] text-slate-500 font-mono">Limit: 530k | Max Win: 1000x</span>
+                <span class="text-[9px] text-slate-500 font-mono">Bóng: <span id="ballsCount" class="text-red-400 font-bold">0</span></span>
             </div>
 
         </div>
@@ -219,7 +215,7 @@
         dropping: false
     };
 
-    // --- 3. PHYSICS ENGINE (MATTER.JS) ---
+    // --- 3. PHYSICS SETUP ---
     const Engine = Matter.Engine,
           Render = Matter.Render,
           Runner = Matter.Runner,
@@ -227,16 +223,27 @@
           Composite = Matter.Composite,
           Events = Matter.Events;
 
-    const GAME_WIDTH = 380;
-    const GAME_HEIGHT = 560; // Chiều cao cố định của thế giới vật lý
-    const ROWS = 13; 
-    const PIN_R = 3; 
-    const BALL_R = 5.5; 
-    const SPACING = 26; 
-
-    // Multipliers (Risk Level)
-    const MULTIPLIERS = [100, 20, 8, 4, 2, 0.5, 0.2, 0.2, 0.5, 2, 4, 8, 20, 100];
-    const COLORS = { 100: '#ef4444', 20: '#f97316', 8: '#eab308', 4: '#84cc16', 2: '#22c55e', 0.5: '#0ea5e9', 0.2: '#64748b' };
+    // Board Config (Hard Mode)
+    const GAME_WIDTH = 390; 
+    const GAME_HEIGHT = 600; 
+    const ROWS = 16;  // Tăng số hàng để tăng độ khó (Bell curve hẹp hơn)
+    const PIN_R = 3;  
+    const BALL_R = 4.5; // Bóng nhỏ hơn để lọt khe tốt hơn
+    const SPACING = 22; // Khoảng cách hẹp hơn
+    
+    // Multipliers & Colors (17 Buckets for 16 Rows)
+    // Cấu trúc: [Jackpot, Boom, High, Boom, Med, Boom, Safe, Center(Lowest), Safe, Boom, Med, Boom, High, Boom, Jackpot]
+    const MULTIPLIERS = [1000, 0, 100, 0, 25, 0, 5, 0, 0.2, 0, 5, 0, 25, 0, 100, 0, 1000];
+    
+    // Màu sắc
+    const COLORS = { 
+        1000: '#ef4444', // Đỏ rực
+        100: '#f97316',  // Cam
+        25: '#eab308',   // Vàng
+        5: '#22c55e',    // Xanh lá
+        0.2: '#0ea5e9',  // Xanh dương
+        0: '#1e293b'     // Xám đen (Boom)
+    };
 
     let engine, world, runner, canvas, ctx;
     const categories = { default: 0x0001, ball: 0x0002, sensor: 0x0004, pin: 0x0008 };
@@ -244,14 +251,13 @@
     function initPhysics() {
         engine = Engine.create();
         world = engine.world;
-        engine.gravity.y = 1.3; 
+        engine.gravity.y = 1.6; // Trọng lực mạnh hơn chút để rơi nhanh
 
-        // Canvas Creation
         const container = document.getElementById('game-container');
         canvas = document.createElement('canvas');
         canvas.width = GAME_WIDTH;
         canvas.height = GAME_HEIGHT;
-        // Style cho canvas để nó co giãn
+        // Auto scale css
         canvas.style.width = 'auto';
         canvas.style.height = 'auto';
         canvas.style.maxWidth = '100%';
@@ -262,14 +268,14 @@
         // 1. PINS (Pyramid)
         const pins = [];
         const startX = GAME_WIDTH / 2;
-        const startY = 60; // Dịch lên chút
+        const startY = 80;
 
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col <= row + 2; col++) { 
                 const x = startX - ((row + 2) * SPACING / 2) + (col * SPACING);
                 const y = startY + (row * SPACING);
                 const pin = Bodies.circle(x, y, PIN_R, {
-                    isStatic: true, friction: 0, restitution: 0.6,
+                    isStatic: true, friction: 0, restitution: 0.5,
                     label: 'pin',
                     collisionFilter: { category: categories.pin }
                 });
@@ -278,7 +284,17 @@
         }
         Composite.add(world, pins);
 
-        // 2. SENSORS / BUCKETS
+        // 2. FUNNEL (KHUNG PHỄU TRÊN)
+        // Hai thanh chéo để hứng bóng vào giữa
+        const funnelLeft = Bodies.rectangle(startX - 100, 40, 200, 10, { 
+            isStatic: true, angle: Math.PI / 4, render: { visible: true } 
+        });
+        const funnelRight = Bodies.rectangle(startX + 100, 40, 200, 10, { 
+            isStatic: true, angle: -Math.PI / 4, render: { visible: true } 
+        });
+        Composite.add(world, [funnelLeft, funnelRight]);
+
+        // 3. SENSORS / BUCKETS
         const bucketY = startY + (ROWS * SPACING) + 15;
         const sensors = [];
         const totalBuckets = MULTIPLIERS.length;
@@ -294,25 +310,20 @@
         }
         Composite.add(world, sensors);
 
-        // 3. WALLS (Ẩn)
+        // 4. WALLS (Bảo vệ 2 bên)
         Composite.add(world, [
-            Bodies.rectangle(-20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true }),
-            Bodies.rectangle(GAME_WIDTH+20, GAME_HEIGHT/2, 40, GAME_HEIGHT, { isStatic: true })
+            Bodies.rectangle(-30, GAME_HEIGHT/2, 60, GAME_HEIGHT, { isStatic: true }),
+            Bodies.rectangle(GAME_WIDTH+30, GAME_HEIGHT/2, 60, GAME_HEIGHT, { isStatic: true })
         ]);
 
-        // 4. COLLISION
+        // 5. COLLISION EVENT
         Events.on(engine, 'collisionStart', (event) => {
             event.pairs.forEach(pair => {
                 const { bodyA, bodyB } = pair;
-                // Ball hit bucket
                 if (bodyA.label.includes('bucket') || bodyB.label.includes('bucket')) {
                     const bucket = bodyA.label.includes('bucket') ? bodyA : bodyB;
                     const ball = bodyA.label.includes('bucket') ? bodyB : bodyA;
                     if(ball.label === 'ball') handleWin(bucket.label, ball);
-                }
-                // Ball hit pin (visual effect only)
-                if ((bodyA.label === 'ball' && bodyB.label === 'pin') || (bodyB.label === 'ball' && bodyA.label === 'pin')) {
-                   // Có thể thêm hiệu ứng lóe sáng ở đây nếu cần
                 }
             });
         });
@@ -320,54 +331,54 @@
         runner = Runner.create();
         Runner.run(runner, engine);
 
-        // 5. RENDER LOOP CUSTOM
+        // 6. RENDER LOOP
         (function render() {
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
             
-            // Draw Background Elements (Grid/Lines) for Board Visibility
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-            ctx.lineWidth = 1;
-            // Draw visual pyramid lines
-            ctx.beginPath();
-            ctx.moveTo(startX, startY - 20);
-            ctx.lineTo(startX - ((ROWS + 2) * SPACING / 2), bucketY);
-            ctx.lineTo(startX + ((ROWS + 2) * SPACING / 2), bucketY);
-            ctx.closePath();
-            ctx.stroke();
+            // Draw Funnel
+            ctx.fillStyle = '#334155';
+            ctx.save();
+            ctx.translate(funnelLeft.position.x, funnelLeft.position.y);
+            ctx.rotate(funnelLeft.angle);
+            ctx.fillRect(-100, -5, 200, 10);
+            ctx.restore();
+            ctx.save();
+            ctx.translate(funnelRight.position.x, funnelRight.position.y);
+            ctx.rotate(funnelRight.angle);
+            ctx.fillRect(-100, -5, 200, 10);
+            ctx.restore();
 
-            // Draw Pins (White/Bright)
-            ctx.fillStyle = '#fff'; 
-            ctx.shadowColor = 'rgba(255,255,255,0.5)';
-            ctx.shadowBlur = 4;
+            // Draw Pins
+            ctx.fillStyle = '#cbd5e1'; 
             pins.forEach(p => {
-                ctx.beginPath(); 
-                ctx.arc(p.position.x, p.position.y, PIN_R, 0, Math.PI * 2); 
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(p.position.x, p.position.y, PIN_R, 0, Math.PI * 2); ctx.fill();
             });
-            ctx.shadowBlur = 0; // Reset shadow
 
             // Draw Buckets
             for(let i = 0; i < totalBuckets; i++) {
                 const x = startX - ((totalBuckets - 1) * SPACING / 2) + (i * SPACING);
-                const y = bucketY + 30;
+                const y = bucketY + 25;
                 const mul = MULTIPLIERS[i];
                 
                 // Box
-                ctx.fillStyle = COLORS[mul];
-                ctx.globalAlpha = 0.2; // Transparent bg
-                ctx.fillRect(x - 11, y - 12, 22, 24);
-                ctx.globalAlpha = 1.0;
-                
-                // Border
-                ctx.strokeStyle = COLORS[mul];
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x - 11, y - 12, 22, 24);
+                ctx.fillStyle = COLORS[mul] || COLORS[0.2];
+                // Nếu là Boom (0) thì làm tối
+                if (mul === 0) ctx.fillStyle = COLORS[0];
+
+                ctx.fillRect(x - (SPACING/2) + 1, y - 10, SPACING - 2, 20);
                 
                 // Text
-                ctx.font = 'bold 9px Orbitron';
+                ctx.font = 'bold 8px Orbitron';
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#fff';
-                ctx.fillText(mul + 'x', x, y);
+                
+                if (mul === 0) {
+                     // Vẽ icon sọ hoặc X
+                     ctx.fillStyle = '#64748b';
+                     ctx.fillText('X', x, y);
+                } else {
+                     ctx.fillText(mul, x, y);
+                }
             }
 
             // Draw Balls
@@ -375,8 +386,8 @@
                 if (b.label === 'ball') {
                     ctx.beginPath();
                     ctx.arc(b.position.x, b.position.y, BALL_R, 0, Math.PI * 2);
-                    ctx.fillStyle = '#d946ef';
-                    ctx.shadowColor = '#d946ef'; ctx.shadowBlur = 8;
+                    ctx.fillStyle = '#ef4444'; // Red Ball
+                    ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 6;
                     ctx.fill(); ctx.shadowBlur = 0;
                 }
             });
@@ -385,7 +396,8 @@
         })();
     }
 
-    // --- 4. LOGIC ---
+    // --- 4. GAME LOGIC ---
+
     function setBallCount(n) {
         if(app.dropping) return;
         app.ballCount = n;
@@ -446,16 +458,17 @@
                 app.dropping = false;
                 document.getElementById('btnDrop').disabled = false;
             }
-        }, 80); // Tốc độ bắn bóng
+        }, 70); 
     }
 
     function spawnBall(betVal) {
         app.activeBalls++;
         updateUI();
-        // Random vị trí thả nhẹ (-10 đến +10 px)
-        const noiseX = (Math.random() - 0.5) * 10;
-        const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, 10, BALL_R, {
-            restitution: 0.5, friction: 0.002, density: 0.04, label: 'ball',
+        
+        // Random nhỏ ở đỉnh phễu
+        const noiseX = (Math.random() - 0.5) * 15; 
+        const ball = Bodies.circle(GAME_WIDTH / 2 + noiseX, 0, BALL_R, {
+            restitution: 0.5, friction: 0.005, density: 0.08, label: 'ball',
             betAmount: betVal,
             collisionFilter: { category: categories.ball, mask: categories.default | categories.pin | categories.sensor }
         });
@@ -470,27 +483,42 @@
         const mul = MULTIPLIERS[idx];
         const win = Math.floor(ball.betAmount * mul);
 
-        app.balance += win;
+        // Nếu mul = 0 (Boom) -> Không cộng tiền
+        if (mul > 0) {
+            app.balance += win;
+        }
+        
         app.activeBalls--;
         updateUI();
         syncBalanceToSupabase();
 
-        // Visual Text
-        if (mul >= 1) {
-            const div = document.createElement('div');
-            div.className = 'absolute font-bold text-xs pointer-events-none animate-bounce z-50';
-            div.style.left = (ball.position.x + document.getElementById('game-container').offsetLeft) + 'px';
-            div.style.top = (ball.position.y + document.getElementById('game-container').offsetTop - 20) + 'px';
-            
-            let cl = 'text-white';
-            if(mul>=10) cl='text-yellow-400 text-lg shadow-black drop-shadow-md';
-            else if(mul>=2) cl='text-green-400';
-            div.innerHTML = `<span class="${cl}">${mul}x</span>`;
-            document.body.appendChild(div);
-            setTimeout(()=>div.remove(), 1000);
-        }
+        // Visual Float Text
+        showFloatingText(win, mul, ball.position.x, ball.position.y);
 
         setTimeout(() => Composite.remove(world, ball), 50);
+    }
+
+    function showFloatingText(amount, mul, x, y) {
+        const div = document.createElement('div');
+        div.className = 'absolute font-bold text-xs pointer-events-none animate-bounce z-50 text-center';
+        div.style.left = (x + document.getElementById('game-container').offsetLeft) + 'px';
+        div.style.top = (y + document.getElementById('game-container').offsetTop - 20) + 'px';
+        
+        let html = '';
+        if (mul === 0) {
+            div.innerHTML = `<span class="text-slate-500 text-lg">BOOM</span>`;
+        } else {
+            let cl = 'text-white';
+            if(mul>=100) cl='text-red-500 text-xl font-black drop-shadow-md';
+            else if(mul>=10) cl='text-yellow-400 text-lg';
+            else if(mul>=2) cl='text-green-400';
+            else if(mul<1) cl='text-sky-400 opacity-80';
+
+            div.innerHTML = `<span class="${cl}">${mul}x</span>`;
+        }
+        
+        document.body.appendChild(div);
+        setTimeout(()=>div.remove(), 800);
     }
 
     function updateUI() {
