@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Click Multiplier (Fixed)</title>
+    <title>Neon Click Multiplier</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -38,19 +38,19 @@
         /* --- REACTOR (Nút Bơm) --- */
         .reactor-container {
             position: relative;
-            width: 240px;
-            height: 240px;
+            width: 260px;
+            height: 260px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: transform 0.1s;
+            transition: transform 0.05s;
             -webkit-tap-highlight-color: transparent;
             margin: 0 auto;
             z-index: 10;
         }
         
-        .reactor-container:active { transform: scale(0.96); }
+        .reactor-container:active { transform: scale(0.95); }
 
         .reactor-ring {
             position: absolute;
@@ -101,17 +101,19 @@
             font-weight: 900;
             line-height: 1;
             text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            font-variant-numeric: tabular-nums; /* Giữ số không bị nhảy */
         }
 
         /* Info Box dưới Reactor */
         .info-display-box {
-            margin-top: 20px;
+            margin-top: 24px;
             text-align: center;
-            height: 60px; /* Cố định chiều cao để không bị nhảy layout */
+            height: 80px; 
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            width: 100%;
         }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -224,15 +226,15 @@
             </div>
         </div>
 
-        <!-- KHU VỰC HIỂN THỊ TIỀN NHẬN (Nằm dưới vòng tròn) -->
+        <!-- KHU VỰC HIỂN THỊ TIỀN NHẬN -->
         <div class="info-display-box">
-            <div id="winDisplayContainer" class="opacity-0 transition-opacity duration-200">
-                <div class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1">Tiền nhận dự kiến</div>
-                <div id="winAmount" class="text-3xl font-mono font-bold text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">
+            <div id="winDisplayContainer" class="opacity-0 transition-opacity duration-200 flex flex-col items-center">
+                <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Tiền nhận về</div>
+                <div id="winAmount" class="text-4xl font-mono font-bold text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.4)]">
                     0
                 </div>
             </div>
-            <div id="tutorialText" class="text-slate-500 text-xs font-bold tracking-[0.2em] animate-pulse">
+            <div id="tutorialText" class="text-slate-500 text-xs font-bold tracking-[0.2em] animate-pulse absolute">
                 ĐẶT CƯỢC ĐỂ BẮT ĐẦU
             </div>
         </div>
@@ -290,7 +292,7 @@
     let app = {
         balance: 0,
         bet: 0,
-        currentMulti: 1.00, // Bắt đầu từ 1.00x
+        currentMulti: 1.00,
         playing: false,
         crashPoint: 0,
         MIN_BET: 2300,
@@ -374,7 +376,7 @@
         } catch (e) { console.error('Sync error', e); }
     }
 
-    // --- 4. GAME LOGIC (FIXED MATH) ---
+    // --- 4. GAME LOGIC (UPDATED STEPS) ---
 
     function handleAction() {
         if (!app.playing) {
@@ -412,7 +414,7 @@
         el.reactor.className = "reactor-container state-playing";
         
         el.btn.className = "btn-action btn-cashout group";
-        el.btnMain.innerText = "RÚT TIỀN";
+        el.btnMain.innerText = "NHẬN TIỀN";
         el.btnSub.innerText = "Dừng lại & Bảo toàn vốn";
         
         // Cập nhật hiển thị tiền (Dưới vòng tròn)
@@ -438,23 +440,29 @@
         }
     }
 
-    // LOGIC CLICK BƠM (FIXED)
+    // LOGIC CLICK BƠM (NEW TIER SYSTEM)
     function clickPump() {
         if (!app.playing) {
-            // Rung lắc nhẹ khi chưa chơi
             el.reactor.classList.add("translate-x-1");
             setTimeout(() => el.reactor.classList.remove("translate-x-1"), 200);
             return;
         }
 
-        // Tăng Multiplier thêm 0.01x - 0.05x mỗi lần click (tùy chỉnh cho cảm giác game)
-        // Ở đây để 0.02x cho mỗi cú click để cảm giác nhanh hơn
-        app.currentMulti += 0.02; 
+        // --- LOGIC TĂNG HỆ SỐ ---
+        let increment = 0.01;
+
+        if (app.currentMulti >= 10.0) {
+            increment = 0.50; // Tăng cực nhanh nếu đã đạt 10x
+        } else if (app.currentMulti >= 2.0) {
+            increment = 0.10; // Tăng nhanh nếu đạt 2x
+        } else {
+            increment = 0.01; // Tăng chậm ban đầu
+        }
+
+        app.currentMulti += increment;
         
-        // CẬP NHẬT HIỂN THỊ NGAY LẬP TỨC
-        // Tính tiền nhận = Cược * Hệ số
-        const potentialWin = Math.floor(app.bet * app.currentMulti);
-        el.winAmount.innerText = potentialWin.toLocaleString();
+        // Làm tròn số thập phân để tránh lỗi floating point (ví dụ 1.00999999)
+        app.currentMulti = Math.round(app.currentMulti * 100) / 100;
 
         // KIỂM TRA NỔ
         if (app.currentMulti > app.crashPoint) {
@@ -462,25 +470,27 @@
             return;
         }
 
-        // Feedback màu sắc
-        if (app.currentMulti > 1.5) {
+        // TÍNH TOÁN HIỂN THỊ
+        const potentialWin = Math.floor(app.bet * app.currentMulti);
+        el.winAmount.innerText = potentialWin.toLocaleString();
+
+        // FEEDBACK MÀU SẮC
+        if (app.currentMulti >= 2.0) {
              el.multi.style.color = "#22c55e"; // Green
              el.status.innerText = "LÃI NGON";
-             el.winAmount.classList.add("text-green-400");
-             el.winAmount.classList.remove("text-yellow-400");
+             el.winAmount.className = "text-4xl font-mono font-bold text-green-400 drop-shadow-[0_0_15px_rgba(34,197,94,0.4)]";
         }
-        if (app.currentMulti > 3.0) {
+        if (app.currentMulti >= 5.0) {
              el.multi.style.color = "#eab308"; // Gold
-             el.status.innerText = "RỦI RO CAO";
-             el.status.className = "text-[10px] font-bold tracking-[0.3em] text-yellow-500 mb-2";
-             el.winAmount.classList.add("text-yellow-400");
-             el.winAmount.classList.remove("text-green-400");
+             el.status.innerText = "SIÊU PHẨM";
+             el.status.className = "text-[10px] font-bold tracking-[0.3em] text-yellow-500 mb-2 animate-bounce";
+             el.winAmount.className = "text-4xl font-mono font-bold text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.4)]";
         }
 
-        // Animation Core
+        // Animation click
         const core = el.reactor.querySelector('.reactor-core');
         core.style.transform = "scale(0.97)";
-        setTimeout(() => core.style.transform = "scale(1)", 80);
+        setTimeout(() => core.style.transform = "scale(1)", 50);
 
         updateDisplay();
     }
@@ -503,8 +513,7 @@
         
         // Ẩn tiền thắng dự kiến
         el.winContainer.style.opacity = '0.3';
-        el.winAmount.classList.remove("text-green-400", "text-yellow-400");
-        el.winAmount.classList.add("text-slate-500");
+        el.winAmount.className = "text-4xl font-mono font-bold text-slate-500";
 
         if(navigator.vibrate) navigator.vibrate(200);
 
@@ -533,10 +542,10 @@
         el.status.innerText = "THẮNG LỚN";
         el.hint.style.opacity = "0";
         
-        // Hiệu ứng tiền bay vào túi (Tượng trưng)
+        // Hiệu ứng tiền
         el.winAmount.innerText = "+" + winMoney.toLocaleString();
-        el.winAmount.classList.add("scale-125");
-        setTimeout(() => el.winAmount.classList.remove("scale-125"), 200);
+        el.winAmount.classList.add("scale-110");
+        setTimeout(() => el.winAmount.classList.remove("scale-110"), 200);
 
         // Button State
         el.btn.className = "btn-action btn-disabled opacity-80";
@@ -560,11 +569,10 @@
         el.status.innerText = "LOCKED";
         el.status.className = "text-[10px] font-bold tracking-[0.3em] text-slate-500 mb-2";
         
-        // Hiển thị lại Tutorial, Ẩn Win box
+        // Reset Info Area
         el.tutorial.style.display = 'block';
         el.winContainer.style.opacity = '0';
-        el.winAmount.classList.remove("text-slate-500");
-        el.winAmount.classList.add("text-yellow-400");
+        el.winAmount.className = "text-4xl font-mono font-bold text-yellow-400 drop-shadow-[0_0_15px_rgba(234,179,8,0.4)]";
 
         el.btn.className = "btn-action btn-start group";
         el.btn.disabled = false;
