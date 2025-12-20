@@ -504,7 +504,7 @@
                         const { data: currentUserInfo } = await db.from("users").select("ref_by").eq("id", currentUser).single();
                         if (currentUserInfo && currentUserInfo.ref_by) {
                             const referrerId = currentUserInfo.ref_by;
-                            const commission = depositAmount * 0.1;
+                            const commission = depositAmount * 0.04;
                             const { data: referrer } = await db.from("users").select("commission_balance").eq("id", referrerId).single();
                             if (referrer) {
                                 const currentComm = referrer.commission_balance || 0;
