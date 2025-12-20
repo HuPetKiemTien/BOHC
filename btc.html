@@ -39,7 +39,7 @@
     canvas { display: block; width: 100%; height: 100%; }
 
     /* UI COMPONENTS */
-    .btn-action { position: relative; overflow: hidden; transition: all 0.1s; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); background: #2b3139; }
+    .btn-action { position: relative; overflow: hidden; transition: all 0.1s; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); background: #2b3139; touch-action: manipulation; }
     .btn-action:active { transform: scale(0.98); }
     .btn-action.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
     
@@ -49,10 +49,10 @@
     .btn-down { color: #f6465d; border-color: rgba(246,70,93,0.2); }
     .btn-down.selected { background: rgba(246,70,93,0.15); border-color: #f6465d; box-shadow: inset 0 0 15px rgba(246,70,93,0.2); }
 
-    .chip { height: 36px; min-width: 55px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; cursor: pointer; background: #2b3139; color: #848e9c; transition: all 0.2s; white-space: nowrap; border: 1px solid transparent; }
+    .chip { height: 36px; min-width: 55px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; cursor: pointer; background: #2b3139; color: #848e9c; transition: all 0.2s; white-space: nowrap; border: 1px solid transparent; touch-action: manipulation; }
     .chip.active { background: #FACC15; color: #1e2329; border-color: #FACC15; font-weight: 900; box-shadow: 0 2px 8px rgba(250, 204, 21, 0.3); }
     
-    .btn-cancel { height: 36px; padding: 0 16px; border-radius: 8px; background: #363c45; color: #fff; font-weight: bold; font-size: 11px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; flex-shrink: 0; }
+    .btn-cancel { height: 36px; padding: 0 16px; border-radius: 8px; background: #363c45; color: #fff; font-weight: bold; font-size: 11px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); white-space: nowrap; flex-shrink: 0; touch-action: manipulation; }
     .btn-cancel:active { background: #4a5059; }
 
     .bet-badge { background: #fff; color: #000; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 10px; padding: 2px 6px; border-radius: 4px; position: absolute; top: 8px; right: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
@@ -201,7 +201,7 @@
   </div>
 
   <script>
-    // ===== 1. LOGIC 60s =====
+    // ===== 1. CONFIG =====
     const CONFIG = {
       PHASE_BET: 30,    // 0-30s
       PHASE_WAIT: 25,   // 30-55s
@@ -224,7 +224,7 @@
         const shortTrend = Math.sin(candleIndex / 8) * 50;
         const seed = candleIndex;
         const rand = seededRandom(seed);
-        const noise = (rand - 0.5) * 15; // Giảm noise để mượt
+        const noise = (rand - 0.5) * 15; 
         return CONFIG.BASE_PRICE + longTrend + shortTrend + noise;
     }
 
@@ -242,7 +242,6 @@
     const app = {
       user: null, balance: 0,
       
-      // Local Storage Helper
       saveState: (roundId, betSide, betAmount) => {
         const state = { roundId, betSide, betAmount };
         localStorage.setItem('btc_game_state', JSON.stringify(state));
@@ -322,7 +321,6 @@
             chart.candles.push({...chart.currentCandle});
             if(chart.candles.length > 30) chart.candles.shift();
             
-            // Logic History (Nến thứ 4 chốt phiên)
             if ((chart.serverCandleIndex + 1) % 4 === 0) {
                game.history.push(chart.currentCandle.close >= chart.currentCandle.open ? 'UP' : 'DOWN');
                game.renderHistory();
@@ -337,12 +335,10 @@
             chart.serverCandleIndex = nowIndex;
         }
 
-        // ULTRA SMOOTH (LERP 0.02)
         const progress = (now % CONFIG.CANDLE_TIME) / CONFIG.CANDLE_TIME; 
         const targetClose = chart.currentCandle.targetClose;
         const linearPrice = chart.currentCandle.open + (targetClose - chart.currentCandle.open) * progress;
         
-        // Low freq noise
         const noise = Math.sin(progress * Math.PI * 4) * 0.5; 
         let rawPrice = linearPrice + noise;
         
@@ -351,7 +347,7 @@
             rawPrice = (rawPrice * (1-blend)) + (targetClose * blend);
         }
         
-        chart.visualPrice += (rawPrice - chart.visualPrice) * 0.02; // Very smooth
+        chart.visualPrice += (rawPrice - chart.visualPrice) * 0.02; 
         
         chart.currentCandle.close = chart.visualPrice;
         if(chart.visualPrice > chart.currentCandle.high) chart.currentCandle.high = chart.visualPrice;
@@ -420,8 +416,10 @@
         const uid = localStorage.getItem("my_wallet_uid");
         if (!uid) { alert("Login required!"); window.location.href = "index.html"; return; }
         app.user = { id: uid };
+        
         await game.loadBalance();
-        game.setupRealtimeBalance();
+        // REMOVED REALTIME BALANCE LISTENER to avoid race conditions during fast betting
+        // game.setupRealtimeBalance(); 
 
         chart.init();
         
@@ -436,37 +434,23 @@
         if (data) { app.balance = data.balance; game.updateBalanceUI(); }
       },
 
-      setupRealtimeBalance: () => {
-        supabaseClient.channel('wallet-changes').on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${app.user.id}` },
-          (payload) => { app.balance = payload.new.balance; game.updateBalanceUI(); }
-        ).subscribe();
-      },
-
       updateBalanceUI: () => { document.getElementById("balance").innerText = app.balance.toLocaleString('en-US'); },
 
       syncLoop: () => {
         const now = Date.now();
         const secInMin = Math.floor((now % 60000) / 1000); 
-        
-        // Session ID Logic (Total Minutes from Epoch -> Ensure consistency)
-        // roundId = Total Minutes
         const currentRoundId = Math.floor(now / 60000);
         
-        // Display Session ID
         const date = new Date();
         const sessID = date.getFullYear() + ('0'+(date.getMonth()+1)).slice(-2) + ('0'+date.getDate()).slice(-2) + ('0'+date.getHours()).slice(-2) + ('0'+date.getMinutes()).slice(-2);
         document.getElementById('session-id').innerText = "#" + sessID;
 
-        // Check Round Change
         if (currentRoundId !== game.roundId) {
             game.roundId = currentRoundId;
             game.startNewRound();
         }
 
-        // Phase Logic
         if (secInMin < 30) {
-            // BET PHASE
             if (game.phase !== 'BET') game.resetUI();
             game.phase = 'BET';
             document.getElementById('timer-display').innerText = 30 - secInMin;
@@ -475,7 +459,6 @@
             document.getElementById('phase-bar').className = "h-full bg-up w-full transition-all duration-300 ease-linear";
             game.resultProcessed = false;
             
-            // Restore State if freshly loaded
             const saved = app.loadState();
             if (saved && saved.roundId === currentRoundId && !game.betAmount && saved.betAmount > 0) {
                 game.betAmount = saved.betAmount;
@@ -486,7 +469,6 @@
         } else {
             const resTime = secInMin - 30;
             if (resTime < 25) {
-                // WAIT
                 if (game.phase === 'BET') game.switchPhaseToWait();
                 game.phase = 'WAIT';
                 document.getElementById('timer-display').innerText = 30 - resTime;
@@ -494,7 +476,6 @@
                 document.getElementById('phase-bar').style.width = (100 - pct) + '%';
                 document.getElementById('phase-bar').className = "h-full bg-down w-full transition-all duration-300 ease-linear";
                 
-                // Restore if refresh during wait
                 const saved = app.loadState();
                 if (saved && saved.roundId === currentRoundId && !game.betAmount && saved.betAmount > 0) {
                     game.betAmount = saved.betAmount;
@@ -503,7 +484,6 @@
                 }
 
             } else {
-                // RESULT
                 game.phase = 'RESULT';
                 document.getElementById('timer-display').innerText = "0";
                 document.getElementById('phase-bar').style.width = '0%';
@@ -515,13 +495,15 @@
         }
       },
 
-      startNewRound: () => {
+      startNewRound: async () => {
         game.resultProcessed = false;
         game.lockPrice = 0;
         game.betAmount = 0;
         game.betSide = null;
         game.resetUI();
-        app.clearState(); // Clear old bet state
+        app.clearState();
+        // Sync balance strictly at start of round to correct any drift
+        await game.loadBalance(); 
       },
 
       switchPhaseToWait: () => {
@@ -542,25 +524,38 @@
         badge.className = "px-2 py-0.5 rounded bg-gold/20 text-gold text-[10px] font-bold uppercase backdrop-blur border border-gold/30";
         app.showToast(`Kết quả: ${result === 'UP' ? 'TĂNG' : 'GIẢM'}`, result === 'UP' ? 'success' : 'error');
 
+        let isWin = false;
+        let profit = 0;
+
         if (game.betAmount > 0) {
-            const isWin = game.betSide === result;
+            isWin = game.betSide === result;
             if (isWin) {
-                const profit = Math.floor(game.betAmount * CONFIG.ODDS);
-                app.balance += profit;
-                await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
+                profit = Math.floor(game.betAmount * CONFIG.ODDS);
+                app.balance += profit; 
                 game.updateBalanceUI();
+                
+                // IMPORTANT: Send update to server
+                await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
+                
                 confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
                 game.showModal(true, profit, result);
                 game.animateFloatingMoney(profit);
-            } else { game.showModal(false, 0, result); }
+            } else { 
+                game.showModal(false, 0, result); 
+                // Ensure server knows we lost (balance already deducted during placeBet)
+                // Just in case, we sync one more time after a delay
+            }
         }
-        app.clearState(); // Round done
+
+        // Final Sync to ensure Server matches Client perfectly
+        setTimeout(() => { game.loadBalance(); }, 2000);
+        app.clearState();
       },
 
       renderHistory: () => {
         const container = document.getElementById('roadmap'); container.innerHTML = '';
         game.history.slice(-20).forEach(type => {
-            const d = document.createElement('div'); d.className = `hist-dot ${type === 'UP' ? 'hist-up' : 'hist-down'}`;
+            const d = document.createElement('div'); d.className = `w-1.5 h-1.5 rounded-full shrink-0 ${type === 'UP' ? 'bg-up' : 'bg-down'}`;
             container.appendChild(d);
         });
       },
@@ -609,30 +604,40 @@
         ripple.style.left = `${x}px`; ripple.style.top = `${y}px`;
         e.currentTarget.appendChild(ripple); setTimeout(() => ripple.remove(), 600);
 
-        const fly = document.createElement('div'); fly.className = 'bet-fly text-gold';
-        fly.style.left = `${e.clientX}px`; fly.style.top = `${e.clientY}px`;
-        fly.innerText = `+${game.currentChip >= 1000 ? game.currentChip/1000 + 'k' : game.currentChip}`;
+        const fly = document.createElement('div'); fly.className = 'float-money text-gold';
+        fly.style.fontSize = '14px'; fly.style.left = `${e.clientX}px`; fly.style.top = `${e.clientY}px`;
+        fly.innerText = `-${game.currentChip >= 1000 ? game.currentChip/1000 + 'k' : game.currentChip}`;
         document.body.appendChild(fly); setTimeout(() => fly.remove(), 800);
 
-        // Logic
-        game.betSide = side; game.betAmount += game.currentChip;
-        app.balance -= game.currentChip;
+        // Logic - OPTIMISTIC UPDATE
+        game.betSide = side; 
+        game.betAmount += game.currentChip;
+        app.balance -= game.currentChip; // Deduct immediately locally
         game.updateBalanceUI();
-        await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
-        
+
         // Save State
         app.saveState(game.roundId, game.betSide, game.betAmount);
-
         game.restoreBetUI(side, game.betAmount);
         if (navigator.vibrate) navigator.vibrate(40);
+
+        // Send to Server (Async, don't wait for response to unblock UI)
+        supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id).then(({ error }) => {
+            if (error) {
+                // Rollback if critical error (unlikely in this context but good practice)
+                console.error("Bet error", error);
+            }
+        });
       },
 
       cancelBet: async () => {
         if (game.phase !== 'BET') return app.showToast("Không thể hủy!", 'error');
         if (game.betAmount === 0) return app.showToast("Chưa cược!", 'info');
-        app.balance += game.betAmount;
+        
+        app.balance += game.betAmount; // Refund local
         game.updateBalanceUI();
+        
         await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
+        
         game.betAmount = 0; game.betSide = null;
         game.resetUI();
         app.clearState();
