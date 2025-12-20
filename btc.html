@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>BTC Trading Ultimate - HC88</title>
+  <title>BTC Trading Slow - HC88</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
@@ -95,6 +95,7 @@
       font-weight: 900; box-shadow: 0 2px 8px rgba(250, 204, 21, 0.3);
     }
     
+    /* FIXED CANCEL BUTTON */
     .btn-cancel {
         height: 36px; padding: 0 16px; border-radius: 8px;
         background: #363c45; color: #fff; font-weight: bold; font-size: 11px;
@@ -182,7 +183,7 @@
       <div id="live-price" class="font-mono text-3xl font-bold tracking-tighter text-up drop-shadow-md">--.--</div>
       <div class="flex items-center justify-end gap-2 mt-1">
         <span id="phase-badge" class="px-2 py-0.5 rounded bg-up/20 text-up text-[10px] font-bold uppercase backdrop-blur border border-up/30">ĐẶT LỆNH</span>
-        <span class="font-oswald text-xl font-bold text-white drop-shadow-md w-8 text-center" id="timer-display">20</span>
+        <span class="font-oswald text-xl font-bold text-white drop-shadow-md w-8 text-center" id="timer-display">15</span>
       </div>
     </div>
 
@@ -283,6 +284,7 @@
     const CONFIG = {
       PHASE_BET: 20,    // 20s Cược
       PHASE_WAIT: 10,   // 10s Khóa/Đợi
+      CANDLE_TIME: 2000,// 2 Giây = 1 Nến (CHẬM HƠN)
       ODDS: 1.95,
       BASE_PRICE: 96500.00
     };
@@ -291,37 +293,34 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ===== 2. FAIR MARKET LOGIC (SINE WAVE TREND) =====
+    // ===== 2. FAIR MARKET LOGIC =====
     function seededRandom(seed) {
         var x = Math.sin(seed++) * 10000;
         return x - Math.floor(x);
     }
 
     // Hàm tạo giá hợp lý dựa trên thời gian
-    function getFairPrice(timestampSec) {
-        // 1. Xu hướng dài hạn (Sóng hình sin lớn - Chu kỳ 5 phút)
-        // Giúp thị trường có lúc Uptrend, lúc Downtrend, lúc Sideway
-        const longTrend = Math.sin(timestampSec / 300) * 150; 
+    // Đầu vào timestampSec là index của nến (thời gian / 2s)
+    function getFairPrice(candleIndex) {
+        // Chu kỳ sóng dài hơn (150 nến ~ 5 phút)
+        const longTrend = Math.sin(candleIndex / 150) * 150; 
+        
+        // Chu kỳ ngắn (30 nến ~ 1 phút)
+        const shortTrend = Math.sin(candleIndex / 30) * 40;
 
-        // 2. Xu hướng ngắn hạn (Sóng hình sin nhỏ - Chu kỳ 1 phút)
-        const shortTrend = Math.sin(timestampSec / 60) * 40;
-
-        // 3. Nhiễu ngẫu nhiên (Noise) nhưng có tính liên tục
-        const seed = timestampSec;
+        const seed = candleIndex;
         const rand = seededRandom(seed);
-        const noise = (rand - 0.5) * 15; // Biến động ngẫu nhiên +/- 7.5
+        const noise = (rand - 0.5) * 10; 
 
         return CONFIG.BASE_PRICE + longTrend + shortTrend + noise;
     }
 
-    // Dữ liệu nến cho giây T (đảm bảo Open của T = Close của T-1)
-    function generateCandleForSecond(timestampSec) {
-        const close = getFairPrice(timestampSec);
-        const open = getFairPrice(timestampSec - 1);
+    function generateCandleData(candleIndex) {
+        const close = getFairPrice(candleIndex);
+        const open = getFairPrice(candleIndex - 1);
         
-        // Tạo râu nến giả lập
-        const seed = timestampSec * 1.1; // seed khác
-        const volatility = Math.abs(close - open) + 2; // Biến động tối thiểu
+        const seed = candleIndex * 1.1;
+        const volatility = Math.abs(close - open) + 2; 
         const randHigh = seededRandom(seed) * volatility;
         const randLow = seededRandom(seed + 0.1) * volatility;
 
@@ -357,7 +356,8 @@
       candles: [], 
       currentCandle: null,
       
-      serverTime: Math.floor(Date.now() / 1000),
+      // Index của nến hiện tại (tính bằng giây / 2)
+      serverCandleIndex: Math.floor(Date.now() / CONFIG.CANDLE_TIME),
       displayPrice: CONFIG.BASE_PRICE,
 
       init: () => {
@@ -365,21 +365,22 @@
         window.addEventListener('resize', chart.resize);
         chart.resize();
         
-        // Khởi tạo lịch sử 60 giây
-        const nowSec = Math.floor(Date.now() / 1000);
-        for (let t = nowSec - 60; t < nowSec; t++) {
-            const c = generateCandleForSecond(t);
-            chart.candles.push({ ...c, time: t });
+        // Khởi tạo lịch sử 30 nến (60s trước)
+        const nowIndex = Math.floor(Date.now() / CONFIG.CANDLE_TIME);
+        
+        for (let idx = nowIndex - 30; idx < nowIndex; idx++) {
+            const c = generateCandleData(idx);
+            // Convert index back to approx time for storage if needed, but simplified here
+            chart.candles.push(c);
         }
         
-        // Khởi tạo nến hiện tại
-        chart.serverTime = nowSec;
-        const initData = generateCandleForSecond(nowSec);
+        // Init Current
+        chart.serverCandleIndex = nowIndex;
+        const initData = generateCandleData(nowIndex);
         chart.currentCandle = { 
             open: initData.open, close: initData.open, 
             high: initData.open, low: initData.open,
-            targetClose: initData.close, // Đích đến
-            startTime: Date.now()
+            targetClose: initData.close
         };
         chart.displayPrice = initData.open;
         
@@ -397,55 +398,53 @@
 
       update: () => {
         const now = Date.now();
-        const nowSec = Math.floor(now / 1000);
+        const nowIndex = Math.floor(now / CONFIG.CANDLE_TIME);
         
-        // Chuyển giây mới -> Đóng nến cũ
-        if (nowSec > chart.serverTime) {
-            // Chốt nến cũ bằng giá đích (để đảm bảo đồng bộ)
+        // New Candle Logic
+        if (nowIndex > chart.serverCandleIndex) {
+            // Chốt nến cũ
             chart.currentCandle.close = chart.currentCandle.targetClose;
-            // Cập nhật lại high/low lần cuối
             chart.currentCandle.high = Math.max(chart.currentCandle.high, chart.currentCandle.close);
             chart.currentCandle.low = Math.min(chart.currentCandle.low, chart.currentCandle.close);
             
             chart.candles.push({...chart.currentCandle});
-            if(chart.candles.length > 60) chart.candles.shift();
+            if(chart.candles.length > 40) chart.candles.shift();
             
-            // Tạo nến mới
-            const nextData = generateCandleForSecond(nowSec);
+            // New Candle
+            const nextData = generateCandleData(nowIndex);
             chart.currentCandle = {
-                open: nextData.open, // Open mới = Close cũ (do hàm getFairPrice)
+                open: nextData.open, 
                 close: nextData.open,
                 high: nextData.open,
                 low: nextData.open,
-                targetClose: nextData.close,
-                startTime: now
+                targetClose: nextData.close
             };
-            chart.serverTime = nowSec;
+            chart.serverCandleIndex = nowIndex;
         }
 
-        // Logic chạy giá trong 1 giây (Interpolation)
-        const progress = (now % 1000) / 1000; // 0 -> 1
+        // Interpolation (Slow & Smooth)
+        const progress = (now % CONFIG.CANDLE_TIME) / CONFIG.CANDLE_TIME; 
+        const targetClose = chart.currentCandle.targetClose;
         
-        // Đi từ Open -> TargetClose
-        // Thêm nhiễu (noise) để trông tự nhiên
-        const linearPrice = chart.currentCandle.open + (chart.currentCandle.targetClose - chart.currentCandle.open) * progress;
-        const noise = Math.sin(progress * Math.PI * 2) * 2; // Dao động nhỏ
+        // Move linearly
+        const linearPrice = chart.currentCandle.open + (targetClose - chart.currentCandle.open) * progress;
+        
+        // Slower noise frequency (div by 300 instead of 100)
+        const noise = Math.sin(progress * Math.PI * 2) * 1.5; 
         let visualPrice = linearPrice + noise;
         
-        // Gần hết giây thì ép về Target để khớp Open nến sau
-        if (progress > 0.8) {
-            const blend = (progress - 0.8) * 5; // 0 -> 1
-            visualPrice = (visualPrice * (1-blend)) + (chart.currentCandle.targetClose * blend);
+        // Snap to target at end
+        if (progress > 0.85) {
+            const blend = (progress - 0.85) * 6.6; 
+            visualPrice = (visualPrice * (1-blend)) + (targetClose * blend);
         }
         
         chart.displayPrice = visualPrice;
         
-        // Update High/Low realtime
         chart.currentCandle.close = visualPrice;
         if(visualPrice > chart.currentCandle.high) chart.currentCandle.high = visualPrice;
         if(visualPrice < chart.currentCandle.low) chart.currentCandle.low = visualPrice;
 
-        // DOM Update
         const el = document.getElementById('live-price');
         el.innerText = visualPrice.toLocaleString('en-US', {minimumFractionDigits: 2});
         
@@ -458,16 +457,14 @@
         ctx.clearRect(0, 0, width, height);
 
         const allData = [...candles, currentCandle];
-        const viewData = allData.slice(-35); // Xem 35 nến gần nhất
+        const viewData = allData.slice(-25); // Show fewer candles (zoom in)
         
-        // Auto Scale Y
         let minVal = Infinity, maxVal = -Infinity;
         viewData.forEach(c => {
             if(c.low < minVal) minVal = c.low;
             if(c.high > maxVal) maxVal = c.high;
         });
         
-        // Mở rộng scale nếu có Lock Price
         if(game.phase === 'WAIT' && game.lockPrice > 0) {
             if(game.lockPrice > maxVal) maxVal = game.lockPrice;
             if(game.lockPrice < minVal) minVal = game.lockPrice;
@@ -477,7 +474,7 @@
         const padding = height * 0.2;
         const getY = (val) => height - padding - ((val - minVal) / range) * (height - 2*padding);
 
-        // Grid & Labels (2 Bên)
+        // Grid Lines
         ctx.strokeStyle = '#2b3139';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -516,9 +513,9 @@
             document.getElementById('lock-label').classList.add('hidden');
         }
 
-        // Draw Candles (Vị trí 2/3 màn hình)
+        // Draw Candles
         const anchorX = width * 0.7; 
-        const spacing = width / 40; 
+        const spacing = width / 30; // Wider spacing
         const candleW = spacing * 0.65;
 
         [...viewData].reverse().forEach((c, i) => {
@@ -537,18 +534,15 @@
             ctx.fillStyle = color;
             ctx.lineWidth = 1;
 
-            // Râu nến
             ctx.beginPath();
             ctx.moveTo(x, yHigh);
             ctx.lineTo(x, yLow);
             ctx.stroke();
 
-            // Thân nến
             const bodyH = Math.max(Math.abs(yClose - yOpen), 1);
             const bodyY = Math.min(yOpen, yClose);
             ctx.fillRect(x - candleW/2, bodyY, candleW, bodyH);
             
-            // Line giá hiện tại (chỉ cho nến mới nhất)
             if (i === 0) {
                 ctx.beginPath();
                 ctx.setLineDash([2, 2]);
@@ -557,7 +551,6 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
                 
-                // Label background
                 ctx.fillStyle = color;
                 ctx.fillRect(width - 55, yClose - 10, 55, 20);
                 ctx.fillStyle = isGreen ? '#000' : '#fff';
@@ -565,7 +558,6 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(c.close.toFixed(2), width - 27, yClose + 4);
                 
-                // Pulsing Dot
                 ctx.beginPath();
                 ctx.arc(x, yClose, 3, 0, Math.PI * 2);
                 ctx.fillStyle = '#fff';
@@ -669,7 +661,6 @@
 
       switchPhaseToWait: () => {
         game.lockPrice = chart.displayPrice;
-        
         const badge = document.getElementById('phase-badge');
         badge.innerText = "CHỜ KẾT QUẢ";
         badge.className = "px-2 py-0.5 rounded bg-down/20 text-down text-[10px] font-bold uppercase backdrop-blur border border-down/30";
@@ -691,7 +682,7 @@
         rm.appendChild(dot);
         if(rm.children.length > 20) rm.removeChild(rm.firstChild);
 
-        // Thông báo kết quả
+        // Result Toast
         app.showToast(`Kết quả: ${result === 'UP' ? 'TĂNG' : 'GIẢM'}`, result === 'UP' ? 'success' : 'error');
 
         if (game.betAmount > 0) {
