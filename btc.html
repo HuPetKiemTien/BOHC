@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>BTC 60s Realtime - HC88</title>
+  <title>BTC 60s Smooth - HC88</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
@@ -39,15 +39,37 @@
     canvas { display: block; width: 100%; height: 100%; }
 
     /* UI COMPONENTS */
-    .btn-action { position: relative; overflow: hidden; transition: all 0.1s; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); background: #2b3139; }
-    .btn-action:active { transform: scale(0.98); }
+    .btn-action { 
+        position: relative; overflow: hidden; transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        border: 1px solid rgba(255,255,255,0.05); background: #2b3139;
+    }
+    .btn-action:active { transform: scale(0.92); } /* Hiệu ứng lún sâu hơn */
     .btn-action.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
     
     .btn-up { color: #2ebd85; border-color: rgba(46,189,133,0.2); }
-    .btn-up.selected { background: rgba(46,189,133,0.15); border-color: #2ebd85; box-shadow: inset 0 0 15px rgba(46,189,133,0.2); }
+    .btn-up.selected { background: rgba(46,189,133,0.2); border-color: #2ebd85; box-shadow: 0 0 15px rgba(46,189,133,0.3); }
     
     .btn-down { color: #f6465d; border-color: rgba(246,70,93,0.2); }
-    .btn-down.selected { background: rgba(246,70,93,0.15); border-color: #f6465d; box-shadow: inset 0 0 15px rgba(246,70,93,0.2); }
+    .btn-down.selected { background: rgba(246,70,93,0.2); border-color: #f6465d; box-shadow: 0 0 15px rgba(246,70,93,0.3); }
+
+    /* RIPPLE EFFECT */
+    .ripple {
+        position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.3);
+        transform: scale(0); animation: ripple 0.6s linear; pointer-events: none;
+    }
+    @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+    /* BET FLYING TEXT */
+    .bet-fly {
+        position: absolute; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 14px;
+        pointer-events: none; animation: betFly 0.8s ease-out forwards; z-index: 100;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    @keyframes betFly {
+        0% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+    }
 
     .chip { height: 36px; min-width: 55px; padding: 0 10px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; cursor: pointer; background: #2b3139; color: #848e9c; transition: all 0.2s; white-space: nowrap; border: 1px solid transparent; }
     .chip.active { background: #FACC15; color: #1e2329; border-color: #FACC15; font-weight: 900; box-shadow: 0 2px 8px rgba(250, 204, 21, 0.3); }
@@ -114,10 +136,10 @@
       </div>
     </div>
 
-    <!-- RIGHT: LIVE PRICE (SMOOTH) -->
+    <!-- RIGHT: LIVE PRICE (SMOOTH & STABLE) -->
     <div class="absolute top-4 right-4 z-10 text-right pointer-events-none">
       <div id="live-price" class="font-mono text-3xl font-bold tracking-tighter text-up drop-shadow-md transition-colors duration-200">--.--</div>
-      <!-- Removed percentage as requested -->
+      <!-- Removed percentage -->
     </div>
 
     <!-- CANVAS -->
@@ -159,8 +181,8 @@
 
     <!-- BET BUTTONS -->
     <div class="p-4 grid grid-cols-2 gap-4 h-24">
-      <button id="btn-up" class="btn-action btn-up h-full group" onclick="game.placeBet('UP')">
-        <div class="flex flex-col items-center gap-0.5">
+      <button id="btn-up" class="btn-action btn-up h-full group" onclick="game.placeBet(event, 'UP')">
+        <div class="flex flex-col items-center gap-0.5 pointer-events-none">
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-arrow-trend-up text-xl mb-1"></i>
             <span class="font-oswald text-2xl font-bold text-white">MUA</span>
@@ -168,11 +190,10 @@
           <span class="text-[10px] opacity-70 font-mono text-white/50 group-[.selected]:text-up group-[.selected]:opacity-100">Payout x1.95</span>
         </div>
         <div id="badge-UP" class="bet-badge hidden"></div>
-        <div class="absolute inset-0 bg-up/10 opacity-0 transition-opacity active:opacity-100 pointer-events-none"></div>
       </button>
 
-      <button id="btn-down" class="btn-action btn-down h-full group" onclick="game.placeBet('DOWN')">
-        <div class="flex flex-col items-center gap-0.5">
+      <button id="btn-down" class="btn-action btn-down h-full group" onclick="game.placeBet(event, 'DOWN')">
+        <div class="flex flex-col items-center gap-0.5 pointer-events-none">
           <div class="flex items-center gap-2">
             <i class="fa-solid fa-arrow-trend-down text-xl mb-1"></i>
             <span class="font-oswald text-2xl font-bold text-white">BÁN</span>
@@ -180,7 +201,6 @@
           <span class="text-[10px] opacity-70 font-mono text-white/50 group-[.selected]:text-down group-[.selected]:opacity-100">Payout x1.95</span>
         </div>
         <div id="badge-DOWN" class="bet-badge hidden"></div>
-        <div class="absolute inset-0 bg-down/10 opacity-0 transition-opacity active:opacity-100 pointer-events-none"></div>
       </button>
     </div>
   </div>
@@ -207,28 +227,30 @@
   <script>
     // ===== 1. CẤU HÌNH LOGIC =====
     const CONFIG = {
+      PHASE_BET: 30,    // 0-30s
+      PHASE_WAIT: 25,   // 30-55s
+      PHASE_RESULT: 5,  // 55-60s
       CANDLE_TIME: 15000, // 15 GIÂY = 1 NẾN
       ODDS: 1.95,
       BASE_PRICE: 96500.00,
-      LIMITS: { MIN: 2000, MAX: 500000 } 
+      LIMITS: { MIN: 2000, MAX: 500000 }
     };
 
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ===== 2. MARKET LOGIC (TIME BASED) =====
+    // ===== 2. MARKET LOGIC (SMOOTH & STABLE) =====
     function seededRandom(seed) { var x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
 
-    // Giá theo Index Nến (15s/nến)
+    // Logic giá ổn định hơn (giảm biên độ dao động ngẫu nhiên)
     function getFairPrice(candleIndex) {
-        // Sóng dài (40 nến ~ 10 phút)
         const longTrend = Math.sin(candleIndex / 40) * 150; 
-        // Sóng ngắn (8 nến ~ 2 phút)
         const shortTrend = Math.sin(candleIndex / 8) * 50;
         const seed = candleIndex;
         const rand = seededRandom(seed);
-        const noise = (rand - 0.5) * 25; 
+        // Giảm noise từ 25 xuống 15 để bớt giật
+        const noise = (rand - 0.5) * 15; 
         return CONFIG.BASE_PRICE + longTrend + shortTrend + noise;
     }
 
@@ -258,172 +280,99 @@
       }
     };
 
-    // ===== 4. CHART & LOGIC ENGINE =====
-    const game = {
+    // ===== 4. CHART ENGINE (ULTRA SMOOTH) =====
+    const chart = {
       canvas: document.getElementById('candle-chart'),
       ctx: null, width: 0, height: 0,
       candles: [], currentCandle: null, serverCandleIndex: 0, 
-      displayPrice: 0, smoothedPrice: 0, 
-      phase: 'BET', lockPrice: 0, currentChip: 10000, betSide: null, betAmount: 0, resultProcessed: false, history: [],
-
-      init: async () => {
-        const uid = localStorage.getItem("my_wallet_uid");
-        if (!uid) { alert("Login required!"); window.location.href = "index.html"; return; }
-        app.user = { id: uid };
-        await game.loadBalance();
-        game.setupRealtimeBalance();
-
-        game.ctx = game.canvas.getContext('2d');
-        window.addEventListener('resize', game.resize);
-        game.resize();
+      
+      // Smoothing
+      visualPrice: CONFIG.BASE_PRICE, 
+      
+      init: () => {
+        chart.ctx = chart.canvas.getContext('2d');
+        window.addEventListener('resize', chart.resize);
+        chart.resize();
         
         const nowMs = Date.now();
-        game.serverCandleIndex = Math.floor(nowMs / CONFIG.CANDLE_TIME);
+        const nowIndex = Math.floor(nowMs / CONFIG.CANDLE_TIME);
         
-        // Load history: 40 nến.
-        // Nến 1 phút có 4 nến (0, 1, 2, 3). Nến 3 là kết quả cuối cùng.
-        // Index % 4 === 3 là nến kết quả.
-        for(let i = game.serverCandleIndex - 40; i < game.serverCandleIndex; i++) {
-            const c = generateCandleData(i);
-            game.candles.push(c);
-            if ((i + 1) % 4 === 0) game.history.push(c.type); 
+        for(let idx = nowIndex - 30; idx < nowIndex; idx++) {
+            chart.candles.push(generateCandleData(idx));
         }
-        game.renderHistory();
-
-        const initData = generateCandleData(game.serverCandleIndex);
-        game.currentCandle = { 
+        
+        chart.serverCandleIndex = nowIndex;
+        const initData = generateCandleData(nowIndex);
+        chart.currentCandle = { 
             open: initData.open, close: initData.open, 
             high: initData.open, low: initData.open,
             targetClose: initData.close
         };
-        game.displayPrice = initData.open;
-        game.smoothedPrice = initData.open; 
-
-        requestAnimationFrame(game.draw);
-        setInterval(game.tick, 16); 
+        chart.visualPrice = initData.open;
+        
+        requestAnimationFrame(chart.draw);
       },
 
       resize: () => {
         const wrap = document.getElementById('chart-container');
-        game.width = wrap.clientWidth; game.height = wrap.clientHeight;
-        game.canvas.width = game.width * 2; game.canvas.height = game.height * 2;
-        game.ctx.scale(2, 2);
+        chart.width = wrap.clientWidth; chart.height = wrap.clientHeight;
+        chart.canvas.width = chart.width * 2; chart.canvas.height = chart.height * 2;
+        chart.ctx.scale(2, 2);
       },
 
-      loadBalance: async () => {
-        const { data } = await supabaseClient.from('users').select('balance').eq('id', app.user.id).maybeSingle();
-        if (data) { app.balance = data.balance; game.updateBalanceUI(); }
-      },
-
-      setupRealtimeBalance: () => {
-        supabaseClient.channel('wallet-changes').on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${app.user.id}` },
-          (payload) => { app.balance = payload.new.balance; game.updateBalanceUI(); }
-        ).subscribe();
-      },
-
-      updateBalanceUI: () => { document.getElementById("balance").innerText = app.balance.toLocaleString('en-US'); },
-
-      // --- MAIN LOOP ---
-      tick: () => {
+      update: () => {
         const now = Date.now();
         const nowIndex = Math.floor(now / CONFIG.CANDLE_TIME);
-        const secInMin = Math.floor((now % 60000) / 1000); 
         
-        // Session ID Format: YYYYMMDDHHMM
-        const date = new Date();
-        const sessID = date.getFullYear() +
-                       ('0' + (date.getMonth()+1)).slice(-2) +
-                       ('0' + date.getDate()).slice(-2) +
-                       ('0' + date.getHours()).slice(-2) +
-                       ('0' + date.getMinutes()).slice(-2);
-        document.getElementById('session-id').innerText = "#" + sessID;
-
-        // --- 1. CANDLE LOGIC ---
-        if (nowIndex > game.serverCandleIndex) {
-            game.currentCandle.close = game.currentCandle.targetClose;
-            game.currentCandle.high = Math.max(game.currentCandle.high, game.currentCandle.close);
-            game.currentCandle.low = Math.min(game.currentCandle.low, game.currentCandle.close);
+        if (nowIndex > chart.serverCandleIndex) {
+            chart.currentCandle.close = chart.currentCandle.targetClose;
+            chart.currentCandle.high = Math.max(chart.currentCandle.high, chart.currentCandle.close);
+            chart.currentCandle.low = Math.min(chart.currentCandle.low, chart.currentCandle.close);
             
-            const finalized = {...game.currentCandle, type: game.currentCandle.close >= game.currentCandle.open ? 'UP' : 'DOWN'};
-            game.candles.push(finalized);
-            if(game.candles.length > 50) game.candles.shift();
+            chart.candles.push({...chart.currentCandle});
+            if(chart.candles.length > 30) chart.candles.shift();
             
-            // Logic History: Nến thứ 4 trong phút (Index % 4 == 3) là nến chốt phiên
-            if ((game.serverCandleIndex + 1) % 4 === 0) {
-                game.history.push(finalized.type);
-                game.renderHistory();
-            }
-
             const nextData = generateCandleData(nowIndex);
-            game.currentCandle = {
+            chart.currentCandle = {
                 open: nextData.open, close: nextData.open,
                 high: nextData.open, low: nextData.open,
                 targetClose: nextData.close
             };
-            game.serverCandleIndex = nowIndex;
+            chart.serverCandleIndex = nowIndex;
         }
 
-        // --- 2. SMOOTH PRICE ---
-        const progress = (now % CONFIG.CANDLE_TIME) / CONFIG.CANDLE_TIME;
-        const target = game.currentCandle.targetClose;
-        const linear = game.currentCandle.open + (target - game.currentCandle.open) * progress;
-        const noise = Math.sin(progress * Math.PI * 8) * 1.5;
-        let calculatedPrice = linear + noise;
-        if (progress > 0.95) calculatedPrice = (calculatedPrice * (1-(progress-0.95)*20)) + (target * (progress-0.95)*20);
+        // Logic Lerp Price (Mượt như nước)
+        const progress = (now % CONFIG.CANDLE_TIME) / CONFIG.CANDLE_TIME; 
+        const targetClose = chart.currentCandle.targetClose;
+        const linearPrice = chart.currentCandle.open + (targetClose - chart.currentCandle.open) * progress;
         
-        game.smoothedPrice += (calculatedPrice - game.smoothedPrice) * 0.1;
-        game.displayPrice = game.smoothedPrice;
-
-        game.currentCandle.close = game.displayPrice;
-        if(game.displayPrice > game.currentCandle.high) game.currentCandle.high = game.displayPrice;
-        if(game.displayPrice < game.currentCandle.low) game.currentCandle.low = game.displayPrice;
+        // Giảm tần số và biên độ noise để bớt giật
+        const noise = Math.sin(progress * Math.PI * 4) * 0.5; 
+        let rawPrice = linearPrice + noise;
+        
+        if (progress > 0.95) {
+            const blend = (progress - 0.95) * 20; 
+            rawPrice = (rawPrice * (1-blend)) + (targetClose * blend);
+        }
+        
+        // Hệ số Lerp 0.05 giúp giá chạy cực đầm
+        chart.visualPrice += (rawPrice - chart.visualPrice) * 0.05; 
+        
+        chart.currentCandle.close = chart.visualPrice;
+        if(chart.visualPrice > chart.currentCandle.high) chart.currentCandle.high = chart.visualPrice;
+        if(chart.visualPrice < chart.currentCandle.low) chart.currentCandle.low = chart.visualPrice;
 
         const el = document.getElementById('live-price');
-        el.innerText = game.displayPrice.toLocaleString('en-US', {minimumFractionDigits: 2});
-        el.className = game.displayPrice >= game.currentCandle.open ? "font-mono text-3xl font-bold tracking-tighter text-up drop-shadow-md transition-colors" : "font-mono text-3xl font-bold tracking-tighter text-down drop-shadow-md transition-colors";
-
-        // --- 3. GAME PHASE LOGIC (0-60s) ---
-        // 0-30s: BET (2 Nến đầu)
-        // 30-55s: LOCK (1 Nến rưỡi)
-        // 55-60s: RESULT (Nửa nến cuối)
-        
-        if (secInMin < 30) {
-            // BET PHASE
-            if (game.phase !== 'BET') game.resetUI();
-            game.phase = 'BET';
-            document.getElementById('timer-display').innerText = 30 - secInMin;
-            const pct = (secInMin / 30) * 100;
-            document.getElementById('phase-bar').style.width = (100 - pct) + '%';
-            document.getElementById('phase-bar').className = "h-full bg-up w-full transition-all duration-300 ease-linear";
-            game.resultProcessed = false;
-        } else {
-            // RESULT/WAIT PHASE
-            const resTime = secInMin - 30; // 0 -> 30
-            if (resTime < 25) {
-                // 30s - 55s: WAIT
-                if (game.phase === 'BET') game.switchPhaseToWait();
-                game.phase = 'WAIT';
-                document.getElementById('timer-display').innerText = 30 - resTime;
-                const pct = (resTime / 25) * 100;
-                document.getElementById('phase-bar').style.width = (100 - pct) + '%';
-                document.getElementById('phase-bar').className = "h-full bg-down w-full transition-all duration-300 ease-linear";
-            } else {
-                // 55s - 60s: RESULT
-                game.phase = 'RESULT';
-                document.getElementById('timer-display').innerText = "0";
-                document.getElementById('phase-bar').style.width = '0%';
-                if (!game.resultProcessed) { game.processResult(); game.resultProcessed = true; }
-            }
-        }
+        el.innerText = chart.visualPrice.toLocaleString('en-US', {minimumFractionDigits: 2});
+        el.className = chart.visualPrice >= chart.currentCandle.open ? "font-mono text-3xl font-bold tracking-tighter text-up drop-shadow-md transition-colors" : "font-mono text-3xl font-bold tracking-tighter text-down drop-shadow-md transition-colors";
       },
 
       draw: () => {
-        const { ctx, width, height, candles, currentCandle } = game;
+        const { ctx, width, height, candles, currentCandle } = chart;
         ctx.clearRect(0, 0, width, height);
 
         const allData = [...candles, currentCandle];
-        const viewData = allData.slice(-30);
+        const viewData = allData.slice(-20); 
         
         let minVal = Infinity, maxVal = -Infinity;
         viewData.forEach(c => { if(c.low < minVal) minVal = c.low; if(c.high > maxVal) maxVal = c.high; });
@@ -448,7 +397,7 @@
             ctx.beginPath(); ctx.strokeStyle = '#FACC15'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]); ctx.moveTo(0, lockY); ctx.lineTo(width, lockY); ctx.stroke(); ctx.setLineDash([]);
         } else { document.getElementById('lock-label').classList.add('hidden'); }
 
-        const anchorX = width * 0.75; const spacing = width / 30; const candleW = spacing * 0.65;
+        const anchorX = width * 0.75; const spacing = width / 25; const candleW = spacing * 0.65;
         [...viewData].reverse().forEach((c, i) => {
             const x = anchorX - (i * spacing); if (x < -candleW) return;
             const yOpen = getY(c.open); const yClose = getY(c.close); const yHigh = getY(c.high); const yLow = getY(c.low);
@@ -463,11 +412,104 @@
                 ctx.fillStyle = isGreen ? '#000' : '#fff'; ctx.textAlign = 'center'; ctx.fillText(c.close.toFixed(2), width - 27, yClose + 4);
             }
         });
-        requestAnimationFrame(game.draw);
+        requestAnimationFrame(chart.draw);
+      }
+    };
+
+    // ===== 5. GAME LOGIC =====
+    const game = {
+      roundId: 0, phase: 'BET', timeLeft: 0, lockPrice: 0,
+      currentChip: 10000, betSide: null, betAmount: 0, resultProcessed: false, history: [],
+
+      init: async () => {
+        const uid = localStorage.getItem("my_wallet_uid");
+        if (!uid) { alert("Login required!"); window.location.href = "index.html"; return; }
+        app.user = { id: uid };
+        await game.loadBalance();
+        game.setupRealtimeBalance();
+
+        chart.init();
+        
+        // Tải lịch sử 40 nến, index % 4 == 3 là nến kết quả
+        const nowIndex = Math.floor(Date.now() / CONFIG.CANDLE_TIME);
+        for(let i = nowIndex - 40; i < nowIndex; i++) {
+            const c = generateCandleData(i);
+            if ((i + 1) % 4 === 0) game.history.push(c.type); 
+        }
+        game.renderHistory();
+
+        setInterval(() => {
+            chart.update();
+            game.syncLoop();
+        }, 16); 
+      },
+
+      loadBalance: async () => {
+        const { data } = await supabaseClient.from('users').select('balance').eq('id', app.user.id).maybeSingle();
+        if (data) { app.balance = data.balance; game.updateBalanceUI(); }
+      },
+
+      setupRealtimeBalance: () => {
+        supabaseClient.channel('wallet-changes').on('postgres_changes', 
+          { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${app.user.id}` },
+          (payload) => { app.balance = payload.new.balance; game.updateBalanceUI(); }
+        ).subscribe();
+      },
+
+      updateBalanceUI: () => { document.getElementById("balance").innerText = app.balance.toLocaleString('en-US'); },
+
+      syncLoop: () => {
+        const now = Date.now();
+        const secInMin = Math.floor((now % 60000) / 1000); 
+        
+        const date = new Date();
+        const sessID = date.getFullYear() + ('0'+(date.getMonth()+1)).slice(-2) + ('0'+date.getDate()).slice(-2) + ('0'+date.getHours()).slice(-2) + ('0'+date.getMinutes()).slice(-2);
+        document.getElementById('session-id').innerText = "#" + sessID;
+
+        // Logic Phase: 0-30: BET, 30-55: LOCK, 55-60: RESULT
+        if (secInMin < 30) {
+            // BET
+            if (game.phase !== 'BET') game.resetUI();
+            game.phase = 'BET';
+            document.getElementById('timer-display').innerText = 30 - secInMin;
+            const pct = (secInMin / 30) * 100;
+            document.getElementById('phase-bar').style.width = (100 - pct) + '%';
+            document.getElementById('phase-bar').className = "h-full bg-up w-full transition-all duration-300 ease-linear";
+            game.resultProcessed = false;
+        } else {
+            const resTime = secInMin - 30;
+            if (resTime < 25) {
+                // WAIT
+                if (game.phase === 'BET') game.switchPhaseToWait();
+                game.phase = 'WAIT';
+                document.getElementById('timer-display').innerText = 30 - resTime;
+                const pct = (resTime / 25) * 100;
+                document.getElementById('phase-bar').style.width = (100 - pct) + '%';
+                document.getElementById('phase-bar').className = "h-full bg-down w-full transition-all duration-300 ease-linear";
+            } else {
+                // RESULT
+                game.phase = 'RESULT';
+                document.getElementById('timer-display').innerText = "0";
+                document.getElementById('phase-bar').style.width = '0%';
+                if (!game.resultProcessed) { 
+                    game.processResult(); 
+                    
+                    // Thêm history mới vào list
+                    // Logic nến kết quả là nến 3 (30-45) và 4 (45-60)? 
+                    // Thực tế là giá chốt tại 30 và giá khớp tại 60.
+                    // Ta dựa vào chart.visualPrice lúc này để quyết định màu nến ảo cho roadmap
+                    const resType = chart.visualPrice >= game.lockPrice ? 'UP' : 'DOWN';
+                    game.history.push(resType);
+                    game.renderHistory();
+                    
+                    game.resultProcessed = true; 
+                }
+            }
+        }
       },
 
       switchPhaseToWait: () => {
-        game.lockPrice = game.displayPrice; 
+        game.lockPrice = chart.visualPrice; 
         const badge = document.getElementById('phase-badge');
         badge.innerText = "CHỜ KẾT QUẢ";
         badge.className = "px-2 py-0.5 rounded bg-down/20 text-down text-[10px] font-bold uppercase backdrop-blur border border-down/30";
@@ -478,7 +520,7 @@
       },
 
       processResult: async () => {
-        const result = game.displayPrice >= game.lockPrice ? 'UP' : 'DOWN';
+        const result = chart.visualPrice >= game.lockPrice ? 'UP' : 'DOWN';
         const badge = document.getElementById('phase-badge');
         badge.innerText = "KẾT QUẢ";
         badge.className = "px-2 py-0.5 rounded bg-gold/20 text-gold text-[10px] font-bold uppercase backdrop-blur border border-gold/30";
@@ -526,14 +568,38 @@
         chips.forEach(c => { if(c.innerText.includes(val >= 1000 ? (val/1000)+'k' : val)) c.classList.add('active'); });
       },
 
-      placeBet: async (side) => {
+      // EFFECT & LOGIC PLACE BET
+      placeBet: async (e, side) => {
         if (game.phase !== 'BET') return app.showToast("Đã khóa cược!", 'error');
         if (game.betAmount + game.currentChip > CONFIG.LIMITS.MAX) return app.showToast(`Cược tối đa ${CONFIG.LIMITS.MAX.toLocaleString()}`, 'error');
         if (game.currentChip > app.balance) return app.showToast("Số dư không đủ", 'error');
+
+        // Create Effect at Click Position
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Ripple
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        ripple.style.left = `${x}px`; ripple.style.top = `${y}px`;
+        e.currentTarget.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+
+        // Flying Text
+        const fly = document.createElement('div');
+        fly.className = 'bet-fly text-gold';
+        fly.style.left = `${e.clientX}px`; fly.style.top = `${e.clientY}px`;
+        fly.innerText = `+${game.currentChip >= 1000 ? game.currentChip/1000 + 'k' : game.currentChip}`;
+        document.body.appendChild(fly);
+        setTimeout(() => fly.remove(), 800);
+
+        // Logic
         game.betSide = side; game.betAmount += game.currentChip;
         app.balance -= game.currentChip;
         game.updateBalanceUI();
         await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
+
         const btnUp = document.getElementById('btn-up'); const btnDown = document.getElementById('btn-down');
         if (side === 'UP') {
             btnUp.classList.add('selected'); btnDown.classList.add('disabled');
@@ -544,6 +610,7 @@
             document.getElementById('badge-DOWN').innerText = game.betAmount.toLocaleString();
             document.getElementById('badge-DOWN').classList.remove('hidden');
         }
+        if (navigator.vibrate) navigator.vibrate(40);
       },
 
       cancelBet: async () => {
@@ -571,7 +638,7 @@
             icon.innerHTML = '🏆'; title.innerText = "THẮNG LỚN"; title.className = "text-2xl font-oswald font-bold uppercase mb-1 text-up";
             amt.innerText = "+" + amount.toLocaleString(); amt.className = "font-mono text-xl font-bold text-up";
         } else {
-            icon.innerHTML = '📉'; title.innerText = "THUA CUỘC"; title.className = "text-2xl font-oswald font-bold uppercase mb-1 text-[#848e9c]";
+            icon.innerHTML = '❌'; title.innerText = "THUA CUỘC"; title.className = "text-2xl font-oswald font-bold uppercase mb-1 text-[#848e9c]";
             amt.innerText = "-" + game.betAmount.toLocaleString(); amt.className = "font-mono text-xl font-bold text-[#848e9c]";
         }
         setTimeout(() => {
