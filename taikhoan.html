@@ -211,9 +211,10 @@
                     <div class="space-y-5">
                         <!-- Tên chủ thẻ (AUTO FILL & LOCKED) -->
                         <div class="relative group">
-                            <span class="input-group-label">Tên chủ tài khoản</span>
+                            <span class="input-group-label">Họ và tên chủ thẻ</span>
                             <div class="absolute right-3 top-3 text-slate-500"><i class="fa-solid fa-lock text-xs"></i></div>
                             <input type="text" id="wd-holder" class="w-full bg-slate-900 border border-slate-600 text-slate-400 rounded-xl px-4 py-3 text-sm uppercase font-bold cursor-not-allowed" readonly placeholder="LOADING...">
+                            <p class="text-[10px] text-slate-500 mt-1 italic pl-1">* Tên chủ thẻ phải trùng với tên đã đăng ký</p>
                         </div>
 
                         <!-- Ngân hàng -->
@@ -222,6 +223,7 @@
                             <select id="wd-bank" class="w-full bg-slate-900 border border-slate-600 text-white rounded-xl px-4 py-3 text-sm font-medium focus:border-blue-500">
                                 <option value="" disabled selected>-- Chọn Ngân hàng --</option>
                                 <option value="MOMO" class="text-pink-500 font-bold">Ví MoMo</option>
+                                <option value="ZALOPAY" class="text-blue-400 font-bold">ZaloPay</option>
                                 <option value="VIETCOMBANK">Vietcombank</option>
                                 <option value="MBBANK">MB Bank</option>
                                 <option value="TECHCOMBANK">Techcombank</option>
@@ -418,7 +420,7 @@
                 const rawAmount = document.getElementById("wd-amount").value.replace(/,/g, '');
                 const amount = parseInt(rawAmount);
                 
-                // Lấy thông tin ngân hàng (Có thể từ input nếu chưa khóa, hoặc value hiện tại)
+                // Lấy thông tin ngân hàng
                 const bank = document.getElementById("wd-bank").value; 
                 const holder = document.getElementById("wd-holder").value.trim();
                 const acc = document.getElementById("wd-account").value.trim();
@@ -431,8 +433,22 @@
                 const { data: u } = await db.from("users").select("balance").eq("id", currentUser).single();
                 if(!u || u.balance < amount) throw new Error("Số dư không đủ!");
 
-                // --- NẾU LÀ LẦN ĐẦU (Chưa liên kết) -> CẬP NHẬT DB ---
+                // --- LOGIC: LIÊN KẾT NGÂN HÀNG (Nếu chưa có) ---
                 if (!isBankLinked) {
+                    
+                    // 1. KIỂM TRA TRÙNG SỐ TÀI KHOẢN (ANTI-DUPLICATE)
+                    // Kiểm tra xem số tài khoản này đã tồn tại trong DB cho user khác chưa
+                    const { data: duplicateCheck } = await db.from("users")
+                        .select("id")
+                        .eq("bank_account", acc) // Check trùng STK
+                        .neq("id", currentUser) // Trừ bản thân ra
+                        .maybeSingle();
+
+                    if (duplicateCheck) {
+                        throw new Error("Số tài khoản/Ví này đã được liên kết bởi thành viên khác!");
+                    }
+
+                    // 2. Cập nhật vào DB
                     const { error: updateBankErr } = await db.from("users").update({
                         bank_name: bank,
                         bank_account: acc
@@ -586,5 +602,4 @@
     </script>
 </body>
 </html>
-
 
