@@ -18,6 +18,9 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .animate-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
         @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+        
+        .loader { width: 16px; height: 16px; border: 2px solid #fff; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col relative overflow-hidden">
@@ -35,28 +38,34 @@
 
     <main class="flex-1 px-5 pb-8 overflow-y-auto no-scrollbar space-y-6">
 
-        <!-- Stats -->
-        <div class="glass-panel p-6 rounded-3xl relative overflow-hidden animate-up group text-center">
+        <!-- Commission Wallet Card -->
+        <div class="glass-panel p-6 rounded-3xl relative overflow-hidden animate-up group text-center border border-yellow-500/30">
             <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-transparent"></div>
             <div class="relative z-10">
-                <div class="w-14 h-14 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30 mb-3 animate-bounce">
-                    <i class="fa-solid fa-sack-dollar text-2xl text-white"></i>
+                <div class="flex justify-center items-center gap-2 mb-2">
+                    <i class="fa-solid fa-wallet text-yellow-400"></i>
+                    <p class="text-xs text-yellow-200 font-bold uppercase tracking-wider">Ví Hoa Hồng</p>
                 </div>
-                <p class="text-xs text-yellow-200 font-bold uppercase tracking-wider mb-1">Tổng hoa hồng</p>
-                <h2 class="text-4xl font-bold text-white tracking-tight font-mono" id="total-commission">0</h2>
+                
+                <h2 class="text-4xl font-bold text-white tracking-tight font-mono mb-4" id="commission-balance">0</h2>
+                
+                <button onclick="withdrawCommission()" id="btn-withdraw" class="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-sm shadow-lg shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-money-bill-transfer"></i> RÚT VỀ VÍ CHÍNH
+                </button>
+                <p class="text-[10px] text-slate-400 mt-2 italic">*Số dư sẽ được cộng vào ví chính để rút hoặc chơi.</p>
             </div>
         </div>
 
-        <!-- Link & Code -->
+        <!-- Referral Code Only -->
         <div class="animate-up" style="animation-delay: 0.1s;">
             <h3 class="text-sm font-bold text-white mb-3 ml-1">Mã giới thiệu của bạn</h3>
             <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2">
-                <div class="flex-1 bg-black/20 rounded-xl px-4 py-3 border border-white/5 truncate">
-                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">REF LINK</p>
-                    <p id="share-link-text" class="text-xs font-mono text-emerald-400 truncate">...</p>
+                <div class="flex-1 bg-black/20 rounded-xl px-4 py-3 border border-white/5 flex flex-col justify-center">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">YOUR CODE</p>
+                    <p id="my-ref-code" class="text-lg font-mono font-bold text-emerald-400 tracking-widest">LOADING</p>
                 </div>
-                <button onclick="copyLink()" class="h-full px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm transition active:scale-95 flex flex-col items-center justify-center gap-1 min-h-[60px]">
-                    <i class="fa-solid fa-link"></i>
+                <button onclick="copyCode()" class="h-full px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm transition active:scale-95 flex flex-col items-center justify-center gap-1 min-h-[60px]">
+                    <i class="fa-regular fa-copy"></i>
                     <span>Copy</span>
                 </button>
             </div>
@@ -68,11 +77,11 @@
             <div class="space-y-3">
                 <div class="flex items-center gap-3">
                     <span class="text-yellow-500 font-bold text-sm">10%</span>
-                    <span class="text-xs text-slate-300">Hoa hồng cho mỗi lần F1 nạp tiền.</span>
+                    <span class="text-xs text-slate-300">Nhận ngay vào Ví Hoa Hồng khi F1 nạp tiền.</span>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-blue-400 font-bold text-sm">Vĩnh viễn</span>
-                    <span class="text-xs text-slate-300">Hưởng trọn đời theo tài khoản.</span>
+                    <span class="text-blue-400 font-bold text-sm">Rút Ngay</span>
+                    <span class="text-xs text-slate-300">Chuyển sang Ví Chính bất cứ lúc nào.</span>
                 </div>
             </div>
         </div>
@@ -94,36 +103,42 @@
 
     <!-- Toast -->
     <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 glass-panel border-emerald-500/20 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 -translate-y-20 z-50 pointer-events-none">
-        <i class="fa-solid fa-check text-emerald-400"></i>
-        <span class="text-xs font-bold">Đã sao chép liên kết!</span>
+        <i id="toast-icon" class="fa-solid fa-check text-emerald-400"></i>
+        <span id="toast-msg" class="text-xs font-bold">Thành công!</span>
     </div>
 
     <script>
         const db = supabase.createClient("https://sfbaytcmpgceapdcdyer.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8");
         const uid = localStorage.getItem("my_wallet_uid");
+        let currentCommission = 0;
+        let isWithdrawing = false;
 
         window.onload = async () => {
             if(!uid) return window.location.href = "index.html";
             
-            // Tạo link giới thiệu
-            const link = `${window.location.origin}/index.html?ref=${uid}`;
-            document.getElementById("share-link-text").innerText = link;
+            // 1. Hiển thị Mã giới thiệu (UID)
+            document.getElementById("my-ref-code").innerText = uid;
 
-            // Load Thống kê
-            // 1. Đếm số người đã mời
+            await loadData();
+        };
+
+        async function loadData() {
+            // 2. Lấy số dư hoa hồng
+            const { data: user } = await db.from("users").select("commission_balance").eq("id", uid).single();
+            if (user) {
+                currentCommission = user.commission_balance || 0;
+                document.getElementById("commission-balance").innerText = currentCommission.toLocaleString('vi-VN');
+            }
+
+            // 3. Lấy danh sách bạn bè
             const { data: friends } = await db.from("users").select("id, name, created_at").eq("ref_by", uid).order('created_at', {ascending: false});
             
-            // 2. Tính tổng hoa hồng
-            const { data: comms } = await db.from("deposit_history").select("amount").eq("uid", uid).eq("source", "referral_bonus");
-            const total = comms ? comms.reduce((sum, item) => sum + item.amount, 0) : 0;
-            
-            document.getElementById("total-commission").innerText = total.toLocaleString('vi-VN');
             document.getElementById("friend-count").innerText = `${friends?.length || 0} người`;
 
             // Render List
             const list = document.getElementById("friend-list");
             if(!friends || friends.length === 0) {
-                list.innerHTML = `<div class="text-center py-8 opacity-50 flex flex-col items-center"><i class="fa-solid fa-user-group text-2xl text-slate-600 mb-2"></i><p class="text-xs text-slate-500">Chưa có ai đăng ký qua link của bạn</p></div>`;
+                list.innerHTML = `<div class="text-center py-8 opacity-50 flex flex-col items-center"><i class="fa-solid fa-user-group text-2xl text-slate-600 mb-2"></i><p class="text-xs text-slate-500">Chưa có ai nhập mã giới thiệu của bạn</p></div>`;
             } else {
                 list.innerHTML = friends.map(f => `
                     <div class="glass-panel p-3 rounded-xl flex justify-between items-center">
@@ -138,18 +153,76 @@
                     </div>
                 `).join('');
             }
-        };
+        }
 
-        function copyLink() {
-            const link = document.getElementById("share-link-text").innerText;
-            navigator.clipboard.writeText(link).then(() => {
-                const t = document.getElementById('toast');
-                t.classList.remove('opacity-0', '-translate-y-20');
-                setTimeout(() => t.classList.add('opacity-0', '-translate-y-20'), 2000);
+        async function withdrawCommission() {
+            if (isWithdrawing) return;
+            if (currentCommission <= 0) return showToast("Số dư hoa hồng trống!", "error");
+
+            if(!confirm(`Rút toàn bộ ${currentCommission.toLocaleString()} Coin về ví chính?`)) return;
+
+            isWithdrawing = true;
+            const btn = document.getElementById("btn-withdraw");
+            btn.innerHTML = `<span class="loader"></span> Đang xử lý...`;
+
+            try {
+                // Lấy số dư chính hiện tại
+                const { data: u } = await db.from("users").select("balance").eq("id", uid).single();
+                if (!u) throw new Error("Lỗi user");
+
+                // 1. Cộng vào balance chính
+                const newMainBalance = (u.balance || 0) + currentCommission;
+                
+                // 2. Trừ ví hoa hồng về 0
+                const { error } = await db.from("users").update({ 
+                    balance: newMainBalance,
+                    commission_balance: 0 
+                }).eq("id", uid);
+
+                if (error) throw error;
+
+                // 3. Ghi lịch sử
+                await db.from("deposit_history").insert({
+                    uid: uid,
+                    amount: currentCommission,
+                    source: "commission_withdraw", // Đánh dấu là rút hoa hồng
+                    note: "Rút hoa hồng về ví chính"
+                });
+
+                showToast("Rút thành công!", "success");
+                await loadData(); // Reload UI
+
+            } catch (e) {
+                console.error(e);
+                showToast("Lỗi hệ thống", "error");
+            } finally {
+                isWithdrawing = false;
+                btn.innerHTML = `<i class="fa-solid fa-money-bill-transfer"></i> RÚT VỀ VÍ CHÍNH`;
+            }
+        }
+
+        function copyCode() {
+            const code = document.getElementById("my-ref-code").innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                showToast("Đã sao chép mã!");
             });
+        }
+
+        function showToast(msg, type='success') {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            const icon = document.getElementById('toast-icon');
+            
+            if(type === 'error') {
+                icon.className = "fa-solid fa-triangle-exclamation text-rose-500";
+            } else {
+                icon.className = "fa-solid fa-check text-emerald-400";
+            }
+
+            t.classList.remove('opacity-0', '-translate-y-20');
+            setTimeout(() => t.classList.add('opacity-0', '-translate-y-20'), 2000);
         }
     </script>
 </body>
 </html>
-
 
