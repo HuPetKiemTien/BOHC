@@ -3,12 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Crypto Binary VIP - HC88</title>
+  <title>Crypto Pro - HC88</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-  <!-- SUPABASE LIBRARY -->
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <!-- SUPABASE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- CANVAS CONFETTI -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
   <script>
     tailwind.config = {
@@ -17,20 +19,26 @@
           fontFamily: { 
             oswald: ['Oswald', 'sans-serif'], 
             roboto: ['Roboto', 'sans-serif'],
-            mono: ['Share Tech Mono', 'monospace']
+            mono: ['JetBrains Mono', 'monospace']
           },
           colors: { 
-            gold: '#FFD700', 
-            up: '#00ff88', 
-            down: '#ff0055',
-            dark: '#0b0e14'
+            gold: '#FACC15', 
+            up: '#2ebd85',     // Binance Green
+            down: '#f6465d',   // Binance Red
+            dark: '#1e2026',   // Binance Dark
+            panel: '#2b3139'
           },
           boxShadow: { 
-            'glow-up': '0 0 20px rgba(0, 255, 136, 0.4)',
-            'glow-down': '0 0 20px rgba(255, 0, 85, 0.4)'
+            'glow-up': '0 0 15px rgba(46, 189, 133, 0.4)',
+            'glow-down': '0 0 15px rgba(246, 70, 93, 0.4)'
           },
           animation: {
-            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'flash-green': 'flashGreen 0.5s ease-out',
+            'flash-red': 'flashRed 0.5s ease-out',
+          },
+          keyframes: {
+            flashGreen: { '0%': { backgroundColor: 'rgba(46, 189, 133, 0.5)' }, '100%': { backgroundColor: 'transparent' } },
+            flashRed: { '0%': { backgroundColor: 'rgba(246, 70, 93, 0.5)' }, '100%': { backgroundColor: 'transparent' } }
           }
         }
       }
@@ -40,284 +48,272 @@
   <style>
     /* CORE SETUP */
     body {
-      background-color: #0b0e14;
-      background-image: 
-        linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
-      background-size: 20px 20px;
-      color: white; overflow: hidden; touch-action: manipulation; user-select: none;
+      background-color: #161a1e;
+      color: #eaecef; overflow: hidden; touch-action: manipulation; user-select: none;
       -webkit-tap-highlight-color: transparent; font-family: 'Roboto', sans-serif;
       height: 100vh; height: 100dvh;
+      display: flex; flex-direction: column;
     }
     
-    /* GLASS PANEL */
-    .glass {
-      background: rgba(20, 25, 35, 0.85); backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
     /* CHART CONTAINER */
     #chart-wrapper {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+      position: relative; flex: 1; width: 100%; overflow: hidden;
+      background: #161a1e;
+      cursor: crosshair;
     }
     canvas { display: block; width: 100%; height: 100%; }
 
-    /* PRICE DISPLAY */
-    .price-tick { transition: color 0.3s; }
-    .price-up { color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.3); }
-    .price-down { color: #ff0055; text-shadow: 0 0 10px rgba(255,0,85,0.3); }
-
-    /* BET BUTTONS */
+    /* UI ELEMENTS */
+    .glass-panel {
+      background: #1e2329; border-top: 1px solid #2b3139;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+    }
+    
     .btn-trade {
-      position: relative; overflow: hidden; transition: all 0.2s;
-      border: 1px solid rgba(255,255,255,0.1);
+      position: relative; overflow: hidden; transition: all 0.1s;
+      border-radius: 8px; font-weight: 700;
     }
-    .btn-trade:active { transform: scale(0.96); }
+    .btn-trade:active { transform: scale(0.98); }
     
-    .btn-up { background: linear-gradient(180deg, rgba(0,255,136,0.1) 0%, rgba(0,255,136,0.2) 100%); border-color: #00ff88; }
-    .btn-up.active-bet { box-shadow: 0 0 20px rgba(0,255,136,0.6); background: rgba(0,255,136,0.3); }
+    .btn-up { background: #2ebd85; color: white; }
+    .btn-up.active-bet { box-shadow: inset 0 0 0 3px rgba(0,0,0,0.3), 0 0 15px #2ebd85; }
     
-    .btn-down { background: linear-gradient(180deg, rgba(255,0,85,0.1) 0%, rgba(255,0,85,0.2) 100%); border-color: #ff0055; }
-    .btn-down.active-bet { box-shadow: 0 0 20px rgba(255,0,85,0.6); background: rgba(255,0,85,0.3); }
+    .btn-down { background: #f6465d; color: white; }
+    .btn-down.active-bet { box-shadow: inset 0 0 0 3px rgba(0,0,0,0.3), 0 0 15px #f6465d; }
 
-    /* PROGRESS BAR */
-    .progress-ring__circle {
-      transition: stroke-dashoffset 1s linear;
-      transform: rotate(-90deg);
-      transform-origin: 50% 50%;
-    }
+    /* PRICE DISPLAY */
+    .price-text { transition: color 0.2s; }
+    .text-up { color: #2ebd85; }
+    .text-down { color: #f6465d; }
+
+    /* SENTIMENT BAR */
+    .sentiment-bar { height: 4px; border-radius: 2px; overflow: hidden; display: flex; background: #2b3139; margin-top: 4px; }
+    .sent-fill { height: 100%; transition: width 1s ease-in-out; }
 
     /* CHIPS */
     .chip { 
-      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      height: 32px; padding: 0 12px; border-radius: 4px; 
       display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 9px; cursor: pointer; 
-      border: 1px solid rgba(255,255,255,0.2);
-      background: #1e293b; color: #94a3b8;
-      transition: all 0.2s;
+      font-weight: 700; font-size: 11px; cursor: pointer; 
+      background: #2b3139; color: #848e9c; border: 1px solid transparent;
+      transition: all 0.2s; white-space: nowrap;
     }
     .chip.active { 
-      transform: translateY(-5px) scale(1.1); 
-      border-color: #FFD700; color: #FFD700; background: #332f18;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      background: #fcd535; color: #1e2329; border-color: #fcd535;
+      font-weight: 900;
     }
 
-    /* HISTORY DOTS */
-    .dot { width: 6px; height: 6px; border-radius: 50%; }
-    .dot-u { background: #00ff88; box-shadow: 0 0 4px #00ff88; }
-    .dot-d { background: #ff0055; box-shadow: 0 0 4px #ff0055; }
+    /* HISTORY */
+    .dot { width: 4px; height: 12px; border-radius: 1px; margin-right: 2px; }
+    .dot.U { background: #2ebd85; } .dot.D { background: #f6465d; }
 
-    /* UI UTILS */
-    .pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
-    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; display: inline-block; }
-    .status-dot.online { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+    /* TICKER (Simulated trades) */
+    .ticker-item { font-size: 10px; display: flex; justify-content: space-between; margin-bottom: 2px; opacity: 0.7; }
+    .ticker-list { mask-image: linear-gradient(to bottom, black 50%, transparent 100%); }
+
+    /* MODAL */
+    .modal-enter { opacity: 0; transform: scale(0.95); }
+    .modal-active { opacity: 1; transform: scale(1); }
+    
+    .pb-safe { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
   </style>
 </head>
-<body class="flex flex-col">
+<body>
 
   <!-- HEADER -->
-  <header class="h-12 bg-[#0b0e14]/90 border-b border-white/5 flex items-center justify-between px-3 fixed top-0 w-full z-50 shrink-0 backdrop-blur-md">
-    <div class="flex items-center gap-2">
-      <a href="games.html" class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 border border-white/5 active:bg-slate-700">
-        <i class="fa-solid fa-chevron-left text-xs"></i>
+  <header class="h-14 bg-[#1e2329] border-b border-[#2b3139] flex items-center justify-between px-3 shrink-0 z-50">
+    <div class="flex items-center gap-3">
+      <a href="games.html" class="w-8 h-8 flex items-center justify-center text-[#848e9c] hover:text-white transition">
+        <i class="fa-solid fa-arrow-left text-lg"></i>
       </a>
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center border border-orange-500/50">
-            <i class="fa-brands fa-bitcoin text-orange-500 text-lg"></i>
+      <div>
+        <div class="flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-bars text-[#848e9c] text-xs"></i>
+          <span class="font-bold text-base text-white">BTCUSDT</span>
+          <span class="bg-[#2b3139] text-[#848e9c] text-[9px] px-1 rounded">Perpetual</span>
         </div>
-        <div>
-          <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">BTC/USDT</div>
-          <div class="font-oswald text-base text-white leading-none mt-0.5">BINARY <span class="text-gold text-xs align-top">VIP</span></div>
+        <div id="trend-stat" class="text-[10px] font-mono text-up flex items-center gap-1 leading-none mt-0.5">
+          <span>+2.45%</span> <i class="fa-solid fa-caret-up"></i>
         </div>
       </div>
     </div>
+    
     <div class="text-right">
-      <div class="flex items-center gap-2 bg-slate-900 px-3 py-1 rounded border border-white/10">
-        <span id="conn-dot" class="status-dot"></span>
-        <span class="text-gold text-[10px]">$</span>
-        <span id="balance" class="font-mono text-sm text-white font-bold">---</span>
+      <div class="flex flex-col items-end">
+        <span class="text-[9px] text-[#848e9c] font-bold">VÍ CHÍNH</span>
+        <div class="flex items-center gap-1.5">
+          <span id="balance" class="font-mono text-sm text-white font-bold">---</span>
+          <span class="text-gold text-[10px] font-bold">COIN</span>
+        </div>
       </div>
     </div>
   </header>
 
-  <!-- MAIN CHART AREA -->
-  <main class="flex-1 mt-12 flex flex-col relative w-full overflow-hidden">
+  <!-- CHART & OVERLAYS -->
+  <div id="chart-wrapper">
+    <!-- PRICE OVERLAY (Top Left) -->
+    <div class="absolute top-4 left-4 z-10 pointer-events-none">
+      <div id="live-price" class="font-mono text-3xl font-bold tracking-tight text-up">95,420.50</div>
+      <div class="text-[10px] text-[#848e9c] mt-1">Mark Price</div>
+    </div>
+
+    <!-- COUNTDOWN (Top Right) -->
+    <div class="absolute top-4 right-4 z-10 flex flex-col items-end pointer-events-none">
+      <div id="phase-badge" class="px-2 py-0.5 rounded bg-[#2ebd85]/20 text-[#2ebd85] text-[10px] font-bold uppercase mb-1">Đặt lệnh</div>
+      <div class="font-mono text-3xl font-bold text-white" id="timer-display">30</div>
+      <div class="w-full h-1 bg-[#2b3139] rounded-full mt-1 overflow-hidden">
+        <div id="timer-bar" class="h-full bg-gold transition-all duration-1000 ease-linear w-full"></div>
+      </div>
+    </div>
     
-    <!-- LIVE PRICE OVERLAY -->
-    <div class="absolute top-4 left-4 z-20">
-      <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Giá thị trường</div>
-      <div id="live-price" class="font-mono text-4xl font-bold tracking-tighter price-up">95,420.50</div>
-      <div class="flex items-center gap-2 mt-1">
-        <span class="px-1.5 py-0.5 rounded bg-white/5 text-[9px] text-slate-400 border border-white/5">VOL: 24M</span>
-        <span id="trend-indicator" class="text-[9px] font-bold text-up flex items-center gap-1"><i class="fa-solid fa-caret-up"></i> +0.45%</span>
+    <!-- CANVAS -->
+    <canvas id="pro-chart"></canvas>
+
+    <!-- FAKE TRADES (Bottom Left - Floating) -->
+    <div class="absolute bottom-4 left-3 z-10 w-24 pointer-events-none">
+      <div class="text-[9px] text-[#848e9c] font-bold mb-1 uppercase">Giao dịch gần đây</div>
+      <div id="ticker-box" class="ticker-list h-16 overflow-hidden flex flex-col-reverse">
+        <!-- JS will populate -->
       </div>
     </div>
-
-    <!-- COUNTDOWN OVERLAY -->
-    <div class="absolute top-4 right-4 z-20 flex flex-col items-end">
-      <div id="phase-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 text-[9px] font-bold uppercase tracking-widest mb-1 backdrop-blur-sm">ĐẶT CƯỢC</div>
-      <div class="relative w-12 h-12 flex items-center justify-center">
-        <svg class="w-full h-full transform -rotate-90">
-          <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.1)" stroke-width="3" fill="none"></circle>
-          <circle id="timer-ring" cx="24" cy="24" r="20" stroke="#FFD700" stroke-width="3" fill="none" stroke-dasharray="126" stroke-dashoffset="0" class="progress-ring__circle"></circle>
-        </svg>
-        <span id="timer-text" class="absolute font-oswald text-lg font-bold text-white">20</span>
-      </div>
-    </div>
-
-    <!-- CANVAS CHART -->
-    <div id="chart-wrapper" class="w-full h-full bg-[#0b0e14]">
-      <canvas id="crypto-chart"></canvas>
-    </div>
-
-    <!-- LOCK LINE MARKER (Hidden by default) -->
-    <div id="lock-line" class="absolute right-[20%] top-0 bottom-0 w-[1px] border-l border-dashed border-white/30 z-10 hidden flex-col justify-center items-center">
-      <span class="bg-slate-800 text-[9px] px-1 py-0.5 rounded text-slate-400 border border-white/10 mt-20">Khóa</span>
-    </div>
-
-  </main>
+  </div>
 
   <!-- CONTROL PANEL -->
-  <div class="glass border-t border-white/10 z-40 relative pb-safe">
+  <div class="glass-panel z-20 pb-safe">
     
-    <!-- INFO BAR -->
-    <div class="flex items-center justify-between px-4 py-2 bg-black/40 border-b border-white/5">
-      <div class="flex items-center gap-2">
-        <span class="text-[9px] text-slate-500 font-bold uppercase">Phiên:</span>
-        <span id="session-id" class="font-mono text-[10px] text-slate-300">#82931</span>
+    <!-- SENTIMENT & HISTORY -->
+    <div class="px-3 py-2 border-b border-[#2b3139] flex items-center justify-between bg-[#1e2329]">
+      <div class="w-1/3">
+        <div class="flex justify-between text-[9px] text-[#848e9c] font-bold mb-0.5">
+          <span class="text-up">Mua 65%</span>
+          <span class="text-down">35% Bán</span>
+        </div>
+        <div class="sentiment-bar">
+          <div class="sent-fill bg-up w-[65%]"></div>
+          <div class="sent-fill bg-down w-[35%]"></div>
+        </div>
       </div>
-      <div class="flex items-center gap-1" id="roadmap">
-        <!-- History dots injected here -->
+      <div class="flex items-center gap-0.5" id="roadmap">
+        <!-- History dots -->
       </div>
     </div>
 
-    <div class="p-3 space-y-3">
-      
-      <!-- BET BUTTONS -->
-      <div class="grid grid-cols-2 gap-3 h-20">
-        <!-- BUY / UP -->
-        <button id="btn-up" class="btn-trade btn-up rounded-xl flex flex-col items-center justify-center gap-1 group" onclick="game.placeBet('UP')">
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-arrow-trend-up text-xl text-up drop-shadow-lg"></i>
-            <span class="font-oswald text-2xl text-white font-bold">MUA</span>
+    <!-- BETTING CONTROLS -->
+    <div class="p-3">
+      <!-- Buttons -->
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <button id="btn-up" class="btn-trade btn-up h-12 flex items-center justify-between px-4 group" onclick="game.selectSide('UP')">
+          <span class="font-bold text-lg">MUA (Lên)</span>
+          <div class="flex flex-col items-end leading-none">
+            <span class="text-[10px] opacity-80">Payout</span>
+            <span class="font-mono text-sm font-bold">1.95x</span>
           </div>
-          <div class="flex items-center gap-2 text-[10px] text-up/80 font-mono">
-            <span>x1.95</span>
-            <span id="badge-UP" class="bg-black/50 px-1.5 rounded text-white hidden">0</span>
-          </div>
+          <div id="badge-UP" class="absolute inset-0 bg-black/20 hidden flex items-center justify-center font-mono font-bold text-gold border-2 border-gold rounded-lg"></div>
         </button>
 
-        <!-- SELL / DOWN -->
-        <button id="btn-down" class="btn-trade btn-down rounded-xl flex flex-col items-center justify-center gap-1 group" onclick="game.placeBet('DOWN')">
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-arrow-trend-down text-xl text-down drop-shadow-lg"></i>
-            <span class="font-oswald text-2xl text-white font-bold">BÁN</span>
+        <button id="btn-down" class="btn-trade btn-down h-12 flex items-center justify-between px-4 group" onclick="game.selectSide('DOWN')">
+          <span class="font-bold text-lg">BÁN (Xuống)</span>
+          <div class="flex flex-col items-end leading-none">
+            <span class="text-[10px] opacity-80">Payout</span>
+            <span class="font-mono text-sm font-bold">1.95x</span>
           </div>
-          <div class="flex items-center gap-2 text-[10px] text-down/80 font-mono">
-            <span>x1.95</span>
-            <span id="badge-DOWN" class="bg-black/50 px-1.5 rounded text-white hidden">0</span>
-          </div>
+          <div id="badge-DOWN" class="absolute inset-0 bg-black/20 hidden flex items-center justify-center font-mono font-bold text-gold border-2 border-gold rounded-lg"></div>
         </button>
       </div>
 
-      <!-- CHIPS & ACTIONS -->
-      <div class="flex items-center gap-2">
-        <!-- Scrollable Chips -->
-        <div class="flex-1 overflow-x-auto scrollbar-hide">
-          <div class="flex items-center gap-2 pr-2">
-            <div class="chip" onclick="game.setChip(2000, this)">2k</div>
-            <div class="chip active" onclick="game.setChip(10000, this)">10k</div>
-            <div class="chip" onclick="game.setChip(50000, this)">50k</div>
-            <div class="chip" onclick="game.setChip(100000, this)">100k</div>
-            <div class="chip" onclick="game.setChip(500000, this)">500k</div>
-          </div>
+      <!-- Amount Input -->
+      <div class="flex items-center gap-2 mb-1">
+        <div class="flex-1 overflow-x-auto no-scrollbar flex items-center gap-2">
+            <div class="chip" onclick="game.setAmount(5000)">5k</div>
+            <div class="chip active" onclick="game.setAmount(10000)">10k</div>
+            <div class="chip" onclick="game.setAmount(50000)">50k</div>
+            <div class="chip" onclick="game.setAmount(100000)">100k</div>
+            <div class="chip" onclick="game.setAmount(500000)">500k</div>
+            <div class="chip" onclick="game.setAmount(app.balance)">All-in</div>
         </div>
-        
-        <!-- Action Buttons -->
-        <button onclick="game.cancelBets()" class="h-9 px-3 rounded bg-slate-800 border border-white/10 text-slate-400 text-[10px] font-bold uppercase active:scale-95">Hủy</button>
-        <button onclick="game.confirmBets()" class="h-9 px-4 rounded bg-gold text-black border border-gold text-[10px] font-black uppercase active:scale-95 shadow-[0_0_15px_rgba(255,215,0,0.3)]">
-          Xác nhận
+        <button onclick="game.confirmBet()" class="h-8 px-4 rounded bg-[#fcd535] text-[#1e2329] font-black text-xs uppercase shadow hover:bg-[#ffe252] active:scale-95 transition">
+          XÁC NHẬN
         </button>
       </div>
-
     </div>
   </div>
 
   <!-- RESULT MODAL -->
-  <div id="modal-result" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
-    <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 w-64 text-center transform scale-90 transition-transform duration-300" id="modal-content">
-      <div id="res-icon" class="text-5xl mb-3 drop-shadow-2xl"></div>
-      <div id="res-title" class="text-2xl font-oswald font-bold text-white mb-1"></div>
-      <div id="res-profit" class="font-mono text-lg font-bold"></div>
+  <div id="modal-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+    <div id="modal-content" class="bg-[#1e2329] border border-[#2b3139] rounded-2xl p-6 w-72 text-center transform scale-95 transition-transform duration-300 shadow-2xl relative overflow-hidden">
+      <!-- Glow -->
+      <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gold to-transparent"></div>
+      
+      <div id="modal-icon" class="text-5xl mb-3"></div>
+      <div id="modal-title" class="text-2xl font-bold text-white uppercase mb-1"></div>
+      <div id="modal-amount" class="font-mono text-xl font-bold"></div>
+      
+      <button onclick="game.closeModal()" class="mt-5 w-full py-2 rounded bg-[#2b3139] text-[#848e9c] font-bold text-xs hover:text-white transition">ĐÓNG</button>
     </div>
   </div>
 
   <!-- TOAST -->
-  <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 glass px-5 py-2.5 rounded-full flex items-center gap-3 opacity-0 pointer-events-none transition-all duration-300 z-[200] border border-white/10 shadow-2xl w-max max-w-[90%]">
-    <i id="toast-icon" class="fa-solid fa-info-circle text-sm"></i>
-    <span id="toast-msg" class="text-[11px] font-bold text-white uppercase tracking-wider truncate">Thông báo</span>
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-[#1e2329]/90 backdrop-blur border border-[#2b3139] px-4 py-2 rounded-full flex items-center gap-3 opacity-0 pointer-events-none transition-all duration-300 z-[200] shadow-xl w-max">
+    <i id="toast-icon" class="fa-solid fa-info-circle text-xs"></i>
+    <span id="toast-msg" class="text-[11px] font-bold text-white uppercase tracking-wider">Thông báo</span>
   </div>
 
   <script>
-    // ===== 1. CONFIG & SUPABASE =====
+    // ===== 1. CONFIG =====
+    const CONFIG = {
+      ROUND_TIME: 30,
+      BET_TIME: 20, // 20s bet, 10s lock
+      ODDS: 1.95,
+      MIN_BET: 2000
+    };
+
+    // Supabase Setup
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
-    const WALLET_TABLE = 'users';              
-    const WALLET_BALANCE_COLUMN = 'balance'; 
-
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    const CONFIG = {
-      ROUND_TIME: 30, // 30s total
-      BET_TIME: 20,   // 20s to bet
-      LIMITS: { MIN: 2000, MAX: 500000 },
-      ODDS: 1.95
-    };
 
     // ===== 2. APP STATE =====
     const app = {
-      user: null, 
+      user: null,
       balance: 0,
-      realtimeChannel: null,
       
       showToast: (msg, type='info') => {
         const t = document.getElementById("toast");
         const i = document.getElementById("toast-icon");
         document.getElementById("toast-msg").innerText = msg;
-        if (type === 'error') { i.className = "fa-solid fa-circle-xmark text-red-500"; }
-        else if (type === 'success') { i.className = "fa-solid fa-circle-check text-green-500"; }
-        else { i.className = "fa-solid fa-info-circle text-blue-500"; }
+        if (type === 'error') { i.className = "fa-solid fa-circle-xmark text-down"; }
+        else if (type === 'success') { i.className = "fa-solid fa-circle-check text-up"; }
+        else { i.className = "fa-solid fa-info-circle text-gold"; }
         t.classList.remove("opacity-0", "pointer-events-none");
         setTimeout(() => t.classList.add("opacity-0", "pointer-events-none"), 3000);
       }
     };
 
-    // ===== 3. CHART & PRICE ENGINE =====
+    // ===== 3. PRO CHART ENGINE =====
     const chart = {
-      canvas: document.getElementById('crypto-chart'),
+      canvas: document.getElementById('pro-chart'),
       ctx: null,
-      prices: [],
-      maxPoints: 100, // Number of points on screen
-      currentPrice: 95420.50,
+      data: [], // {price, time}
+      maxPoints: 120, // ~2 mins of data at 1fps
       width: 0,
       height: 0,
+      currentPrice: 95420.50,
       
       init: () => {
         chart.ctx = chart.canvas.getContext('2d');
         window.addEventListener('resize', chart.resize);
         chart.resize();
         
-        // Init dummy data
+        // Seed initial data
+        let p = chart.currentPrice;
         for(let i=0; i<chart.maxPoints; i++) {
-          chart.prices.push(chart.currentPrice);
+          p += (Math.random()-0.5)*10;
+          chart.data.push(p);
         }
+        chart.currentPrice = p;
         requestAnimationFrame(chart.draw);
       },
-      
+
       resize: () => {
         const wrap = document.getElementById('chart-wrapper');
         chart.width = wrap.clientWidth;
@@ -327,93 +323,119 @@
         chart.ctx.scale(2, 2);
       },
 
-      updatePrice: () => {
-        // Random walk logic
-        const change = (Math.random() - 0.5) * 50; 
+      tick: () => {
+        // Volatility logic
+        const volatility = 25;
+        const change = (Math.random() - 0.5) * volatility;
         chart.currentPrice += change;
-        
-        // Push new price
-        chart.prices.push(chart.currentPrice);
-        if(chart.prices.length > chart.maxPoints) chart.prices.shift();
-        
-        // Update DOM
+        chart.data.push(chart.currentPrice);
+        if(chart.data.length > chart.maxPoints) chart.data.shift();
+
+        // Update DOM Price
         const el = document.getElementById('live-price');
-        el.innerText = chart.currentPrice.toFixed(2);
+        el.innerText = chart.currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        el.className = change >= 0 ? "font-mono text-3xl font-bold tracking-tight text-up" : "font-mono text-3xl font-bold tracking-tight text-down";
         
-        if(change >= 0) {
-            el.className = "font-mono text-4xl font-bold tracking-tighter price-up";
-            document.getElementById('trend-indicator').innerHTML = `<i class="fa-solid fa-caret-up"></i> +${(Math.random()*0.5).toFixed(2)}%`;
-            document.getElementById('trend-indicator').className = "text-[9px] font-bold text-up flex items-center gap-1";
-        } else {
-            el.className = "font-mono text-4xl font-bold tracking-tighter price-down";
-            document.getElementById('trend-indicator').innerHTML = `<i class="fa-solid fa-caret-down"></i> -${(Math.random()*0.5).toFixed(2)}%`;
-            document.getElementById('trend-indicator').className = "text-[9px] font-bold text-down flex items-center gap-1";
-        }
+        // Fake Ticker
+        game.addFakeTrade(chart.currentPrice, change >= 0);
       },
 
       draw: () => {
-        const ctx = chart.ctx;
-        const w = chart.width;
-        const h = chart.height;
-        const prices = chart.prices;
+        const { ctx, width, height, data } = chart;
+        ctx.clearRect(0, 0, width, height);
 
-        ctx.clearRect(0, 0, w, h);
+        // 1. Calculate Range (Auto-scale)
+        const minVal = Math.min(...data);
+        const maxVal = Math.max(...data);
+        const range = maxVal - minVal || 1;
+        const padding = height * 0.2; // 20% vertical padding
+        
+        const getY = (price) => height - padding - ((price - minVal) / range) * (height - 2*padding);
+        const stepX = width / (data.length - 1);
 
-        // Calculate Scale
-        const min = Math.min(...prices) - 50;
-        const max = Math.max(...prices) + 50;
-        const range = max - min;
-
-        // Draw Line
+        // 2. Draw Grid Lines
+        ctx.strokeStyle = '#2b3139';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        const step = w / (chart.maxPoints - 1);
-        
-        // Gradient Fill
-        const lastPrice = prices[prices.length-1];
-        const prevPrice = prices[prices.length-2];
-        const color = lastPrice >= prevPrice ? '#00ff88' : '#ff0055';
-        
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, color + '40'); // Opacity hex
-        grad.addColorStop(1, color + '00');
-
-        for (let i = 0; i < prices.length; i++) {
-          const x = i * step;
-          const y = h - ((prices[i] - min) / range) * h;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
+        // Horizontal lines
+        for(let i=1; i<5; i++) {
+            const y = (height/5) * i;
+            ctx.moveTo(0, y); ctx.lineTo(width, y);
         }
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.lineJoin = 'round';
         ctx.stroke();
 
-        // Close path for fill
-        ctx.lineTo(w, h);
-        ctx.lineTo(0, h);
-        ctx.fillStyle = grad;
+        // 3. Draw Main Line Area
+        ctx.beginPath();
+        data.forEach((p, i) => {
+            const x = i * stepX;
+            const y = getY(p);
+            if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+
+        // Determine Line Color based on Game State
+        let strokeColor = '#fcd535'; // Default Gold/Neutral
+        if (game.phase === 'LOCKED') {
+            strokeColor = chart.currentPrice >= game.lockPrice ? '#2ebd85' : '#f6465d';
+        }
+
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2.5;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // 4. Gradient Fill
+        ctx.lineTo(width, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, strokeColor + '40'); // 25% opacity
+        gradient.addColorStop(1, strokeColor + '00'); // 0% opacity
+        ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Draw Pulsing Dot at tip
-        const tipX = (prices.length - 1) * step;
-        const tipY = h - ((lastPrice - min) / range) * h;
+        // 5. Draw Lock Line (if locked)
+        if (game.phase === 'LOCKED') {
+            const lockY = getY(game.lockPrice);
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#eaecef';
+            ctx.lineWidth = 1;
+            ctx.moveTo(0, lockY);
+            ctx.lineTo(width, lockY);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
 
+            // Lock Label
+            ctx.fillStyle = '#eaecef';
+            ctx.font = '10px JetBrains Mono';
+            ctx.fillText('LOCK: ' + game.lockPrice.toFixed(2), width - 90, lockY - 6);
+        }
+
+        // 6. Draw Pulsing Head
+        const lastX = (data.length - 1) * stepX;
+        const lastY = getY(data[data.length - 1]);
+        
+        // Glow ring
         ctx.beginPath();
-        ctx.arc(tipX, tipY, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff';
+        ctx.arc(lastX, lastY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = strokeColor;
         ctx.fill();
         
-        // Glow
         ctx.beginPath();
-        ctx.arc(tipX, tipY, 10, 0, Math.PI * 2);
-        ctx.fillStyle = color + '60'; // Semi transparent
+        ctx.arc(lastX, lastY, 12, 0, Math.PI * 2);
+        ctx.fillStyle = strokeColor + '40';
         ctx.fill();
 
-        // Lock Line (if phase is locked)
-        if (game.phase === 'LOCKED') {
-           // Draw lock price line
-        }
+        // Current Price Label Line
+        ctx.beginPath();
+        ctx.setLineDash([2, 2]);
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1;
+        ctx.moveTo(0, lastY);
+        ctx.lineTo(width, lastY);
+        ctx.stroke();
+        ctx.setLineDash([]);
 
         requestAnimationFrame(chart.draw);
       }
@@ -421,47 +443,50 @@
 
     // ===== 4. GAME LOGIC =====
     const game = {
-      phase: 'BET', // BET, LOCKED, RESULT
+      phase: 'BET', 
       timeLeft: CONFIG.BET_TIME,
       lockPrice: 0,
       
-      betAmount: 0,
-      currentChip: 10000,
-      selectedSide: null, // 'UP' or 'DOWN'
-      confirmedBet: null, // { side: 'UP', amount: 1000 }
+      selectedSide: null,
+      betAmount: 10000,
+      confirmedBet: null, // { side, amount, atPrice }
       
       timerInterval: null,
 
       init: async () => {
-        // Auth Check
         const uid = localStorage.getItem("my_wallet_uid");
-        if (!uid) { alert("Vui lòng đăng nhập lại!"); window.location.href = "index.html"; return; }
+        if (!uid) { alert("Vui lòng đăng nhập!"); window.location.href = "index.html"; return; }
         
         app.user = { id: uid };
         await game.loadBalance();
         game.setupRealtimeBalance();
         
         chart.init();
+        setInterval(chart.tick, 1000); // Update price every second
         
-        // Start Loops
-        setInterval(chart.updatePrice, 1000); // Price tick
+        // Fake activity
+        setInterval(() => {
+            const r = Math.random();
+            if(r > 0.7) game.addFakeTrade(chart.currentPrice, r > 0.85);
+        }, 300);
+
         game.startRound();
       },
 
       loadBalance: async () => {
-        const { data } = await supabaseClient.from(WALLET_TABLE).select(WALLET_BALANCE_COLUMN).eq('id', app.user.id).maybeSingle();
+        const { data } = await supabaseClient.from('users').select('balance').eq('id', app.user.id).maybeSingle();
         if (data) { app.balance = data.balance; game.updateBalanceUI(); }
       },
 
       setupRealtimeBalance: () => {
         supabaseClient.channel('wallet-changes').on('postgres_changes', 
-          { event: 'UPDATE', schema: 'public', table: WALLET_TABLE, filter: `id=eq.${app.user.id}` },
+          { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${app.user.id}` },
           (payload) => { app.balance = payload.new.balance; game.updateBalanceUI(); }
         ).subscribe();
       },
 
       updateBalanceUI: () => {
-        document.getElementById("balance").innerText = app.balance.toLocaleString();
+        document.getElementById("balance").innerText = app.balance.toLocaleString('en-US');
       },
 
       startRound: () => {
@@ -470,29 +495,34 @@
         game.lockPrice = 0;
         game.confirmedBet = null;
         game.selectedSide = null;
-        game.betAmount = 0;
         
-        game.updateUIPhase();
-        game.resetBetUI();
+        // UI Reset
+        document.getElementById('phase-badge').innerText = "ĐẶT LỆNH";
+        document.getElementById('phase-badge').className = "px-2 py-0.5 rounded bg-[#2ebd85]/20 text-[#2ebd85] text-[10px] font-bold uppercase mb-1";
+        document.getElementById('badge-UP').classList.add('hidden');
+        document.getElementById('badge-DOWN').classList.add('hidden');
+        document.getElementById('btn-up').classList.remove('opacity-50', 'pointer-events-none');
+        document.getElementById('btn-down').classList.remove('opacity-50', 'pointer-events-none');
         
         if (game.timerInterval) clearInterval(game.timerInterval);
         
         game.timerInterval = setInterval(() => {
           game.timeLeft--;
           
-          // Phase Transitions
-          if (game.timeLeft === (CONFIG.ROUND_TIME - CONFIG.BET_TIME)) { // e.g., at 10s left
+          const totalTime = CONFIG.ROUND_TIME;
+          const progress = (game.timeLeft / totalTime) * 100;
+          document.getElementById('timer-bar').style.width = progress + '%';
+          document.getElementById('timer-display').innerText = game.timeLeft;
+
+          if (game.timeLeft === (CONFIG.ROUND_TIME - CONFIG.BET_TIME)) {
             game.lockPhase();
           }
-          
+
           if (game.timeLeft <= 0) {
             game.settleRound();
-            // Restart after short delay
-            setTimeout(game.startRound, 4000);
             clearInterval(game.timerInterval);
+            setTimeout(game.startRound, 5000); // 5s break
           }
-          
-          game.updateTimerUI();
         }, 1000);
       },
 
@@ -500,174 +530,127 @@
         game.phase = 'LOCKED';
         game.lockPrice = chart.currentPrice;
         
-        // Update UI
-        document.getElementById('phase-badge').innerText = "ĐÓNG CƯỢC";
-        document.getElementById('phase-badge').className = "px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/50 text-[9px] font-bold uppercase tracking-widest mb-1";
-        document.getElementById('lock-line').classList.remove('hidden');
-        document.getElementById('lock-line').classList.add('flex');
+        document.getElementById('phase-badge').innerText = "CHỜ KẾT QUẢ";
+        document.getElementById('phase-badge').className = "px-2 py-0.5 rounded bg-[#fcd535]/20 text-[#fcd535] text-[10px] font-bold uppercase mb-1";
         
-        // Disable buttons
+        // Disable inputs
         document.getElementById('btn-up').classList.add('opacity-50', 'pointer-events-none');
         document.getElementById('btn-down').classList.add('opacity-50', 'pointer-events-none');
       },
 
       settleRound: () => {
         game.phase = 'RESULT';
-        const endPrice = chart.currentPrice;
-        const result = endPrice > game.lockPrice ? 'UP' : 'DOWN';
+        const result = chart.currentPrice >= game.lockPrice ? 'UP' : 'DOWN';
         
-        // Add to history
-        game.addHistory(result);
+        // Add dot
+        const rm = document.getElementById('roadmap');
+        const dot = document.createElement('div');
+        dot.className = `dot ${result === 'UP' ? 'U' : 'D'}`;
+        rm.appendChild(dot);
+        if(rm.children.length > 20) rm.removeChild(rm.firstChild);
 
-        // Calc Win/Loss
+        // Win/Loss Logic
         if (game.confirmedBet) {
-          if (game.confirmedBet.side === result) {
-            const profit = Math.floor(game.confirmedBet.amount * CONFIG.ODDS);
-            app.balance += profit;
-            game.syncBalance();
-            game.showResultModal(true, profit, result);
-          } else {
-            game.showResultModal(false, 0, result);
-          }
+            const win = game.confirmedBet.side === result;
+            if (win) {
+                const profit = Math.floor(game.confirmedBet.amount * CONFIG.ODDS);
+                app.balance += profit;
+                game.syncBalance();
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                game.showModal(true, profit, result);
+            } else {
+                game.showModal(false, 0, result);
+            }
+        } else {
+            // Show passive notification
+            app.showToast(`Kết quả: ${result === 'UP' ? 'MUA Thắng' : 'BÁN Thắng'}`, 'info');
         }
       },
 
-      // --- BETTING LOGIC ---
-      setChip: (val, el) => {
-        game.currentChip = val;
-        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
-        el.classList.add("active");
+      // --- USER ACTIONS ---
+      setAmount: (val) => {
+        game.betAmount = val;
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        // Visual toggle logic for chip... (simplified here)
+        app.showToast(`Đã chọn mức cược: ${val.toLocaleString()}`, 'info');
       },
 
-      placeBet: (side) => {
-        if (game.phase !== 'BET') return app.showToast("Đã khóa cược!", "error");
-        
-        // Toggle side if clicking different one
-        if (game.selectedSide && game.selectedSide !== side) {
-           game.betAmount = 0; // Reset if switching
-        }
-        
+      selectSide: (side) => {
+        if(game.phase !== 'BET') return;
         game.selectedSide = side;
         
-        // Check Limits
-        if (game.betAmount + game.currentChip > CONFIG.LIMITS.MAX) return app.showToast("Quá giới hạn cược!", "error");
-        if (game.betAmount + game.currentChip > app.balance) return app.showToast("Số dư không đủ!", "error");
+        // Visual toggle
+        document.getElementById('btn-up').classList.remove('active-bet');
+        document.getElementById('btn-down').classList.remove('active-bet');
         
-        game.betAmount += game.currentChip;
-        
-        // UI Feedback
-        document.querySelectorAll('.btn-trade').forEach(b => b.classList.remove('active-bet'));
-        const btn = document.getElementById(side === 'UP' ? 'btn-up' : 'btn-down');
-        btn.classList.add('active-bet');
-        
-        document.getElementById('badge-UP').classList.add('hidden');
-        document.getElementById('badge-DOWN').classList.add('hidden');
-        
-        const badge = document.getElementById(`badge-${side}`);
-        badge.classList.remove('hidden');
-        badge.innerText = game.betAmount.toLocaleString();
+        if (side === 'UP') document.getElementById('btn-up').classList.add('active-bet');
+        else document.getElementById('btn-down').classList.add('active-bet');
       },
 
-      cancelBets: () => {
-        if (game.phase !== 'BET') return;
-        game.betAmount = 0;
-        game.selectedSide = null;
-        game.resetBetUI();
-        app.showToast("Đã hủy cược");
-      },
+      confirmBet: async () => {
+        if(game.phase !== 'BET') return app.showToast("Đã khóa đặt lệnh!", 'error');
+        if(!game.selectedSide) return app.showToast("Vui lòng chọn MUA hoặc BÁN", 'error');
+        if(game.betAmount > app.balance) return app.showToast("Số dư không đủ", 'error');
 
-      confirmBets: async () => {
-        if (game.phase !== 'BET') return app.showToast("Hết giờ!", "error");
-        if (game.betAmount === 0) return;
-        if (game.betAmount < CONFIG.LIMITS.MIN) return app.showToast(`Tối thiểu ${CONFIG.LIMITS.MIN}`, "error");
-        
-        // Deduct
+        // Deduct balance
         app.balance -= game.betAmount;
         game.updateBalanceUI();
-        await game.syncBalance();
-        
+        await game.syncBalance(); // Server sync
+
         game.confirmedBet = { side: game.selectedSide, amount: game.betAmount };
         
-        // Lock UI buttons visually
-        app.showToast(`Đã cược ${game.selectedSide} ${game.betAmount.toLocaleString()}`, "success");
+        // Show Badge
+        const badgeId = game.selectedSide === 'UP' ? 'badge-UP' : 'badge-DOWN';
+        const badge = document.getElementById(badgeId);
+        badge.classList.remove('hidden');
+        badge.innerText = game.betAmount.toLocaleString();
+        
+        app.showToast("Đặt lệnh thành công!", 'success');
       },
 
       syncBalance: async () => {
-        await supabaseClient.from(WALLET_TABLE).update({ balance: app.balance }).eq('id', app.user.id);
+        await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
       },
 
-      // --- UI UPDATES ---
-      updateUIPhase: () => {
-        document.getElementById('phase-badge').innerText = "ĐẶT CƯỢC";
-        document.getElementById('phase-badge').className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 text-[9px] font-bold uppercase tracking-widest mb-1";
-        document.getElementById('lock-line').classList.add('hidden');
-        document.getElementById('lock-line').classList.remove('flex');
-        document.getElementById('btn-up').classList.remove('opacity-50', 'pointer-events-none');
-        document.getElementById('btn-down').classList.remove('opacity-50', 'pointer-events-none');
+      // --- UTILS ---
+      addFakeTrade: (price, isBuy) => {
+        const box = document.getElementById('ticker-box');
+        const div = document.createElement('div');
+        div.className = 'ticker-item';
+        const time = new Date().toTimeString().split(' ')[0];
+        const amt = (Math.random() * 0.5).toFixed(4);
+        
+        div.innerHTML = `
+          <span class="font-mono text-[#848e9c]">${time}</span>
+          <span class="font-mono ${isBuy ? 'text-up' : 'text-down'}">${price.toFixed(1)}</span>
+          <span class="font-mono text-white text-right">${amt}</span>
+        `;
+        box.prepend(div);
+        if(box.children.length > 6) box.removeChild(box.lastChild);
       },
 
-      resetBetUI: () => {
-        document.querySelectorAll('.btn-trade').forEach(b => b.classList.remove('active-bet'));
-        document.getElementById('badge-UP').classList.add('hidden');
-        document.getElementById('badge-DOWN').classList.add('hidden');
+      showModal: (isWin, amount, result) => {
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+        
+        document.getElementById('modal-icon').innerHTML = isWin ? '🏆' : '📉';
+        document.getElementById('modal-title').innerText = isWin ? 'Thắng Lớn' : 'Thua Cuộc';
+        document.getElementById('modal-title').className = `text-2xl font-bold uppercase mb-1 ${isWin ? 'text-up' : 'text-[#848e9c]'}`;
+        
+        document.getElementById('modal-amount').innerText = isWin ? `+${amount.toLocaleString()}` : '0.00';
+        document.getElementById('modal-amount').className = `font-mono text-xl font-bold ${isWin ? 'text-gold' : 'text-[#848e9c]'}`;
       },
 
-      updateTimerUI: () => {
-        const t = document.getElementById('timer-text');
-        const ring = document.getElementById('timer-ring');
-        
-        t.innerText = game.timeLeft;
-        if (game.timeLeft <= 10) t.classList.add('text-rose-500');
-        else t.classList.remove('text-rose-500');
-        
-        // Circle progress
-        const radius = 20;
-        const circumference = radius * 2 * Math.PI;
-        const offset = circumference - (game.timeLeft / CONFIG.ROUND_TIME) * circumference;
-        ring.style.strokeDashoffset = offset;
-      },
-
-      addHistory: (res) => {
-        const rm = document.getElementById("roadmap");
-        const d = document.createElement("div");
-        d.className = `dot ${res==='UP' ? 'dot-u' : 'dot-d'}`;
-        rm.appendChild(d);
-        if(rm.children.length > 15) rm.removeChild(rm.firstChild);
-        
-        // Random session ID
-        document.getElementById('session-id').innerText = "#" + Math.floor(10000 + Math.random() * 90000);
-      },
-
-      showResultModal: (isWin, amount, res) => {
-        const m = document.getElementById('modal-result');
-        const c = document.getElementById('modal-content');
-        const icon = document.getElementById('res-icon');
-        const tit = document.getElementById('res-title');
-        const prof = document.getElementById('res-profit');
-        
-        m.classList.remove('opacity-0', 'pointer-events-none');
-        c.classList.remove('scale-90');
-        c.classList.add('scale-100');
-        
-        if (isWin) {
-          icon.innerHTML = '🤑';
-          tit.innerText = "THẮNG LỚN";
-          tit.className = "text-2xl font-oswald font-bold text-up mb-1";
-          prof.innerText = "+" + amount.toLocaleString();
-          prof.className = "font-mono text-lg font-bold text-up";
-        } else {
-          icon.innerHTML = '💸';
-          tit.innerText = "THUA CUỘC";
-          tit.className = "text-2xl font-oswald font-bold text-slate-400 mb-1";
-          prof.innerText = res === 'UP' ? "Giá TĂNG" : "Giá GIẢM";
-          prof.className = "font-mono text-lg font-bold text-white";
-        }
-        
-        setTimeout(() => {
-          m.classList.add('opacity-0', 'pointer-events-none');
-          c.classList.add('scale-90');
-          c.classList.remove('scale-100');
-        }, 3000);
+      closeModal: () => {
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        content.classList.add('scale-95');
+        content.classList.remove('scale-100');
       }
     };
 
