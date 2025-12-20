@@ -44,7 +44,7 @@
             <div class="relative z-10">
                 <div class="flex justify-center items-center gap-2 mb-2">
                     <i class="fa-solid fa-wallet text-yellow-400"></i>
-                    <p class="text-xs text-yellow-200 font-bold uppercase tracking-wider">Ví Hoa Hồng</p>
+                    <p class="text-xs text-yellow-200 font-bold uppercase tracking-wider">Số dư Ví Hoa Hồng</p>
                 </div>
                 
                 <h2 class="text-4xl font-bold text-white tracking-tight font-mono mb-4" id="commission-balance">0</h2>
@@ -52,7 +52,7 @@
                 <button onclick="withdrawCommission()" id="btn-withdraw" class="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-sm shadow-lg shadow-orange-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
                     <i class="fa-solid fa-money-bill-transfer"></i> RÚT VỀ VÍ CHÍNH
                 </button>
-                <p class="text-[10px] text-slate-400 mt-2 italic">*Số dư sẽ được cộng vào ví chính để rút hoặc chơi.</p>
+                <p class="text-[10px] text-slate-400 mt-2 italic">*Rút tối thiểu 10,000 Coin.</p>
             </div>
         </div>
 
@@ -61,8 +61,8 @@
             <h3 class="text-sm font-bold text-white mb-3 ml-1">Mã giới thiệu của bạn</h3>
             <div class="glass-panel p-1.5 rounded-2xl flex items-center gap-2">
                 <div class="flex-1 bg-black/20 rounded-xl px-4 py-3 border border-white/5 flex flex-col justify-center">
-                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">YOUR CODE</p>
-                    <p id="my-ref-code" class="text-lg font-mono font-bold text-emerald-400 tracking-widest">LOADING</p>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">MÃ GIỚI THIỆU</p>
+                    <p id="my-ref-code" class="text-lg font-mono font-bold text-emerald-400 tracking-widest uppercase">LOADING</p>
                 </div>
                 <button onclick="copyCode()" class="h-full px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm transition active:scale-95 flex flex-col items-center justify-center gap-1 min-h-[60px]">
                     <i class="fa-regular fa-copy"></i>
@@ -73,15 +73,15 @@
 
         <!-- Policy -->
         <div class="glass-panel p-5 rounded-2xl animate-up" style="animation-delay: 0.2s;">
-            <h3 class="text-sm font-bold text-white mb-4 border-l-2 border-yellow-500 pl-2">Chính sách hoa hồng</h3>
+            <h3 class="text-sm font-bold text-white mb-4 border-l-2 border-yellow-500 pl-2">Quyền lợi đại lý</h3>
             <div class="space-y-3">
                 <div class="flex items-center gap-3">
                     <span class="text-yellow-500 font-bold text-sm">10%</span>
-                    <span class="text-xs text-slate-300">Nhận ngay vào Ví Hoa Hồng khi F1 nạp tiền.</span>
+                    <span class="text-xs text-slate-300">Nhận hoa hồng trọn đời mỗi khi F1 nạp tiền.</span>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="text-blue-400 font-bold text-sm">Rút Ngay</span>
-                    <span class="text-xs text-slate-300">Chuyển sang Ví Chính bất cứ lúc nào.</span>
+                    <span class="text-blue-400 font-bold text-sm">Tự Động</span>
+                    <span class="text-xs text-slate-300">Hệ thống tự cộng tiền vào ví hoa hồng ngay lập tức.</span>
                 </div>
             </div>
         </div>
@@ -89,7 +89,7 @@
         <!-- List Friends -->
         <div class="animate-up" style="animation-delay: 0.3s;">
             <div class="flex justify-between items-center mb-3 px-1">
-                <h3 class="text-sm font-bold text-white">Bạn bè đã tham gia</h3>
+                <h3 class="text-sm font-bold text-white">Thành viên đã mời</h3>
                 <span class="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400 font-bold" id="friend-count">0 người</span>
             </div>
             <div id="friend-list" class="space-y-2 pb-10">
@@ -115,51 +115,81 @@
 
         window.onload = async () => {
             if(!uid) return window.location.href = "index.html";
-            
-            // 1. Hiển thị Mã giới thiệu (UID)
-            document.getElementById("my-ref-code").innerText = uid;
-
+            document.getElementById("my-ref-code").innerText = uid.toUpperCase();
             await loadData();
         };
 
         async function loadData() {
-            // 2. Lấy số dư hoa hồng
+            // 1. Lấy số dư hoa hồng hiện tại (Để rút)
             const { data: user } = await db.from("users").select("commission_balance").eq("id", uid).single();
             if (user) {
                 currentCommission = user.commission_balance || 0;
                 document.getElementById("commission-balance").innerText = currentCommission.toLocaleString('vi-VN');
             }
 
-            // 3. Lấy danh sách bạn bè
+            // 2. Lấy danh sách bạn bè (F1)
             const { data: friends } = await db.from("users").select("id, name, created_at").eq("ref_by", uid).order('created_at', {ascending: false});
-            
             document.getElementById("friend-count").innerText = `${friends?.length || 0} người`;
 
-            // Render List
             const list = document.getElementById("friend-list");
+            
             if(!friends || friends.length === 0) {
                 list.innerHTML = `<div class="text-center py-8 opacity-50 flex flex-col items-center"><i class="fa-solid fa-user-group text-2xl text-slate-600 mb-2"></i><p class="text-xs text-slate-500">Chưa có ai nhập mã giới thiệu của bạn</p></div>`;
-            } else {
-                list.innerHTML = friends.map(f => `
+                return;
+            }
+
+            // 3. TÍNH HOA HỒNG TỪNG NGƯỜI (LOGIC MỚI)
+            // Lấy tất cả lịch sử nạp tiền của những người này
+            const friendIds = friends.map(f => f.id);
+            
+            // Query các khoản nạp (source hợp lệ)
+            const { data: deposits } = await db.from("deposit_history")
+                .select("uid, amount")
+                .in("uid", friendIds)
+                .in("source", ['admin_add', 'admin_create', 'code', 'code_deposit']);
+
+            // Map tổng nạp theo từng User ID
+            const commissionMap = {};
+            if(deposits) {
+                deposits.forEach(d => {
+                    if (!commissionMap[d.uid]) commissionMap[d.uid] = 0;
+                    // Hoa hồng = 10% tổng nạp
+                    commissionMap[d.uid] += (d.amount * 0.1);
+                });
+            }
+
+            // Render Danh sách
+            list.innerHTML = friends.map(f => {
+                const commAmount = commissionMap[f.id] || 0;
+                const time = new Date(f.created_at).toLocaleDateString('vi-VN');
+                
+                return `
                     <div class="glass-panel p-3 rounded-xl flex justify-between items-center">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold"><i class="fa-solid fa-user"></i></div>
+                            <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 font-bold text-xs uppercase border border-slate-700">
+                                ${f.name ? f.name.charAt(0) : 'U'}
+                            </div>
                             <div>
-                                <p class="text-xs font-bold text-white">${f.name || f.id}</p>
-                                <p class="text-[10px] text-slate-500 font-mono">${new Date(f.created_at).toLocaleDateString()}</p>
+                                <p class="text-xs font-bold text-white uppercase">${f.name || f.id}</p>
+                                <p class="text-[10px] text-slate-500 font-mono">Gia nhập: ${time}</p>
                             </div>
                         </div>
-                        <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">F1</span>
+                        <div class="text-right">
+                            <div class="text-[10px] text-slate-400">Hoa hồng</div>
+                            <div class="text-sm font-bold font-mono ${commAmount > 0 ? 'text-yellow-400' : 'text-slate-600'}">
+                                +${commAmount.toLocaleString('vi-VN')}
+                            </div>
+                        </div>
                     </div>
-                `).join('');
-            }
+                `;
+            }).join('');
         }
 
         async function withdrawCommission() {
             if (isWithdrawing) return;
-            if (currentCommission <= 0) return showToast("Số dư hoa hồng trống!", "error");
+            if (currentCommission < 10000) return showToast("Tối thiểu rút 10,000 Coin", "error");
 
-            if(!confirm(`Rút toàn bộ ${currentCommission.toLocaleString()} Coin về ví chính?`)) return;
+            if(!confirm(`Xác nhận rút ${currentCommission.toLocaleString()} Coin về ví chính?`)) return;
 
             isWithdrawing = true;
             const btn = document.getElementById("btn-withdraw");
@@ -181,12 +211,12 @@
 
                 if (error) throw error;
 
-                // 3. Ghi lịch sử
+                // 3. Ghi lịch sử rút hoa hồng
                 await db.from("deposit_history").insert({
                     uid: uid,
                     amount: currentCommission,
-                    source: "commission_withdraw", // Đánh dấu là rút hoa hồng
-                    note: "Rút hoa hồng về ví chính"
+                    source: "commission_withdraw", 
+                    note: "Rút hoa hồng về ví"
                 });
 
                 showToast("Rút thành công!", "success");
@@ -225,4 +255,5 @@
     </script>
 </body>
 </html>
+
 
