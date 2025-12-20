@@ -45,19 +45,6 @@
             background: rgba(255, 255, 255, 0.08);
         }
 
-        /* Hiệu ứng gợn sóng khi click */
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(0);
-            animation: ripple 0.6s linear;
-            pointer-events: none;
-        }
-        @keyframes ripple {
-            to { transform: scale(4); opacity: 0; }
-        }
-
         /* Tabs */
         .tab-btn {
             position: relative;
@@ -90,10 +77,6 @@
 
         .game-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .game-item.hidden { display: none; opacity: 0; transform: scale(0.8); }
-
-        /* Modal Animation */
-        .modal-enter { opacity: 0; transform: scale(0.9); pointer-events: none; }
-        .modal-active { opacity: 1; transform: scale(1); pointer-events: auto; }
     </style>
 </head>
 
@@ -156,6 +139,30 @@
                 <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Tài Xỉu</span>
             </a>
 
+            <!-- Mini: Crypto BTC (MỚI) -->
+            <a href="btc.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500 text-xl shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                    <i class="fa-brands fa-bitcoin"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Crypto VIP</span>
+            </a>
+
+            <!-- Mini: Bầu Cua -->
+            <a href="baucua.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                    <i class="fa-solid fa-shrimp"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Bầu Cua</span>
+            </a>
+
+            <!-- Mini: Click -->
+            <a href="click.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-fuchsia-500/10 flex items-center justify-center text-fuchsia-500 text-xl shadow-[0_0_15px_rgba(217,70,239,0.3)]">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                </div>
+                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Đập Lu</span>
+            </a>
+
             <!-- Slots: Nổ hũ (COMING SOON) -->
             <div onclick="showComingSoon()" data-category="slots" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 cursor-pointer group">
                 <div class="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 text-xl shadow-[0_0_15px_rgba(245,158,11,0.3)] group-active:scale-90 transition-transform">
@@ -180,30 +187,13 @@
                 <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Bắn Cá</span>
             </div>
 
-            <!-- Bầu Cua -->
-            <a href="baucua.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-xl shadow-[0_0_15px_rgba(249,115,22,0.3)]">
-                    <i class="fa-solid fa-shrimp"></i>
-                </div>
-                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Bầu Cua</span>
-            </a>
-
             <!-- Bắn bi (COMING SOON) -->
             <div onclick="showComingSoon()" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 cursor-pointer group">
                 <div class="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center text-pink-500 text-xl shadow-[0_0_15px_rgba(236,72,153,0.3)] group-active:scale-90 transition-transform">
-                    <!-- Sử dụng icon bowling-ball vì ball-pile là pro icon -->
                     <i class="fa-solid fa-bowling-ball"></i>
                 </div>
                 <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Bắn Bi</span>
             </div>
-
-            <!-- Click -->
-            <a href="click.html" data-category="mini" class="game-item glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2">
-                <div class="w-10 h-10 rounded-full bg-fuchsia-500/10 flex items-center justify-center text-fuchsia-500 text-xl shadow-[0_0_15px_rgba(217,70,239,0.3)]">
-                    <i class="fa-solid fa-hand-pointer"></i>
-                </div>
-                <span class="text-[10px] font-bold text-center leading-tight text-slate-200">Đập Lu</span>
-            </a>
 
             <!-- Placeholder -->
             <div class="glass-card p-3 aspect-square flex flex-col items-center justify-center gap-2 opacity-30">
@@ -219,9 +209,7 @@
     <!-- MODAL "SẮP RA MẮT" -->
     <div id="coming-soon-modal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm transition-all duration-300 opacity-0 pointer-events-none">
         <div class="bg-[#1e293b] border border-white/10 p-6 rounded-2xl shadow-2xl transform scale-90 transition-all duration-300 max-w-[280px] w-full mx-4 text-center relative overflow-hidden">
-            <!-- Background Glow -->
             <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-20 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
-
             <div class="relative z-10">
                 <div class="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/40 animate-pulse">
                     <i class="fa-solid fa-rocket text-2xl text-white"></i>
@@ -238,25 +226,20 @@
     </div>
 
     <script>
-        // Supabase Init
         const SUPABASE_URL = "https://sfbaytcmpgceapdcdyer.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8";
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Filter Logic
         function filterGames(category) {
             const games = document.querySelectorAll('.game-item');
             const tabs = document.querySelectorAll('.tab-btn');
-
             tabs.forEach(tab => {
                 tab.classList.remove('active');
                 if (tab.id === `tab-${category}`) tab.classList.add('active');
             });
-
             games.forEach(game => {
                 game.style.opacity = '0';
                 game.style.transform = 'scale(0.8)';
-                
                 setTimeout(() => {
                     if (category === 'all' || game.getAttribute('data-category') === category) {
                         game.classList.remove('hidden');
@@ -271,45 +254,27 @@
             });
         }
 
-        // Modal Logic
         const modal = document.getElementById('coming-soon-modal');
         const modalContent = modal.querySelector('div');
-
         function showComingSoon() {
             modal.classList.remove('opacity-0', 'pointer-events-none');
             modalContent.classList.remove('scale-90');
             modalContent.classList.add('scale-100');
-            
-            // Haptic vibration on mobile if supported
             if (navigator.vibrate) navigator.vibrate(50);
         }
-
         function hideComingSoon() {
             modal.classList.add('opacity-0', 'pointer-events-none');
             modalContent.classList.remove('scale-100');
             modalContent.classList.add('scale-90');
         }
-
-        // Close modal when clicking outside
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) hideComingSoon();
-        });
+        modal.addEventListener('click', (e) => { if (e.target === modal) hideComingSoon(); });
 
         window.onload = async function() {
             const uid = localStorage.getItem("my_wallet_uid");
-            
             if (uid) {
                 document.getElementById('user-uid').innerText = "ID: " + uid.substring(0, 8).toUpperCase();
-
-                const { data: user, error } = await db
-                    .from("users")
-                    .select("balance")
-                    .eq("id", uid)
-                    .maybeSingle();
-                
-                if (user) {
-                    animateValue("user-balance", 0, user.balance, 1000);
-                }
+                const { data: user } = await db.from("users").select("balance").eq("id", uid).maybeSingle();
+                if (user) animateValue("user-balance", 0, user.balance, 1000);
             }
         };
 
@@ -321,9 +286,7 @@
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
                 const value = Math.floor(progress * (end - start) + start);
                 if (obj) obj.innerHTML = value.toLocaleString('en-US');
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                }
+                if (progress < 1) window.requestAnimationFrame(step);
             };
             window.requestAnimationFrame(step);
         }
