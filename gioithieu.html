@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Giới Thiệu Bạn Bè - HC88</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+    <!-- QR Code & Supabase -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(234, 179, 8, 0.1) 0%, transparent 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .font-oswald { font-family: 'Oswald', sans-serif; }
+
+        /* Glass Cards */
+        .glass-box {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+        }
+
+        /* Gold Gradient Text */
+        .text-gradient-gold {
+            background: linear-gradient(to right, #fbbf24, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Animated Button */
+        .btn-share {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-share:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3); }
+
+        /* Safe Area */
+        .pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+
+        /* Toast */
+        #toast { visibility: hidden; opacity: 0; transition: opacity 0.3s; }
+        #toast.show { visibility: visible; opacity: 1; }
+
+        /* QR Modal */
+        #qr-modal { opacity: 0; pointer-events: none; transition: all 0.3s; }
+        #qr-modal.open { opacity: 1; pointer-events: auto; }
+        #qr-modal .modal-content { transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        #qr-modal.open .modal-content { transform: scale(1); }
+    </style>
+</head>
+<body class="flex flex-col">
+
+    <!-- HEADER -->
+    <header class="h-14 flex items-center justify-between px-4 sticky top-0 z-50 bg-[#020617]/90 backdrop-blur border-b border-white/5 shrink-0">
+        <a href="home.html" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 active:bg-slate-700">
+            <i class="fa-solid fa-arrow-left"></i>
+        </a>
+        <h1 class="text-base font-bold uppercase tracking-wide">Đại Lý & Giới Thiệu</h1>
+        <div class="w-9"></div> 
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-4 pb-24 overflow-y-auto space-y-5">
+
+        <!-- HERO BANNER -->
+        <div class="glass-box p-5 text-center relative overflow-hidden">
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-indigo-500/20 blur-[50px] rounded-full"></div>
+            <div class="relative z-10">
+                <div class="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20 mb-3 rotate-3">
+                    <i class="fa-solid fa-hand-holding-dollar text-3xl text-white"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-1">Mời Bạn Nạp Tiền</h2>
+                <p class="text-sm text-slate-400">Nhận ngay hoa hồng <span class="text-yellow-400 font-bold">20%</span> trên mỗi giao dịch nạp.</p>
+            </div>
+        </div>
+
+        <!-- MY CODE SECTION -->
+        <div class="space-y-2">
+            <div class="text-xs font-bold text-slate-500 uppercase ml-1">Mã giới thiệu của bạn</div>
+            <div class="glass-box p-1 flex items-center justify-between pr-1.5 pl-4 h-14">
+                <span id="ref-code" class="font-mono text-xl font-bold text-white tracking-wider">...</span>
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="openQR()" class="w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition active:scale-95 border border-white/5">
+                        <i class="fa-solid fa-qrcode"></i>
+                    </button>
+                    <button onclick="copyCode()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition active:scale-95 flex items-center gap-2 border border-white/5 shadow-lg shadow-indigo-500/20">
+                        <i class="fa-regular fa-copy"></i> COPY
+                    </button>
+                </div>
+            </div>
+            <div class="text-[10px] text-slate-500 text-center mt-2">
+                Chia sẻ mã này hoặc <span class="text-indigo-400 cursor-pointer hover:underline" onclick="copyLink()">Sao chép liên kết</span>
+            </div>
+        </div>
+
+        <!-- STATS DASHBOARD -->
+        <div class="grid grid-cols-2 gap-3">
+            <div class="glass-box p-4 flex flex-col items-center justify-center gap-1">
+                <div class="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 mb-1 border border-blue-500/20">
+                    <i class="fa-solid fa-user-check text-xs"></i>
+                </div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase">Bạn bè</div>
+                <div class="font-oswald text-2xl font-bold text-white" id="stat-count">0</div>
+            </div>
+            <div class="glass-box p-4 flex flex-col items-center justify-center gap-1 border border-yellow-500/20 bg-yellow-500/5">
+                <div class="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-400 mb-1 border border-yellow-500/20">
+                    <i class="fa-solid fa-coins text-xs"></i>
+                </div>
+                <div class="text-[10px] text-slate-400 font-bold uppercase">Hoa hồng</div>
+                <div class="font-oswald text-2xl font-bold text-gradient-gold" id="stat-commission">0</div>
+            </div>
+        </div>
+
+        <!-- LIST -->
+        <div>
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="text-xs font-bold text-slate-500 uppercase">Lịch sử nhận thưởng</h3>
+                <span class="text-[10px] text-indigo-400 cursor-pointer" onclick="fetchData()">Làm mới</span>
+            </div>
+            <div class="space-y-2" id="friend-list">
+                <div class="text-center py-8 text-slate-600 text-xs flex flex-col items-center gap-2">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FIXED BOTTOM BUTTON -->
+    <div class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-[#020617] via-[#020617]/90 to-transparent z-40 pb-safe">
+        <button onclick="shareNative()" class="btn-share w-full h-12 rounded-xl flex items-center justify-center gap-2 font-bold text-white uppercase tracking-wider text-sm">
+            <i class="fa-solid fa-share-nodes"></i> Chia sẻ kiếm tiền ngay
+        </button>
+    </div>
+
+    <!-- QR CODE MODAL -->
+    <div id="qr-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onclick="closeQR()">
+        <div class="modal-content glass-box p-6 flex flex-col items-center gap-4 max-w-[80%] w-72" onclick="event.stopPropagation()">
+            <div class="text-center">
+                <div class="text-white font-bold text-lg">Mã QR Giới Thiệu</div>
+                <div class="text-xs text-slate-400">Quét để đăng ký & nhận thưởng</div>
+            </div>
+            <div class="bg-white p-3 rounded-2xl shadow-xl">
+                <div id="qrcode"></div>
+            </div>
+            <div class="bg-slate-800/50 px-4 py-2 rounded-lg border border-white/5 w-full text-center">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Mã của bạn</div>
+                <div class="font-mono text-lg font-bold text-yellow-400 tracking-widest" id="modal-code">...</div>
+            </div>
+            <button onclick="closeQR()" class="w-full h-10 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold uppercase transition">Đóng</button>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900/90 backdrop-blur border border-white/10 px-5 py-3 rounded-full text-white text-xs font-bold shadow-2xl z-[150] flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-green-500"></i>
+        <span id="toast-msg">Thành công!</span>
+    </div>
+
+    <script>
+        // --- 1. SUPABASE CONFIG ---
+        const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const user = {
+            id: localStorage.getItem("my_wallet_uid"),
+            code: "",
+            link: ""
+        };
+
+        // --- 2. INIT ---
+        window.onload = async () => {
+            if (!user.id) {
+                alert("Vui lòng đăng nhập!");
+                window.location.href = 'index.html'; 
+                return;
+            }
+
+            // Generate Ref Code logic: HC + first 6 chars of UID
+            user.code = "HC-" + user.id.substring(0, 6).toUpperCase();
+            user.link = window.location.origin + "/register.html?ref=" + user.code;
+
+            document.getElementById("ref-code").innerText = user.code;
+            document.getElementById("modal-code").innerText = user.code;
+
+            // Generate QR
+            new QRCode(document.getElementById("qrcode"), {
+                text: user.link,
+                width: 180, height: 180,
+                colorDark : "#000000", colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            // Fetch Real Data
+            await fetchData();
+        };
+
+        // --- 3. FETCH DATA FUNCTION ---
+        async function fetchData() {
+            try {
+                // 1. Đếm số người đã mời (từ bảng users)
+                // Giả định bảng users có cột referred_by
+                const { count: friendCount, error: err1 } = await client
+                    .from('users')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('referred_by', user.id);
+
+                animateValue("stat-count", 0, friendCount || 0, 1000);
+
+                // 2. Lấy lịch sử hoa hồng (từ bảng commissions)
+                // Giả định bảng commissions: id, referrer_id, amount (tiền nạp), commission (hoa hồng), created_at, from_user_id
+                const { data: commissions, error: err2 } = await client
+                    .from('commissions')
+                    .select('*')
+                    .eq('referrer_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (err2 && err2.code !== '42P01') { // Ignore if table doesn't exist yet
+                    console.error("Lỗi lấy hoa hồng:", err2);
+                }
+
+                // Render List & Total
+                const list = document.getElementById("friend-list");
+                list.innerHTML = "";
+                
+                let totalCom = 0;
+
+                if (!commissions || commissions.length === 0) {
+                    list.innerHTML = `<div class="flex flex-col items-center justify-center py-8 text-slate-600 gap-2"><span class="text-xs italic">Chưa có giao dịch.</span></div>`;
+                } else {
+                    commissions.forEach(item => {
+                        totalCom += (item.commission || 0);
+                        const date = new Date(item.created_at).toLocaleDateString('vi-VN');
+                        const html = `
+                            <div class="glass-box p-3 flex items-center justify-between active:scale-[0.98] transition-transform">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-300 font-bold text-[10px] border border-white/5">
+                                        <i class="fa-solid fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs font-bold text-slate-200">ID: ...${(item.from_user_id || 'UNKNOWN').substring(0,6)}</div>
+                                        <div class="text-[10px] text-slate-500">Nạp: <span class="text-slate-400">${(item.amount || 0).toLocaleString()}</span> • ${date}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Hoa hồng</div>
+                                    <div class="font-oswald font-bold text-green-400 text-sm">+${(item.commission || 0).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        `;
+                        list.innerHTML += html;
+                    });
+                }
+                
+                animateValue("stat-commission", 0, totalCom, 1500);
+
+            } catch (e) {
+                console.log("Chế độ Offline/Demo do chưa có bảng Database tương ứng.", e);
+                // Fallback UI if DB not ready
+                document.getElementById("friend-list").innerHTML = `<div class="text-center py-8 text-slate-600 text-xs">Chưa có dữ liệu.</div>`;
+            }
+        }
+
+        // --- 4. UTILS ---
+        function openQR() { document.getElementById("qr-modal").classList.add("open"); }
+        function closeQR() { document.getElementById("qr-modal").classList.remove("open"); }
+
+        function copyCode() {
+            navigator.clipboard.writeText(user.code).then(() => showToast("Đã sao chép Mã!"));
+        }
+        function copyLink() {
+            navigator.clipboard.writeText(user.link).then(() => showToast("Đã sao chép Link!"));
+        }
+        function shareNative() {
+            if (navigator.share) {
+                navigator.share({ title: 'HC88', text: 'Nhập mã ' + user.code + ' nhận quà!', url: user.link }).catch((e) => console.log(e));
+            } else { copyLink(); }
+        }
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            document.getElementById("toast-msg").innerText = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2000);
+        }
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const val = Math.floor(progress * (end - start) + start);
+                obj.innerHTML = val.toLocaleString();
+                if (progress < 1) window.requestAnimationFrame(step);
+            };
+            window.requestAnimationFrame(step);
+        }
+    </script>
+</body>
+</html>
+
