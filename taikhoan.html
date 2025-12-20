@@ -552,9 +552,9 @@
                 if(resD.data) {
                     resD.data.forEach(x => {
                         const src = x.source || 'code';
-                        let cfg = { title: "NẠP TIỀN", sign: "+", amountClass: "text-emerald-400", status: "Thành công", statusClass: "text-slate-500", icon: "fa-ticket", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400" };
-                        if(src === 'admin_add' || src === 'admin_create') { cfg.title = "NẠP TIỀN (ADMIN)"; cfg.icon = "fa-shield-halved"; } 
-                        else if(src === 'admin_sub' || src === 'admin_subtract') { cfg.title = "TRỪ TIỀN (ADMIN)"; cfg.sign = "-"; cfg.amountClass = "text-rose-400"; cfg.icon = "fa-user-shield"; cfg.iconBg = "bg-rose-500/10"; cfg.iconColor = "text-rose-400"; cfg.status = "Hoàn tất"; } 
+                        let cfg = { title: "MÃ NẠP", sign: "+", amountClass: "text-emerald-400", status: "Thành công", statusClass: "text-slate-500", icon: "fa-ticket", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400" };
+                        if(src === 'admin_add' || src === 'admin_create') { cfg.title = "NẠP TIỀN"; cfg.icon = "fa-shield-halved"; } 
+                        else if(src === 'admin_sub' || src === 'admin_subtract') { cfg.title = "TRỪ TIỀN"; cfg.sign = "-"; cfg.amountClass = "text-rose-400"; cfg.icon = "fa-user-shield"; cfg.iconBg = "bg-rose-500/10"; cfg.iconColor = "text-rose-400"; cfg.status = "Hoàn tất"; } 
                         else if(src === 'withdraw_refund') { cfg.title = "HOÀN TIỀN RÚT"; cfg.icon = "fa-rotate-left"; cfg.iconBg = "bg-blue-500/10"; cfg.iconColor = "text-blue-400"; cfg.status = "Đã hoàn"; } 
                         else if (src === 'commission_withdraw') { cfg.title = "RÚT HOA HỒNG"; cfg.icon = "fa-sack-dollar"; cfg.iconBg = "bg-yellow-500/10"; cfg.iconColor = "text-yellow-400"; cfg.amountClass = "text-yellow-400"; cfg.status = "Thành công"; }
                         items.push({ date: new Date(x.created_at), title: cfg.title, amount: x.amount, sign: cfg.sign, amountClass: cfg.amountClass, statusText: cfg.status, statusClass: cfg.statusClass, icon: cfg.icon, iconBg: cfg.iconBg, iconColor: cfg.iconColor });
