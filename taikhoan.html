@@ -194,9 +194,9 @@
 
                     <!-- Chip chọn nhanh -->
                     <div class="grid grid-cols-4 gap-2 mb-2">
-                        <button onclick="addAmount(1000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+1M</button>
-                        <button onclick="addAmount(5000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+5M</button>
-                        <button onclick="addAmount(10000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+10M</button>
+                        <button onclick="addAmount(500000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+50k</button>
+                        <button onclick="addAmount(1000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+100k</button>
+                        <button onclick="addAmount(2000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+200k</button>
                         <button onclick="withdrawAll()" class="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-[10px] py-2 rounded-lg font-bold border border-blue-500/30">Tất cả</button>
                     </div>
                 </div>
@@ -249,7 +249,7 @@
                 <!-- Quy định & Nút gửi -->
                 <div class="mb-4">
                     <ul class="text-[10px] text-slate-500 list-disc pl-4 mb-4 space-y-1">
-                        <li>Tối thiểu rút: <span class="text-yellow-400">1,000,000 Coin</span></li>
+                        <li>Tối thiểu rút: <span class="text-yellow-400">500,000 Coin</span></li>
                         <li>Tỷ giá quy đổi: <span class="text-white">10,000 Coin = 1,000 VND</span></li>
                         <li>Thời gian xử lý: <span class="text-white">11h và 22h hàng ngày</span> (24/7)</li>
                     </ul>
@@ -424,7 +424,7 @@
                 const acc = document.getElementById("wd-account").value.trim();
 
                 if(!amount || isNaN(amount)) throw new Error("Vui lòng nhập số tiền!");
-                if(amount < 1000000) throw new Error("Tối thiểu rút 1,000,000 Coin"); 
+                if(amount < 500000) throw new Error("Tối thiểu rút 500,000 Coin"); 
                 if(!bank) throw new Error("Vui lòng chọn ngân hàng");
                 if(!acc) throw new Error("Vui lòng nhập số tài khoản");
 
