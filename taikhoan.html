@@ -143,18 +143,18 @@
                     <div class="space-y-4">
                         <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
                             <span class="text-slate-400 text-xs">Ngân hàng</span>
-                            <span class="text-white font-bold text-sm">MB BANK (Quân Đội)</span>
+                            <span class="text-white font-bold text-sm">HC88</span>
                         </div>
                         <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
                             <span class="text-slate-400 text-xs">Số tài khoản</span>
                             <div class="flex items-center gap-2">
-                                <span id="admin-bank-acc" class="text-yellow-400 font-mono font-bold text-lg tracking-wide">0987654321</span>
+                                <span id="admin-bank-acc" class="text-yellow-400 font-mono font-bold text-lg tracking-wide">Liên hệ CSKH để nạp tiền</span>
                                 <button onclick="copyText('admin-bank-acc')" class="text-slate-400 hover:text-white p-1 bg-slate-700/50 rounded"><i class="fa-regular fa-copy text-xs"></i></button>
                             </div>
                         </div>
                         <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
                             <span class="text-slate-400 text-xs">Chủ tài khoản</span>
-                            <span class="text-white font-bold text-sm uppercase">NGUYEN VAN A</span>
+                            <span class="text-white font-bold text-sm uppercase">HEO CON PHAT TAI</span>
                         </div>
                         <div class="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20 text-center">
                             <div class="text-blue-300 text-[10px] font-bold uppercase mb-1">Nội dung CK (Bắt buộc)</div>
@@ -194,9 +194,9 @@
 
                     <!-- Chip chọn nhanh -->
                     <div class="grid grid-cols-4 gap-2 mb-2">
-                        <button onclick="addAmount(100000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+100K</button>
-                        <button onclick="addAmount(500000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+500K</button>
                         <button onclick="addAmount(1000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+1M</button>
+                        <button onclick="addAmount(5000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+5M</button>
+                        <button onclick="addAmount(10000000)" class="bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-2 rounded-lg font-bold border border-white/5">+10M</button>
                         <button onclick="withdrawAll()" class="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-[10px] py-2 rounded-lg font-bold border border-blue-500/30">Tất cả</button>
                     </div>
                 </div>
@@ -249,9 +249,9 @@
                 <!-- Quy định & Nút gửi -->
                 <div class="mb-4">
                     <ul class="text-[10px] text-slate-500 list-disc pl-4 mb-4 space-y-1">
-                        <li>Tối thiểu rút: <span class="text-yellow-400">100,000 Coin</span></li>
-                        <li>Tỷ giá quy đổi: <span class="text-white">1 Coin = 1 VND</span></li>
-                        <li>Thời gian xử lý: <span class="text-white">5 - 15 phút</span> (24/7)</li>
+                        <li>Tối thiểu rút: <span class="text-yellow-400">1,000,000 Coin</span></li>
+                        <li>Tỷ giá quy đổi: <span class="text-white">10,000 Coin = 1,000 VND</span></li>
+                        <li>Thời gian xử lý: <span class="text-white">11h và 22h hàng ngày</span> (24/7)</li>
                     </ul>
 
                     <button id="btn-withdraw" onclick="userWithdraw()" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-900/30 text-sm active:scale-95 transition-transform flex justify-center items-center gap-2">
@@ -424,7 +424,7 @@
                 const acc = document.getElementById("wd-account").value.trim();
 
                 if(!amount || isNaN(amount)) throw new Error("Vui lòng nhập số tiền!");
-                if(amount < 100000) throw new Error("Tối thiểu rút 100,000 Coin"); 
+                if(amount < 1000000) throw new Error("Tối thiểu rút 1,000,000 Coin"); 
                 if(!bank) throw new Error("Vui lòng chọn ngân hàng");
                 if(!acc) throw new Error("Vui lòng nhập số tài khoản");
 
