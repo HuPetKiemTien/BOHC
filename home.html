@@ -1,275 +1,361 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>HeoCon88 - Trang chủ</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HeoCon88 - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
-<style>
-    body {
-        font-family: 'Outfit', sans-serif;
-        background-color: #0f172a;
-        background-image: 
-            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-            radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
-            radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
-        color: #e2e8f0;
-        min-height: 100vh;
-        -webkit-tap-highlight-color: transparent;
-    }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0B0E14;
+            color: #E2E8F0;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    /* Glassmorphism */
-    .glass-nav {
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-    .glass-card {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    }
+        /* Background Effects */
+        .bg-glow {
+            position: fixed;
+            width: 100%; height: 100%;
+            z-index: -1; overflow: hidden;
+            top: 0; left: 0;
+        }
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4; }
+        .blob-1 { top: -10%; left: -10%; width: 300px; height: 300px; background: #4f46e5; }
+        .blob-2 { bottom: 10%; right: -10%; width: 250px; height: 250px; background: #ec4899; }
 
-    /* Card Gradient (ATM style) */
-    .credit-card {
-        background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-        box-shadow: 0 10px 25px -5px rgba(168, 85, 247, 0.4);
-        position: relative;
-        overflow: hidden;
-    }
-    .credit-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: radial-gradient(circle at top right, rgba(255,255,255,0.3), transparent 60%);
-        pointer-events: none;
-    }
+        /* Modern Glass Card */
+        .glass-panel {
+            background: rgba(21, 26, 35, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
 
-    /* Animations */
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-slide-up {
-        animation: slideUp 0.5s ease-out forwards;
-    }
-    
-    .menu-item {
-        transition: transform 0.2s, background 0.2s;
-    }
-    .menu-item:active {
-        transform: scale(0.96);
-        background: rgba(255,255,255,0.1);
-    }
-</style>
-</head>
-<body class="flex flex-col pb-20">
+        /* PREMIUM ATM CARD STYLE */
+        .atm-card-premium {
+            /* Dark Premium Gradient */
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 100%);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 40px -10px rgba(49, 46, 129, 0.5);
+            transition: transform 0.3s ease;
+        }
+        /* Holographic/Shiny Effect */
+        .atm-card-premium::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 200%; height: 100%;
+            background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.1) 45%, rgba(255, 255, 255, 0.0) 50%);
+            animation: shine 6s infinite linear;
+            pointer-events: none;
+        }
+        /* Mesh Noise Texture */
+        .atm-card-premium::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.5;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+        @keyframes shine { 
+            0% { transform: translateX(-100%); }
+            20% { transform: translateX(100%); } 
+            100% { transform: translateX(100%); }
+        }
 
-<!-- BACKGROUND DECORATION -->
-<div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
-    <div class="absolute top-[-10%] right-[-20%] w-80 h-80 bg-purple-500/20 rounded-full blur-3xl"></div>
-    <div class="absolute bottom-[20%] left-[-10%] w-60 h-60 bg-blue-500/20 rounded-full blur-3xl"></div>
-</div>
+        /* EMV Chip Style */
+        .emv-chip {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.3);
+        }
+        .emv-chip::before {
+            content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(0,0,0,0.3);
+        }
+        .emv-chip::after {
+            content: ''; position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: rgba(0,0,0,0.3);
+        }
 
-<!-- HEADER -->
-<header class="glass-nav sticky top-0 z-50 px-5 py-4 flex justify-between items-center">
-    <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
-            <i class="fa-solid fa-piggy-bank text-white text-lg"></i>
-        </div>
-        <div>
-            <h1 class="font-bold text-lg leading-tight text-white">HeoCon88</h1>
-            <p class="text-[11px] text-slate-400">Welcome back!</p>
-        </div>
-    </div>
-    <div class="flex items-center gap-3">
-        <button onclick="goNotice()" class="w-9 h-9 rounded-full bg-slate-800/50 flex items-center justify-center hover:bg-slate-700 transition relative">
-            <i class="fa-regular fa-bell text-slate-300"></i>
-            <span class="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-slate-900"></span>
-        </button>
-        <button onclick="logout()" class="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center hover:bg-red-500/20 transition text-red-400">
-            <i class="fa-solid fa-right-from-bracket text-sm"></i>
-        </button>
-    </div>
-</header>
-
-<!-- MAIN CONTENT -->
-<main class="flex-1 p-5 space-y-6 animate-slide-up">
-
-    <!-- USER GREETING & ID -->
-    <div class="flex justify-between items-end px-1">
-        <div>
-            <p class="text-slate-400 text-xs mb-1">Tài khoản thành viên</p>
-            <p id="userLabel" class="font-mono text-sm font-semibold text-white tracking-wide">ID: Loading...</p>
-        </div>
-        <div class="bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
-            <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
-            </span>
-        </div>
-    </div>
-
-    <!-- BALANCE CARD (ATM STYLE) -->
-    <div class="credit-card rounded-2xl p-6 text-white shadow-2xl">
-        <div class="flex justify-between items-start mb-6">
-            <i class="fa-solid fa-wifi rotate-90 opacity-70"></i>
-            <i class="fa-brands fa-cc-mastercard text-2xl opacity-80"></i>
-        </div>
+        /* Utilities */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .font-mono { family: 'Space Mono', monospace; }
+        .hover-scale:active { transform: scale(0.97); transition: transform 0.1s; }
         
-        <div>
-            <p class="text-xs opacity-80 mb-1">Tổng số dư khả dụng</p>
-            <div class="flex items-baseline gap-1">
-                <h2 id="balance" class="text-3xl font-bold tracking-tight">0</h2>
-                <span class="text-sm font-medium opacity-80">Coin</span>
+        .animate-enter { animation: enterUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        @keyframes enterUp { to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden pb-6">
+
+    <!-- Background -->
+    <div class="bg-glow">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 glass-panel border-b-0 border-b-white/5 px-5 py-4 flex justify-between items-center mb-2">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-layer-group text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-none text-white tracking-tight">HeoCon88</h1>
+                <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">MEMBER</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="goNotice()" class="w-9 h-9 rounded-full bg-slate-800/50 border border-white/5 text-slate-300 flex items-center justify-center relative hover:bg-slate-700 transition">
+                <i class="fa-regular fa-bell"></i>
+                <span class="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border border-[#0B0E14]"></span>
+            </button>
+            <button onclick="logout()" class="w-9 h-9 rounded-full bg-slate-800/50 border border-white/5 text-rose-400 flex items-center justify-center hover:bg-rose-500/20 transition">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 px-5 space-y-6">
+        
+        <!-- Welcome & Balance Card -->
+        <div class="animate-enter">
+            <div class="flex justify-between items-end mb-4 px-1">
+                <div>
+                    <p class="text-slate-400 text-xs font-medium">Xin chào,</p>
+                    <p id="userName" class="font-bold text-white text-lg leading-tight truncate max-w-[200px]">Loading...</p>
+                </div>
+                <div onclick="copyUid()" class="bg-white/5 px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 cursor-pointer active:bg-white/10 transition">
+                    <span id="userUidDisplay" class="font-mono text-xs text-slate-300 font-bold">ID: ...</span>
+                    <i class="fa-regular fa-copy text-xs text-slate-500"></i>
+                </div>
+            </div>
+
+            <!-- PREMIUM ATM CARD -->
+            <div class="atm-card-premium rounded-3xl p-6 text-white relative group">
+                <div class="relative z-10 flex flex-col justify-between h-48">
+                    <!-- Top Row -->
+                    <div class="flex justify-between items-center">
+                        <i class="fa-brands fa-nfc-symbol text-2xl text-white/80"></i>
+                        <!-- TÊN NGƯỜI DÙNG TRÊN THẺ -->
+                        <span id="cardNameDisplay" class="font-bold text-white/90 tracking-widest text-lg uppercase truncate max-w-[150px] text-right">MEMBER</span>
+                    </div>
+
+                    <!-- Chip & Balance Row -->
+                    <div class="flex items-center gap-4 mt-2">
+                        <div class="emv-chip w-12 h-9 rounded-md"></div>
+                        <i class="fa-solid fa-wifi rotate-90 text-white/50 text-xl"></i>
+                    </div>
+
+                    <div class="mt-auto">
+                        <div class="flex justify-between items-end mb-1">
+                            <p class="text-indigo-200 text-[11px] font-bold uppercase tracking-wider">Tổng số dư</p>
+                            <button onclick="toggleBalance()" class="text-white/60 hover:text-white transition">
+                                <i id="eye-icon" class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <h2 id="balance" class="text-[32px] font-bold tracking-tight leading-none font-mono">0</h2>
+                            <span class="text-sm font-bold bg-white/20 px-2 py-0.5 rounded text-white/90">COIN</span>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row -->
+                    <div class="flex justify-between items-center mt-4 border-t border-white/10 pt-3">
+                        <div class="font-mono text-xs text-white/70 tracking-[2px]">**** **** **** 8888</div>
+                        <i class="fa-brands fa-cc-mastercard text-2xl text-white/90"></i>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="mt-6 flex justify-between items-end">
-            <p class="font-mono text-sm opacity-70">**** **** **** 8888</p>
-            <p class="text-[10px] opacity-70">HEOCON88 WALLET</p>
-        </div>
-    </div>
-
-    <!-- WALLET ACCESS BUTTON -->
-    <div class="mt-2">
-        <button onclick="goAccount()" class="w-full glass-card p-4 rounded-xl flex items-center justify-between hover:bg-white/10 transition group border-l-4 border-l-blue-500">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+        <!-- Main Action (Wallet) -->
+        <button onclick="goAccount()" class="w-full glass-panel p-4 rounded-2xl flex items-center justify-between hover-scale animate-enter delay-1 group relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/40">
                     <i class="fa-solid fa-wallet text-xl"></i>
                 </div>
                 <div class="text-left">
-                    <p class="font-bold text-white text-sm">Quản Lý Ví Chính</p>
-                    <p class="text-[11px] text-slate-400">Nạp tiền, Rút tiền & Lịch sử GD</p>
+                    <h3 class="font-bold text-white text-base">Quản Lý Ví Chính</h3>
+                    <p class="text-xs text-slate-400">Nạp tiền • Rút tiền • Lịch sử</p>
                 </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-slate-500 group-hover:text-white transition"></i>
+            <div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-active:translate-x-1 transition">
+                <i class="fa-solid fa-arrow-right text-slate-400 text-sm"></i>
+            </div>
         </button>
-    </div>
 
-    <!-- FEATURE GRID -->
-    <div>
-        <h3 class="text-sm font-bold text-white mb-3 pl-1 border-l-4 border-purple-500 pl-2">Tiện ích giải trí</h3>
-        <div class="grid grid-cols-2 gap-4">
+        <!-- Feature Grid -->
+        <div class="grid grid-cols-2 gap-3 animate-enter delay-2">
             
             <!-- Hũ sinh lời -->
-            <button onclick="goSaving()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition duration-300">
-                    <i class="fa-solid fa-piggy-bank text-6xl text-yellow-400"></i>
+            <button onclick="goSaving()" class="glass-panel p-4 rounded-2xl text-left hover-scale relative overflow-hidden group border-t-2 border-t-yellow-500/50">
+                <div class="absolute right-0 top-0 p-3 opacity-20 group-hover:scale-110 transition">
+                    <i class="fa-solid fa-coins text-5xl text-yellow-500"></i>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center mb-3 text-yellow-400">
-                    <i class="fa-solid fa-vault text-2xl"></i>
+                <div class="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-400 mb-3">
+                    <i class="fa-solid fa-vault"></i>
                 </div>
-                <p class="font-bold text-base text-white">Hũ Sinh Lời</p>
-                <p class="text-[11px] text-yellow-400 mt-1 font-medium">Lãi suất 499%/năm</p>
+                <h3 class="font-bold text-white text-sm">Hũ Sinh Lời</h3>
+                <p class="text-[10px] text-yellow-400/90 font-medium">Lãi +499%</p>
             </button>
 
-            <!-- Game Center -->
-            <button onclick="goGames()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-3 opacity-10 group-hover:scale-110 transition duration-300">
-                    <i class="fa-solid fa-gamepad text-6xl text-pink-400"></i>
+            <!-- Kho Game -->
+            <button onclick="goGames()" class="glass-panel p-4 rounded-2xl text-left hover-scale relative overflow-hidden group border-t-2 border-t-purple-500/50">
+                <div class="absolute right-0 top-0 p-3 opacity-20 group-hover:scale-110 transition">
+                    <i class="fa-solid fa-gamepad text-5xl text-purple-500"></i>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center mb-3 text-pink-400">
-                    <i class="fa-solid fa-gamepad text-2xl"></i>
+                <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 mb-3">
+                    <i class="fa-solid fa-rocket"></i>
                 </div>
-                <p class="font-bold text-base text-white">Kho Game</p>
-                <p class="text-[11px] text-pink-400 mt-1 font-medium">Chơi hay nhận thưởng</p>
+                <h3 class="font-bold text-white text-sm">Kho Game</h3>
+                <p class="text-[10px] text-purple-400/90 font-medium">Giải trí kiếm tiền</p>
             </button>
 
-            <!-- KHUYẾN MÃI (NEW - FULL WIDTH) -->
-            <button onclick="goPromo()" class="col-span-2 menu-item glass-card p-4 rounded-2xl flex items-center justify-between relative overflow-hidden group border border-red-500/30">
-                <!-- Background Icon -->
-                <div class="absolute -bottom-2 -right-2 p-3 opacity-10 group-hover:scale-110 transition duration-300">
-                    <i class="fa-solid fa-gift text-6xl text-red-500"></i>
-                </div>
-                
-                <div class="flex items-center gap-4 relative z-10">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center text-red-400 border border-red-500/20">
-                        <i class="fa-solid fa-gift text-xl"></i>
+            <!-- Khuyến mãi (Full width) -->
+            <button onclick="goPromo()" class="col-span-2 glass-panel p-4 rounded-2xl flex items-center justify-between hover-scale relative overflow-hidden border border-rose-500/30">
+                <div class="absolute inset-0 bg-gradient-to-r from-rose-600/10 to-transparent"></div>
+                <div class="flex items-center gap-3 relative z-10">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/20">
+                        <i class="fa-solid fa-gift"></i>
                     </div>
                     <div class="text-left">
-                        <p class="font-bold text-white text-base">Khuyến Mãi HOT</p>
-                        <p class="text-[11px] text-red-300">Sự kiện & Hoàn trả</p>
+                        <h3 class="font-bold text-white text-sm">Khuyến Mãi HOT</h3>
+                        <p class="text-[10px] text-rose-300">Sự kiện & Hoàn trả mỗi ngày</p>
                     </div>
                 </div>
-                <div class="relative z-10">
-                    <span class="bg-red-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse shadow-lg shadow-red-500/50">NEW</span>
+                <span class="bg-rose-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse relative z-10">MỚI</span>
+            </button>
+
+            <!-- Mời Bạn Bè -->
+            <button onclick="goReferral()" class="glass-panel p-4 rounded-2xl text-left hover-scale border-l-2 border-l-orange-500 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-2 opacity-10">
+                    <i class="fa-solid fa-users text-4xl text-orange-500"></i>
                 </div>
+                <div class="w-9 h-9 rounded-lg bg-orange-500/20 flex items-center justify-center text-orange-400 mb-2">
+                    <i class="fa-solid fa-user-group"></i>
+                </div>
+                <h3 class="font-bold text-white text-sm">Mời Bạn Bè</h3>
+                <p class="text-[10px] text-orange-200">Nhận hoa hồng</p>
             </button>
 
             <!-- CSKH -->
-            <button onclick="goSupport()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
-                <div class="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center mb-3 text-sky-400">
-                    <i class="fa-solid fa-headset text-xl"></i>
+            <button onclick="goSupport()" class="glass-panel p-4 rounded-2xl text-left hover-scale border-l-2 border-l-emerald-500 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-2 opacity-10">
+                    <i class="fa-solid fa-headset text-4xl text-emerald-500"></i>
                 </div>
-                <p class="font-bold text-sm text-white">Hỗ trợ 24/7</p>
-                <p class="text-[10px] text-slate-400 mt-1">Giải đáp thắc mắc</p>
-            </button>
-
-            <!-- Cài đặt -->
-            <button onclick="goSetting()" class="menu-item glass-card p-4 rounded-2xl text-left relative overflow-hidden group">
-                <div class="w-10 h-10 rounded-xl bg-slate-500/20 flex items-center justify-center mb-3 text-slate-300">
-                    <i class="fa-solid fa-gear text-xl"></i>
+                <div class="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2">
+                    <i class="fa-solid fa-headset"></i>
                 </div>
-                <p class="font-bold text-sm text-white">Cài đặt</p>
-                <p class="text-[10px] text-slate-400 mt-1">Bảo mật tài khoản</p>
+                <h3 class="font-bold text-white text-sm">CSKH 24/7</h3>
+                <p class="text-[10px] text-emerald-200">Hỗ trợ ngay</p>
             </button>
         </div>
-    </div>
 
-</main>
+        <!-- Footer Info -->
+        <div class="text-center py-4 animate-enter delay-2">
+            <p class="text-[10px] text-slate-600">Secure System v8.1 • HeoCon88 Inc.</p>
+        </div>
 
-<script>
-/* ================= LOGIC GIỮ NGUYÊN ================= */
-const db = supabase.createClient(
-    "https://sfbaytcmpgceapdcdyer.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8"
-);
+    </main>
 
-let uid = localStorage.getItem("my_wallet_uid");
+    <script>
+        // CONFIG
+        const db = supabase.createClient(
+            "https://sfbaytcmpgceapdcdyer.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8"
+        );
+        let uid = localStorage.getItem("my_wallet_uid");
+        let rawBalance = 0;
+        let isBalanceHidden = false;
 
-/* ================= Load dữ liệu ví ================= */
-async function loadBalance(){
-    if(!uid) return backLogin();
-    const {data} = await db.from("users").select("balance,name").eq("id",uid).maybeSingle();
-    if(!data) return backLogin();
+        // INIT
+        async function loadData(){
+            if(!uid) return window.location.href = "index.html";
+            
+            document.getElementById("userUidDisplay").innerText = `ID: ${uid}`;
 
-    document.getElementById("userLabel").innerText = `ID: ${uid}`;
-    // Format số dư đẹp hơn
-    document.getElementById("balance").innerText = Number(data.balance||0).toLocaleString('vi-VN');
-}
+            const {data} = await db.from("users").select("balance, name").eq("id", uid).maybeSingle();
+            
+            if(!data) {
+                localStorage.removeItem("my_wallet_uid");
+                return window.location.href = "index.html";
+            }
 
-/* ================== Điều hướng ================== */
-function goAccount(){location.href="taikhoan.html";} // Link sang file ví
-function goSaving(){location.href="husinhloi.html";}
-function goGames(){location.href="games.html";}
-function goPromo(){location.href="km.html";} // NEW: Dẫn sang trang Khuyến mãi
-function goNotice(){alert("Hiện chưa có thông báo mới.");}
-function goSupport(){window.open("https://t.me/hc88cskh", "_blank");} 
-function goSetting(){alert("Tính năng đang được phát triển.");}
+            rawBalance = Number(data.balance || 0);
+            updateBalanceDisplay();
+            
+            const displayName = data.name || `Thành viên ${uid.slice(-4)}`;
+            document.getElementById("userName").innerText = displayName;
+            
+            // CẬP NHẬT TÊN TRÊN THẺ ATM (VIẾT HOA)
+            document.getElementById("cardNameDisplay").innerText = displayName.toUpperCase();
+        }
 
-function logout(){
-    if(confirm("Bạn có chắc muốn đăng xuất?")){
-        localStorage.removeItem("my_wallet_uid");
-        location.href="index.html"; 
-    }
-}
+        function updateBalanceDisplay() {
+            const el = document.getElementById("balance");
+            if(isBalanceHidden) {
+                el.innerText = "******";
+                el.classList.add("tracking-widest");
+            } else {
+                el.innerText = rawBalance.toLocaleString('vi-VN');
+                el.classList.remove("tracking-widest");
+            }
+        }
 
-function backLogin(){
-    location.href="index.html";
-}
+        function toggleBalance() {
+            isBalanceHidden = !isBalanceHidden;
+            const icon = document.getElementById("eye-icon");
+            icon.className = isBalanceHidden ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
+            updateBalanceDisplay();
+        }
 
-/* ========== Chạy khi mở trang ========== */
-if(!uid) {
-    backLogin();
-} else {
-    loadBalance();
-}
-</script>
+        // NAVIGATION
+        function goAccount() { window.location.href = "taikhoan.html"; }
+        function goSaving() { window.location.href = "husinhloi.html"; }
+        function goGames() { window.location.href = "games.html"; }
+        function goPromo() { window.location.href = "km.html"; }
+        function goReferral() { window.location.href = "referral.html"; }
+        function goSupport() { window.open("https://t.me/hc88cskh", "_blank"); }
+        function goNotice() { alert("Không có thông báo mới."); }
+
+        function logout(){
+            if(confirm("Đăng xuất khỏi thiết bị?")){
+                localStorage.removeItem("my_wallet_uid");
+                window.location.href = "index.html";
+            }
+        }
+
+        function copyUid() {
+            navigator.clipboard.writeText(uid).then(() => {
+                const el = document.getElementById("userUidDisplay");
+                const originalText = el.innerText;
+                el.innerText = "COPIED";
+                el.classList.add("text-emerald-400");
+                setTimeout(() => {
+                    el.innerText = originalText;
+                    el.classList.remove("text-emerald-400");
+                }, 1500);
+            });
+        }
+
+        // RUN
+        window.onload = loadData;
+    </script>
 </body>
 </html>
+
 
