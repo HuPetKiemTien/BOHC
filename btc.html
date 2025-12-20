@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>BTC Trading 20s - HC88</title>
+  <title>BTC Trading 30s - HC88</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
@@ -127,12 +127,6 @@
       text-shadow: 0 2px 8px rgba(0,0,0,0.8);
     }
 
-    /* TOAST ANIMATION */
-    .toast-enter { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-    .toast-enter-active { transform: translateX(-50%) translateY(0); opacity: 1; transition: all 0.3s ease; }
-    .toast-exit { transform: translateX(-50%) translateY(0); opacity: 1; }
-    .toast-exit-active { transform: translateX(-50%) translateY(-20px); opacity: 0; transition: all 0.3s ease; }
-
     /* GRID BG */
     .grid-bg {
       background-image: 
@@ -161,7 +155,7 @@
         </div>
         <div>
           <div class="font-bold text-sm text-white leading-none">BTC/USDT</div>
-          <div class="text-[10px] text-[#848e9c] font-bold mt-0.5">20s Candles</div>
+          <div class="text-[10px] text-[#848e9c] font-bold mt-0.5">30s Candles</div>
         </div>
       </div>
     </div>
@@ -188,7 +182,7 @@
       <div id="live-price" class="font-mono text-3xl font-bold tracking-tighter text-up drop-shadow-md">--.--</div>
       <div class="flex items-center justify-end gap-2 mt-1">
         <span id="phase-badge" class="px-2 py-0.5 rounded bg-up/20 text-up text-[10px] font-bold uppercase backdrop-blur border border-up/30">ĐẶT LỆNH</span>
-        <span class="font-oswald text-xl font-bold text-white drop-shadow-md w-8 text-center" id="timer-display">20</span>
+        <span class="font-oswald text-xl font-bold text-white drop-shadow-md w-8 text-center" id="timer-display">18</span>
       </div>
     </div>
 
@@ -274,7 +268,7 @@
     </div>
   </div>
 
-  <!-- TOAST (Fix Z-Index & Visibility) -->
+  <!-- TOAST -->
   <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 bg-[#1e2329]/95 backdrop-blur border border-white/10 px-5 py-2.5 rounded-full flex items-center gap-3 opacity-0 pointer-events-none transition-all duration-300 z-[9999] shadow-2xl w-max max-w-[90%] transform -translate-y-5">
     <i id="toast-icon" class="fa-solid fa-info-circle text-xs"></i>
     <span id="toast-msg" class="text-[11px] font-bold text-white uppercase tracking-wider">Thông báo</span>
@@ -283,12 +277,12 @@
   <script>
     // ===== 1. CẤU HÌNH LOGIC =====
     const CONFIG = {
-      PHASE_BET: 20,    // 20s Cược
-      PHASE_WAIT: 8,    // 8s Khóa
-      PHASE_RESULT: 2,  // 2s Kết quả
-      // Tổng 30s
+      PHASE_BET: 18,    // 18s Cược
+      PHASE_WAIT: 10,   // 10s Kết quả (Khóa)
+      PHASE_RESULT: 2,  // 2s Thông báo
+      // Tổng 30s = 1 nến
       
-      CANDLE_TIME: 20000, // 20 GIÂY = 1 NẾN
+      CANDLE_TIME: 30000, // 30 GIÂY = 1 NẾN
       ODDS: 1.95,
       BASE_PRICE: 96500.00
     };
@@ -297,22 +291,22 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ===== 2. MARKET LOGIC =====
+    // ===== 2. MARKET LOGIC (30S CANDLES) =====
     function seededRandom(seed) {
         var x = Math.sin(seed++) * 10000;
         return x - Math.floor(x);
     }
 
-    // Giá theo Index Nến (20s/nến)
+    // Giá theo Index Nến (30s/nến)
     function getFairPrice(candleIndex) {
-        // Sóng dài (30 nến ~ 10 phút)
-        const longTrend = Math.sin(candleIndex / 30) * 200; 
-        // Sóng ngắn (5 nến ~ 1.5 phút)
-        const shortTrend = Math.sin(candleIndex / 5) * 50;
+        // Sóng dài (20 nến ~ 10 phút)
+        const longTrend = Math.sin(candleIndex / 20) * 180; 
+        // Sóng ngắn (4 nến ~ 2 phút)
+        const shortTrend = Math.sin(candleIndex / 4) * 60;
 
         const seed = candleIndex;
         const rand = seededRandom(seed);
-        const noise = (rand - 0.5) * 20; 
+        const noise = (rand - 0.5) * 25; 
 
         return CONFIG.BASE_PRICE + longTrend + shortTrend + noise;
     }
@@ -360,7 +354,7 @@
       }
     };
 
-    // ===== 4. CHART ENGINE (20s Candles) =====
+    // ===== 4. CHART ENGINE (30s Candles) =====
     const chart = {
       canvas: document.getElementById('candle-chart'),
       ctx: null,
@@ -376,10 +370,10 @@
         window.addEventListener('resize', chart.resize);
         chart.resize();
         
-        // 30 nến lịch sử (30 * 20s = 600s = 10 phút)
+        // 20 nến lịch sử (20 * 30s = 600s = 10 phút)
         const nowIndex = Math.floor(Date.now() / CONFIG.CANDLE_TIME);
         
-        for (let idx = nowIndex - 30; idx < nowIndex; idx++) {
+        for (let idx = nowIndex - 20; idx < nowIndex; idx++) {
             chart.candles.push(generateCandleData(idx));
         }
         
@@ -426,13 +420,13 @@
             chart.serverCandleIndex = nowIndex;
         }
 
-        // Interpolation (20s duration)
+        // Interpolation (30s duration)
         const progress = (now % CONFIG.CANDLE_TIME) / CONFIG.CANDLE_TIME; 
         const targetClose = chart.currentCandle.targetClose;
         const linearPrice = chart.currentCandle.open + (targetClose - chart.currentCandle.open) * progress;
         
-        // Noise (More frequent since candle is slow)
-        const noise = Math.sin(progress * Math.PI * 10) * 1.0; 
+        // Noise (Frequency adjusted for 30s)
+        const noise = Math.sin(progress * Math.PI * 12) * 1.5; 
         let visualPrice = linearPrice + noise;
         
         // Snap at end
@@ -459,7 +453,7 @@
         ctx.clearRect(0, 0, width, height);
 
         const allData = [...candles, currentCandle];
-        const viewData = allData.slice(-20); // Zoom in 20 candles
+        const viewData = allData.slice(-20); 
         
         let minVal = Infinity, maxVal = -Infinity;
         viewData.forEach(c => {
@@ -467,7 +461,7 @@
             if(c.high > maxVal) maxVal = c.high;
         });
         
-        if(game.phase !== 'BET' && game.lockPrice > 0) {
+        if(game.phase === 'WAIT' && game.lockPrice > 0) {
             if(game.lockPrice > maxVal) maxVal = game.lockPrice;
             if(game.lockPrice < minVal) minVal = game.lockPrice;
         }
@@ -497,7 +491,7 @@
         ctx.stroke();
 
         // Lock Line
-        if (game.phase !== 'BET' && game.lockPrice > 0) {
+        if (game.phase === 'WAIT' && game.lockPrice > 0) {
             const lockY = getY(game.lockPrice);
             const badge = document.getElementById('lock-label');
             badge.classList.remove('hidden');
@@ -571,7 +565,7 @@
       }
     };
 
-    // ===== 5. GAME LOGIC & SYNC =====
+    // ===== 5. GAME LOGIC =====
     const game = {
       roundId: 0,
       phase: 'BET',
@@ -629,7 +623,7 @@
         const waitEnd = betEnd + (CONFIG.PHASE_WAIT * 1000);
         
         if (timeIntoRound < betEnd) {
-            // BET PHASE (0-20s)
+            // BET PHASE (0-18s)
             if (game.phase !== 'BET') game.resetUI();
             game.phase = 'BET';
             game.timeLeft = Math.ceil((betEnd - timeIntoRound) / 1000);
@@ -639,7 +633,7 @@
             document.getElementById('phase-bar').className = "h-full bg-up w-full transition-all duration-300 ease-linear";
             
         } else if (timeIntoRound < waitEnd) {
-            // WAIT PHASE (20-28s)
+            // WAIT PHASE (18-28s)
             if (game.phase === 'BET') game.switchPhaseToWait();
             game.phase = 'WAIT';
             game.timeLeft = Math.ceil((waitEnd - timeIntoRound) / 1000);
@@ -675,7 +669,7 @@
       switchPhaseToWait: () => {
         game.lockPrice = chart.displayPrice;
         const badge = document.getElementById('phase-badge');
-        badge.innerText = "CHỜ KẾT QUẢ";
+        badge.innerText = "KẾT QUẢ";
         badge.className = "px-2 py-0.5 rounded bg-down/20 text-down text-[10px] font-bold uppercase backdrop-blur border border-down/30";
         
         document.getElementById('btn-up').classList.add('disabled');
@@ -695,9 +689,10 @@
         rm.appendChild(dot);
         if(rm.children.length > 20) rm.removeChild(rm.firstChild);
 
-        // Hiển thị trạng thái RESULT
-        document.getElementById('phase-badge').innerText = "KẾT QUẢ";
-        document.getElementById('phase-badge').className = "px-2 py-0.5 rounded bg-gold/20 text-gold text-[10px] font-bold uppercase backdrop-blur border border-gold/30";
+        // Result Badge Update
+        const badge = document.getElementById('phase-badge');
+        badge.innerText = "HOÀN TẤT";
+        badge.className = "px-2 py-0.5 rounded bg-gold/20 text-gold text-[10px] font-bold uppercase backdrop-blur border border-gold/30";
 
         // Toast
         app.showToast(`Kết quả: ${result === 'UP' ? 'TĂNG' : 'GIẢM'}`, result === 'UP' ? 'success' : 'error');
