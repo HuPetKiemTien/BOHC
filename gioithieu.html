@@ -242,7 +242,7 @@
 
         async function withdrawCommission() {
             if (isWithdrawing) return;
-            if (currentCommission < 10000) return showToast("Tối thiểu rút 10,000 Coin", "error");
+            if (currentCommission < 30000) return showToast("Tối thiểu rút 30,000 Coin", "error");
             if(!confirm(`Xác nhận rút ${currentCommission.toLocaleString()} Coin về ví chính?`)) return;
 
             isWithdrawing = true;
@@ -280,7 +280,7 @@
         }
 
         function copyLink() {
-            const link = `${window.location.origin}/index.html`;
+            const link = `${window.location.origin}/BOHC/`;
             navigator.clipboard.writeText(link).then(() => showToast("Đã sao chép Link!"));
         }
 
