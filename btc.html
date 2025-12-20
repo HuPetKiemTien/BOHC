@@ -27,9 +27,6 @@
             down: '#f6465d',   // Red
             dark: '#161a1e',
             card: '#1e2329'
-          },
-          height: {
-            'chart-area': '65vh', // 2/3 Screen Logic
           }
         }
       }
@@ -46,9 +43,9 @@
       display: flex; flex-direction: column;
     }
     
-    /* CHART AREA (2/3 Screen) */
+    /* CHART AREA (Fixed Height) */
     #chart-container {
-      height: 65vh; /* Chiếm khoảng 2/3 màn hình */
+      flex: 1; /* Chiếm phần lớn màn hình */
       width: 100%;
       position: relative;
       background: #161a1e;
@@ -56,11 +53,14 @@
     }
     canvas { display: block; width: 100%; height: 100%; }
 
-    /* CONTROLS (Remaining space) */
+    /* CONTROLS (Fixed Bottom) */
     #controls-container {
-      flex: 1;
+      height: auto;
       background: #1e2329;
       display: flex; flex-direction: column;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+      z-index: 50;
     }
 
     /* BUTTONS */
@@ -92,12 +92,23 @@
       background: #FACC15; color: #1e2329;
       font-weight: 900;
     }
+    
+    /* CANCEL BUTTON */
+    .btn-cancel {
+        height: 32px; padding: 0 12px; border-radius: 6px;
+        background: #363c45; color: #fff; font-weight: bold; font-size: 10px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid rgba(255,255,255,0.1);
+        margin-right: 8px;
+    }
+    .btn-cancel:active { background: #4a5059; }
 
-    /* PROGRESS BAR */
-    .progress-line { height: 3px; width: 100%; transition: width 1s linear; }
+    /* ROADMAP DOTS */
+    .dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+    .dot.U { background: #0ecb81; box-shadow: 0 0 4px rgba(14,203,129,0.5); }
+    .dot.D { background: #f6465d; box-shadow: 0 0 4px rgba(246,70,93,0.5); }
 
-    /* UTILS */
-    .pb-safe { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+    /* GRID BG */
     .grid-bg {
       background-image: 
         linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
@@ -133,10 +144,10 @@
 
   <!-- PROGRESS BAR -->
   <div class="w-full bg-[#2b3139] h-1 shrink-0">
-    <div id="phase-bar" class="h-full bg-up w-full"></div>
+    <div id="phase-bar" class="h-full bg-up w-full transition-all duration-1000 ease-linear"></div>
   </div>
 
-  <!-- CHART AREA (65% Height) -->
+  <!-- CHART AREA -->
   <div id="chart-container" class="grid-bg">
     
     <!-- LIVE PRICE -->
@@ -168,11 +179,23 @@
 
   </div>
 
-  <!-- CONTROLS (Remaining Height) -->
-  <div id="controls-container" class="pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-40">
+  <!-- CONTROLS -->
+  <div id="controls-container">
     
-    <!-- CHIP SELECTOR -->
-    <div class="py-3 px-3 overflow-x-auto no-scrollbar flex items-center gap-2 border-b border-[#2b3139]">
+    <!-- ROADMAP (Lịch sử) -->
+    <div class="px-3 py-1.5 border-b border-[#2b3139] flex items-center justify-between bg-[#161a1e]">
+      <span class="text-[9px] font-bold text-[#848e9c] uppercase">Kết quả gần đây</span>
+      <div id="roadmap" class="flex items-center gap-1 overflow-hidden justify-end">
+        <!-- Dots injected here -->
+      </div>
+    </div>
+
+    <!-- CHIP SELECTOR & CANCEL -->
+    <div class="py-2 px-3 overflow-x-auto no-scrollbar flex items-center gap-2 border-b border-[#2b3139]">
+      <button onclick="game.cancelBet()" class="btn-cancel shrink-0 active:scale-95 transition">
+        <i class="fa-solid fa-rotate-left mr-1"></i> HỦY
+      </button>
+      <div class="w-[1px] h-6 bg-[#2b3139] mx-1"></div>
       <div class="chip" onclick="game.setChip(2000)">2k</div>
       <div class="chip active" onclick="game.setChip(10000)">10k</div>
       <div class="chip" onclick="game.setChip(50000)">50k</div>
@@ -181,14 +204,14 @@
     </div>
 
     <!-- BET BUTTONS -->
-    <div class="flex-1 p-3 grid grid-cols-2 gap-3 items-center">
+    <div class="p-3 grid grid-cols-2 gap-3 h-24">
       
       <!-- UP BUTTON -->
       <button id="btn-up" class="btn-action btn-up h-full group" onclick="game.placeBet('UP')">
-        <div class="flex flex-col items-center gap-1">
-          <i class="fa-solid fa-arrow-trend-up text-2xl mb-1"></i>
-          <span class="font-oswald text-2xl font-bold">MUA</span>
-          <span class="text-[10px] opacity-80 font-mono">1.95x</span>
+        <div class="flex flex-col items-center gap-0.5">
+          <i class="fa-solid fa-arrow-trend-up text-xl mb-0.5"></i>
+          <span class="font-oswald text-xl font-bold">MUA</span>
+          <span class="text-[9px] opacity-80 font-mono">1.95x</span>
         </div>
         <!-- Badge -->
         <div id="badge-UP" class="absolute top-2 right-2 bg-black/40 text-white text-[9px] px-1.5 py-0.5 rounded hidden font-mono"></div>
@@ -196,10 +219,10 @@
 
       <!-- DOWN BUTTON -->
       <button id="btn-down" class="btn-action btn-down h-full group" onclick="game.placeBet('DOWN')">
-        <div class="flex flex-col items-center gap-1">
-          <i class="fa-solid fa-arrow-trend-down text-2xl mb-1"></i>
-          <span class="font-oswald text-2xl font-bold">BÁN</span>
-          <span class="text-[10px] opacity-80 font-mono">1.95x</span>
+        <div class="flex flex-col items-center gap-0.5">
+          <i class="fa-solid fa-arrow-trend-down text-xl mb-0.5"></i>
+          <span class="font-oswald text-xl font-bold">BÁN</span>
+          <span class="text-[9px] opacity-80 font-mono">1.95x</span>
         </div>
         <div id="badge-DOWN" class="absolute top-2 right-2 bg-black/40 text-white text-[9px] px-1.5 py-0.5 rounded hidden font-mono"></div>
       </button>
@@ -224,13 +247,13 @@
   </div>
 
   <script>
-    // ===== 1. CONFIGURATION =====
+    // ===== 1. CẤU HÌNH =====
     const CONFIG = {
       PHASE_BET: 15,    // 15 giây Cược
-      PHASE_WAIT: 15,   // 15 giây Đợi (Khóa)
+      PHASE_WAIT: 15,   // 15 giây Đợi
       ODDS: 1.95,
-      CANDLE_WIDTH: 15, // Độ rộng nến
-      CANDLE_GAP: 5,    // Khoảng cách nến
+      CANDLE_WIDTH: 15, 
+      CANDLE_GAP: 5,    
     };
 
     const SUPABASE_URL = 'https://sfbaytcmpgceapdcdyer.supabase.co';
@@ -256,27 +279,24 @@
     const chart = {
       canvas: document.getElementById('candle-chart'),
       ctx: null,
-      candles: [], // { open, close, high, low, timestamp }
-      maxCandles: 30, // Show last 30 candles
+      candles: [], 
+      maxCandles: 30,
       width: 0, height: 0,
-      
       currentPrice: 96500.00,
       currentCandle: { open: 96500, close: 96500, high: 96500, low: 96500 },
-      lastTickTime: 0,
 
       init: () => {
         chart.ctx = chart.canvas.getContext('2d');
         window.addEventListener('resize', chart.resize);
         chart.resize();
         
-        // Generate historical dummy data
         let p = chart.currentPrice;
         for(let i=0; i<chart.maxCandles; i++) {
-          const change = (Math.random() - 0.5) * 50;
+          const change = (Math.random() - 0.5) * 40;
           const open = p;
           const close = p + change;
-          const high = Math.max(open, close) + Math.random() * 10;
-          const low = Math.min(open, close) - Math.random() * 10;
+          const high = Math.max(open, close) + Math.random() * 5;
+          const low = Math.min(open, close) - Math.random() * 5;
           chart.candles.push({ open, close, high, low });
           p = close;
         }
@@ -297,25 +317,20 @@
 
       resetCurrentCandle: () => {
         chart.currentCandle = { 
-          open: chart.currentPrice, 
-          close: chart.currentPrice, 
-          high: chart.currentPrice, 
-          low: chart.currentPrice 
+          open: chart.currentPrice, close: chart.currentPrice, 
+          high: chart.currentPrice, low: chart.currentPrice 
         };
       },
 
       tick: () => {
-        // Price Movement Logic
-        const volatility = 15;
+        const volatility = 12;
         const change = (Math.random() - 0.5) * volatility;
         chart.currentPrice += change;
 
-        // Update Current Candle
         chart.currentCandle.close = chart.currentPrice;
         if (chart.currentPrice > chart.currentCandle.high) chart.currentCandle.high = chart.currentPrice;
         if (chart.currentPrice < chart.currentCandle.low) chart.currentCandle.low = chart.currentPrice;
 
-        // Update DOM
         const el = document.getElementById('live-price');
         el.innerText = chart.currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2});
         
@@ -337,20 +352,17 @@
         const { ctx, width, height, candles, currentCandle } = chart;
         ctx.clearRect(0, 0, width, height);
 
-        // Combine history + current for scaling
         const allData = [...candles, currentCandle];
-        
-        // Auto Scale
         let minVal = Infinity, maxVal = -Infinity;
         allData.forEach(c => {
             if(c.low < minVal) minVal = c.low;
             if(c.high > maxVal) maxVal = c.high;
         });
         const range = maxVal - minVal || 1;
-        const padding = height * 0.2;
+        const padding = height * 0.15;
         const getY = (val) => height - padding - ((val - minVal) / range) * (height - 2*padding);
 
-        // Grid Lines
+        // Grid
         ctx.beginPath();
         ctx.strokeStyle = '#2b3139';
         ctx.lineWidth = 1;
@@ -360,9 +372,8 @@
         }
         ctx.stroke();
 
-        // Draw Candles
-        const candleW = (width / (chart.maxCandles + 1)) * 0.6; // Width of body
-        const spacing = width / (chart.maxCandles + 1);
+        const candleW = (width / (chart.maxCandles + 2)) * 0.6;
+        const spacing = width / (chart.maxCandles + 2);
 
         allData.forEach((c, i) => {
             const x = i * spacing + (spacing/2);
@@ -378,18 +389,16 @@
             ctx.fillStyle = color;
             ctx.lineWidth = 1;
 
-            // Wick
             ctx.beginPath();
             ctx.moveTo(x, yHigh);
             ctx.lineTo(x, yLow);
             ctx.stroke();
 
-            // Body
-            const bodyH = Math.max(Math.abs(yClose - yOpen), 1); // Min 1px height
+            const bodyH = Math.max(Math.abs(yClose - yOpen), 1);
             const bodyY = Math.min(yOpen, yClose);
             ctx.fillRect(x - candleW/2, bodyY, candleW, bodyH);
             
-            // Pulsing line for current candle
+            // Current Price Line
             if (i === allData.length - 1) {
                 ctx.beginPath();
                 ctx.setLineDash([2, 2]);
@@ -398,12 +407,11 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
                 
-                // Price Tag Bg
                 ctx.fillStyle = color;
-                ctx.fillRect(width - 50, yClose - 10, 50, 20);
+                ctx.fillRect(width - 50, yClose - 9, 50, 18);
                 ctx.fillStyle = isGreen ? '#000' : '#fff';
-                ctx.font = "bold 10px JetBrains Mono";
-                ctx.fillText(c.close.toFixed(2), width - 45, yClose + 4);
+                ctx.font = "bold 9px JetBrains Mono";
+                ctx.fillText(c.close.toFixed(2), width - 46, yClose + 3);
             }
         });
 
@@ -421,10 +429,9 @@
       betSide: null,
       betAmount: 0,
       isBetPlaced: false,
+      history: [], // For roadmap
       
       timerInterval: null,
-      tickInterval: null,
-      candleInterval: null,
 
       init: async () => {
         const uid = localStorage.getItem("my_wallet_uid");
@@ -436,9 +443,8 @@
 
         chart.init();
         
-        // Loops
-        game.tickInterval = setInterval(chart.tick, 500); // Price updates 2 times/sec
-        game.candleInterval = setInterval(chart.closeCandle, 1000); // New candle every second (fast game)
+        setInterval(chart.tick, 400); // Tốc độ nhảy giá
+        setInterval(chart.closeCandle, 1000); // 1s/nến
         
         game.startRound();
       },
@@ -500,30 +506,29 @@
         game.timeLeft = CONFIG.PHASE_WAIT;
         game.lockPrice = chart.currentPrice;
 
-        // UI Updates
         const badge = document.getElementById('phase-badge');
         badge.innerText = "CHỜ KẾT QUẢ";
         badge.className = "inline-block px-2 py-0.5 rounded bg-down/20 text-down text-[10px] font-bold uppercase mb-1 backdrop-blur border border-down/30";
         
         const bar = document.getElementById('phase-bar');
-        bar.className = "h-full bg-down w-full"; // Red bar
+        bar.className = "h-full bg-down w-full"; 
 
-        // Disable buttons
         document.getElementById('btn-up').classList.add('disabled');
         document.getElementById('btn-down').classList.add('disabled');
         
-        // Show Lock Overlay
         const lock = document.getElementById('lock-overlay');
         lock.classList.remove('hidden');
         document.getElementById('lock-price-val').innerText = game.lockPrice.toFixed(2);
         
-        // Snap lock line position in Canvas (Handled in draw loop logically by time, but here visually)
         app.showToast("Đã khóa giá! Đang chờ kết quả...", "info");
       },
 
       processResult: async () => {
         const result = chart.currentPrice >= game.lockPrice ? 'UP' : 'DOWN';
         
+        // Add History
+        game.addHistory(result);
+
         if (game.isBetPlaced) {
             const isWin = game.betSide === result;
             if (isWin) {
@@ -537,16 +542,16 @@
                 game.showModal(false, 0, result);
             }
         } else {
-            app.showToast(`Hết giờ! Kết quả: ${result === 'UP' ? 'TĂNG' : 'GIẢM'}`, 'info');
+            app.showToast(`Kết quả: ${result === 'UP' ? 'TĂNG' : 'GIẢM'}`, 'info');
             setTimeout(game.startRound, 3000);
         }
       },
 
+      // --- USER ACTIONS ---
       setChip: (val) => {
         if (game.phase !== 'BET') return;
         game.currentChip = val;
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-        // Find chip by text approx
         const chips = document.querySelectorAll('.chip');
         chips.forEach(c => {
              if(c.innerText.includes(val >= 1000 ? (val/1000)+'k' : val)) c.classList.add('active');
@@ -581,6 +586,43 @@
             document.getElementById('badge-DOWN').classList.remove('hidden');
         }
         app.showToast("Đặt cược thành công!", "success");
+      },
+
+      cancelBet: async () => {
+        if (game.phase !== 'BET') return app.showToast("Không thể hủy lúc này!", 'error');
+        if (!game.isBetPlaced) return app.showToast("Chưa có cược nào!", 'info');
+
+        // Hoàn tiền
+        app.balance += game.betAmount;
+        game.updateBalanceUI();
+        await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
+
+        // Reset state
+        game.isBetPlaced = false;
+        game.betSide = null;
+        game.betAmount = 0;
+
+        // Reset UI Buttons
+        document.getElementById('btn-up').classList.remove('selected', 'disabled');
+        document.getElementById('btn-down').classList.remove('selected', 'disabled');
+        document.getElementById('badge-UP').classList.add('hidden');
+        document.getElementById('badge-DOWN').classList.add('hidden');
+
+        app.showToast("Đã hủy cược!", 'info');
+      },
+
+      // --- UI HELPERS ---
+      addHistory: (res) => {
+        game.history.push(res);
+        if(game.history.length > 20) game.history.shift();
+        
+        const rm = document.getElementById('roadmap');
+        rm.innerHTML = '';
+        game.history.forEach(r => {
+            const d = document.createElement('div');
+            d.className = `dot ${r === 'UP' ? 'U' : 'D'}`;
+            rm.appendChild(d);
+        });
       },
 
       resetUI: () => {
@@ -632,7 +674,7 @@
             content.classList.add('scale-90');
             content.classList.remove('scale-100');
             game.startRound();
-        }, 3000);
+        }, 3000); // 3s result show
       }
     };
 
