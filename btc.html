@@ -23,8 +23,8 @@
           },
           colors: { 
             gold: '#FACC15', 
-            up: '#0ecb81',     // Binance Green
-            down: '#f6465d',   // Binance Red
+            up: '#2ebd85',     // Binance Green Standard
+            down: '#f6465d',   // Binance Red Standard
             dark: '#161a1e',
             card: '#1e2329',
             line: '#2b3139'
@@ -65,18 +65,18 @@
     }
     .btn-action:active { transform: scale(0.98); }
     
-    .btn-up { color: #0ecb81; border-color: rgba(14,203,129,0.2); }
+    .btn-up { color: #2ebd85; border-color: rgba(46, 189, 133, 0.2); }
     .btn-up.selected { 
-      background: rgba(14,203,129,0.15); 
-      border-color: #0ecb81; 
-      box-shadow: inset 0 0 15px rgba(14,203,129,0.2); 
+      background: rgba(46, 189, 133, 0.15); 
+      border-color: #2ebd85; 
+      box-shadow: inset 0 0 15px rgba(46, 189, 133, 0.2); 
     }
     
-    .btn-down { color: #f6465d; border-color: rgba(246,70,93,0.2); }
+    .btn-down { color: #f6465d; border-color: rgba(246, 70, 93, 0.2); }
     .btn-down.selected { 
-      background: rgba(246,70,93,0.15); 
+      background: rgba(246, 70, 93, 0.15); 
       border-color: #f6465d; 
-      box-shadow: inset 0 0 15px rgba(246,70,93,0.2); 
+      box-shadow: inset 0 0 15px rgba(246, 70, 93, 0.2); 
     }
 
     .btn-action.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
@@ -95,12 +95,14 @@
       font-weight: 900; box-shadow: 0 2px 8px rgba(250, 204, 21, 0.3);
     }
     
+    /* FIXED CANCEL BUTTON */
     .btn-cancel {
-        height: 36px; padding: 0 14px; border-radius: 8px;
+        height: 36px; padding: 0 16px; border-radius: 8px;
         background: #363c45; color: #fff; font-weight: bold; font-size: 11px;
         display: flex; align-items: center; justify-content: center;
         border: 1px solid rgba(255,255,255,0.1);
-        margin-right: 8px;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
     .btn-cancel:active { background: #4a5059; }
 
@@ -113,14 +115,18 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
 
-    /* UTILS */
-    .pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    /* GRID BG */
     .grid-bg {
       background-image: 
         linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size: 50px 50px;
+      background-size: 40px 40px;
     }
+
+    /* UTILS */
+    .pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body>
@@ -171,8 +177,8 @@
     <!-- CANVAS -->
     <canvas id="candle-chart"></canvas>
 
-    <!-- LOCK LINE LABEL (Hidden) -->
-    <div id="lock-label" class="absolute right-0 bg-[#FACC15] text-black text-[9px] font-mono font-bold px-1 py-0.5 rounded-l shadow hidden z-20 pointer-events-none">
+    <!-- LOCK LINE LABEL (Hidden by default) -->
+    <div id="lock-label" class="absolute left-1/2 -translate-x-1/2 bg-[#FACC15] text-black text-[10px] font-mono font-bold px-2 py-0.5 rounded shadow hidden z-20 pointer-events-none border border-white/20">
       LOCK: <span id="lock-price-val"></span>
     </div>
 
@@ -190,17 +196,24 @@
       <div id="roadmap" class="flex items-center gap-1 overflow-hidden justify-end"></div>
     </div>
 
-    <!-- CHIP SELECTOR -->
-    <div class="py-3 px-4 overflow-x-auto no-scrollbar flex items-center gap-2 border-b border-[#2b3139]">
-      <button onclick="game.cancelBet()" class="btn-cancel shrink-0 active:scale-95 transition">
-        <i class="fa-solid fa-rotate-left mr-1.5"></i> HỦY
-      </button>
-      <div class="w-[1px] h-6 bg-[#2b3139] mx-1"></div>
-      <div class="chip" onclick="game.setChip(2000)">2k</div>
-      <div class="chip active" onclick="game.setChip(10000)">10k</div>
-      <div class="chip" onclick="game.setChip(50000)">50k</div>
-      <div class="chip" onclick="game.setChip(100000)">100k</div>
-      <div class="chip" onclick="game.setChip(500000)">500k</div>
+    <!-- CHIP SELECTOR (FIXED CANCEL BUTTON) -->
+    <div class="flex items-center px-4 py-3 border-b border-[#2b3139]">
+        <!-- Nút Hủy Cố Định -->
+        <button onclick="game.cancelBet()" class="btn-cancel active:scale-95 transition shadow-lg mr-3">
+            <i class="fa-solid fa-rotate-left mr-1.5 text-red-400"></i> HỦY
+        </button>
+        
+        <!-- Vạch ngăn cách -->
+        <div class="w-[1px] h-6 bg-[#2b3139] mr-3 shrink-0"></div>
+
+        <!-- Thanh cuộn chip -->
+        <div class="flex-1 overflow-x-auto no-scrollbar flex items-center gap-2">
+            <div class="chip" onclick="game.setChip(2000)">2k</div>
+            <div class="chip active" onclick="game.setChip(10000)">10k</div>
+            <div class="chip" onclick="game.setChip(50000)">50k</div>
+            <div class="chip" onclick="game.setChip(100000)">100k</div>
+            <div class="chip" onclick="game.setChip(500000)">500k</div>
+        </div>
     </div>
 
     <!-- BET BUTTONS -->
@@ -216,8 +229,7 @@
           <span class="text-[10px] opacity-70 font-mono text-white/50 group-[.selected]:text-up group-[.selected]:opacity-100">Payout x1.95</span>
         </div>
         <div id="badge-UP" class="bet-badge hidden"></div>
-        <!-- Tap effect overlay -->
-        <div class="absolute inset-0 bg-up/20 opacity-0 transition-opacity active:opacity-100 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-up/10 opacity-0 transition-opacity active:opacity-100 pointer-events-none"></div>
       </button>
 
       <!-- DOWN -->
@@ -230,7 +242,7 @@
           <span class="text-[10px] opacity-70 font-mono text-white/50 group-[.selected]:text-down group-[.selected]:opacity-100">Payout x1.95</span>
         </div>
         <div id="badge-DOWN" class="bet-badge hidden"></div>
-        <div class="absolute inset-0 bg-down/20 opacity-0 transition-opacity active:opacity-100 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-down/10 opacity-0 transition-opacity active:opacity-100 pointer-events-none"></div>
       </button>
 
     </div>
@@ -239,13 +251,10 @@
   <!-- RESULT MODAL -->
   <div id="modal-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
     <div id="modal-content" class="bg-[#1e2329] border border-white/10 rounded-3xl p-6 w-72 text-center transform scale-90 transition-transform duration-300 shadow-2xl relative overflow-hidden">
-      <!-- Glow -->
       <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-      
       <div id="modal-icon" class="text-6xl mb-4 drop-shadow-2xl animate-bounce"></div>
       <div id="modal-title" class="text-3xl font-oswald font-bold uppercase mb-2"></div>
       <div id="modal-amount" class="font-mono text-2xl font-bold tracking-tight"></div>
-      
       <div class="mt-6 w-full h-1 bg-[#2b3139] rounded overflow-hidden">
         <div class="h-full bg-gold animate-[width_3s_linear_reverse] w-full"></div>
       </div>
@@ -271,7 +280,7 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ===== 2. DETERMINISTIC RNG =====
+    // ===== 2. DETERMINISTIC RNG (Đồng bộ Multiplayer) =====
     function seededRandom(seed) {
         var x = Math.sin(seed++) * 10000;
         return x - Math.floor(x);
@@ -284,14 +293,14 @@
         const rand3 = seededRandom(seed + 0.2);
         
         // Trend nhẹ theo phút
-        const trend = Math.sin(timestampSec / 60) * 15; 
-        const volatility = 20;
+        const trend = Math.sin(timestampSec / 120) * 8; 
+        const volatility = 12; // Biến động hợp lý (12 USD/s)
         const change = (rand1 - 0.5) * volatility + trend;
         
         return {
             change: change,
-            highOffset: Math.abs(change) + rand2 * 8,
-            lowOffset: -Math.abs(change) - rand3 * 8
+            highOffset: Math.abs(change) + rand2 * 6,
+            lowOffset: -Math.abs(change) - rand3 * 6
         };
     }
 
@@ -310,7 +319,7 @@
       }
     };
 
-    // ===== 4. CHART ENGINE (LEFT AXIS + 2/3 POSITION) =====
+    // ===== 4. CHART ENGINE (NÂNG CẤP) =====
     const chart = {
       canvas: document.getElementById('candle-chart'),
       ctx: null,
@@ -330,17 +339,20 @@
         
         // Seed history 60s
         const nowSec = Math.floor(Date.now() / 1000);
+        // Để đảm bảo nến nối tiếp nhau, ta tính tuần tự
         let p = CONFIG.BASE_PRICE;
         
         for (let t = nowSec - 60; t < nowSec; t++) {
             const data = generateCandleData(t);
             const open = p;
             const close = p + data.change;
-            const high = Math.max(open, close, open + data.highOffset);
-            const low = Math.min(open, close, open + data.lowOffset);
             
-            chart.candles.push({ open, close, high, low, time: t });
-            p = close;
+            // Logic Nến chuẩn: High >= Max(Open, Close), Low <= Min(Open, Close)
+            const realHigh = Math.max(open, close) + Math.abs(data.highOffset);
+            const realLow = Math.min(open, close) - Math.abs(data.lowOffset);
+            
+            chart.candles.push({ open, close, high: realHigh, low: realLow, time: t });
+            p = close; // Giá Close của nến này là Open của nến sau
         }
         
         chart.basePrice = p;
@@ -376,22 +388,31 @@
             chart.candles.push({...chart.currentCandle});
             if(chart.candles.length > 60) chart.candles.shift();
             
+            // QUAN TRỌNG: Giá mở nến mới = Giá đóng nến cũ
             chart.basePrice = chart.currentCandle.close;
             chart.resetCurrentCandle();
             chart.serverTime = nowSec;
         }
 
-        // Interpolation
+        // Interpolation logic
         const progress = (now % 1000) / 1000; 
         const seedData = generateCandleData(nowSec);
-        const targetPrice = chart.currentCandle.open + seedData.change;
-        const currentDiff = targetPrice - chart.currentCandle.open;
         
-        // Noise + Lerp
-        const noise = (Math.sin(now/150) * 3); 
-        let visualPrice = chart.currentCandle.open + (currentDiff * progress) + noise;
+        // Đích đến của giây này
+        const targetClose = chart.currentCandle.open + seedData.change;
         
-        if (progress > 0.85) visualPrice = chart.currentCandle.open + (currentDiff * progress);
+        // Tính giá hiện tại (Visual)
+        // Dùng Sine Wave để tạo dao động giả lập (noise) xung quanh đường thẳng từ Open -> Target
+        const linearPrice = chart.currentCandle.open + (targetClose - chart.currentCandle.open) * progress;
+        const noise = Math.sin(progress * Math.PI * 4) * 2; // Dao động 2 USD
+        
+        let visualPrice = linearPrice + noise;
+        
+        // Khi gần hết giây, ép về giá target để nến sau khớp
+        if (progress > 0.9) {
+            const blend = (progress - 0.9) * 10; // 0 -> 1
+            visualPrice = (visualPrice * (1-blend)) + (targetClose * blend);
+        }
         
         chart.displayPrice = visualPrice;
         
@@ -414,17 +435,17 @@
 
         const allData = [...candles, currentCandle];
         
-        // Scale View (Last 25 candles)
-        const viewSize = 25;
+        // Viewport: 35 nến
+        const viewSize = 35;
         const viewData = allData.slice(-viewSize);
         
+        // Tính Scale Y
         let minVal = Infinity, maxVal = -Infinity;
         viewData.forEach(c => {
             if(c.low < minVal) minVal = c.low;
             if(c.high > maxVal) maxVal = c.high;
         });
         
-        // Scale for lock price
         if(game.phase === 'WAIT' && game.lockPrice > 0) {
             if(game.lockPrice > maxVal) maxVal = game.lockPrice;
             if(game.lockPrice < minVal) minVal = game.lockPrice;
@@ -434,9 +455,7 @@
         const padding = height * 0.2;
         const getY = (val) => height - padding - ((val - minVal) / range) * (height - 2*padding);
 
-        // --- DRAW AXIS & GRID ---
-        
-        // Grid Lines
+        // Grid & Labels
         ctx.strokeStyle = '#2b3139';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -444,23 +463,27 @@
           const y = (height/6)*i;
           ctx.moveTo(0, y); ctx.lineTo(width, y);
           
-          // Y-AXIS LABEL (LEFT SIDE)
-          const priceLabel = minVal + (range * ((height-y-padding)/(height-2*padding)));
-          ctx.fillStyle = '#848e9c';
+          // Price Labels (Both Sides)
+          const pLabel = minVal + (range * ((height-y-padding)/(height-2*padding)));
+          ctx.fillStyle = '#5e6673';
           ctx.font = '10px JetBrains Mono';
+          
+          // Left
           ctx.textAlign = 'left';
-          ctx.fillText(priceLabel.toFixed(2), 6, y - 4);
+          ctx.fillText(pLabel.toFixed(2), 5, y - 4);
+          
+          // Right
+          ctx.textAlign = 'right';
+          ctx.fillText(pLabel.toFixed(2), width - 5, y - 4);
         }
         ctx.stroke();
 
         // Lock Line
         if (game.phase === 'WAIT' && game.lockPrice > 0) {
             const lockY = getY(game.lockPrice);
-            
-            // Label Update
             const badge = document.getElementById('lock-label');
             badge.classList.remove('hidden');
-            badge.style.top = (lockY / 2) - 8 + "px"; // CSS px = Canvas px / 2
+            badge.style.top = (lockY / 2) - 10 + "px"; // CSS px alignment
             
             ctx.beginPath();
             ctx.strokeStyle = '#FACC15';
@@ -474,22 +497,18 @@
             document.getElementById('lock-label').classList.add('hidden');
         }
 
-        // --- DRAW CANDLES (2/3 POSITION) ---
-        // Strategy: 
-        // Current Candle Position = width * 0.66
-        // Spacing = width / 35 (approx size)
-        
-        const spacing = width / 35;
-        const candleW = spacing * 0.6;
-        const anchorX = width * 0.66; 
+        // Draw Candles
+        // Logic: Nến hiện tại ở vị trí 2/3 màn hình (width * 0.66)
+        // Các nến lịch sử vẽ lùi về bên trái
+        const anchorX = width * 0.7; 
+        const spacing = width / 40; // Mật độ nến
+        const candleW = spacing * 0.65;
 
-        // Draw backwards from current
-        // Index 0 = current (reversed viewData)
+        // Vẽ ngược từ nến hiện tại về quá khứ
         [...viewData].reverse().forEach((c, i) => {
             const x = anchorX - (i * spacing);
             
-            // Don't draw if off screen left
-            if (x < -spacing) return;
+            if (x < -candleW) return; // Skip off-screen
 
             const yOpen = getY(c.open);
             const yClose = getY(c.close);
@@ -497,7 +516,7 @@
             const yLow = getY(c.low);
             
             const isGreen = c.close >= c.open;
-            const color = isGreen ? '#0ecb81' : '#f6465d';
+            const color = isGreen ? '#2ebd85' : '#f6465d';
 
             ctx.strokeStyle = color;
             ctx.fillStyle = color;
@@ -514,16 +533,24 @@
             const bodyY = Math.min(yOpen, yClose);
             ctx.fillRect(x - candleW/2, bodyY, candleW, bodyH);
             
-            // Current Price Line (Dashed trace to right edge)
+            // Price Line (Chỉ cho nến hiện tại i=0)
             if (i === 0) {
                 ctx.beginPath();
                 ctx.setLineDash([2, 2]);
                 ctx.moveTo(x, yClose);
-                ctx.lineTo(width, yClose); // Draw to right edge
+                ctx.lineTo(width, yClose);
                 ctx.stroke();
                 ctx.setLineDash([]);
                 
-                // Pulsing dot at tip
+                // Label background
+                ctx.fillStyle = color;
+                ctx.fillRect(width - 55, yClose - 10, 55, 20);
+                ctx.fillStyle = isGreen ? '#000' : '#fff';
+                ctx.font = "bold 10px JetBrains Mono";
+                ctx.textAlign = 'center';
+                ctx.fillText(c.close.toFixed(2), width - 27, yClose + 4);
+                
+                // Pulsing Dot
                 ctx.beginPath();
                 ctx.arc(x, yClose, 3, 0, Math.PI * 2);
                 ctx.fillStyle = '#fff';
@@ -546,7 +573,6 @@
       betSide: null,
       betAmount: 0,
       
-      // Roadmap history
       history: [],
 
       init: async () => {
@@ -562,7 +588,7 @@
         setInterval(() => {
             chart.update();
             game.syncLoop();
-        }, 30); 
+        }, 16); // 60fps logic loop
       },
 
       loadBalance: async () => {
@@ -656,7 +682,7 @@
         // Add dot
         const rm = document.getElementById('roadmap');
         const dot = document.createElement('div');
-        dot.className = `w-2 h-2 rounded-sm ${result==='UP'?'bg-up shadow-[0_0_5px_#0ecb81]':'bg-down shadow-[0_0_5px_#f6465d]'}`;
+        dot.className = `w-2 h-2 rounded-sm ${result==='UP'?'bg-up shadow-[0_0_5px_#2ebd85]':'bg-down shadow-[0_0_5px_#f6465d]'}`;
         rm.appendChild(dot);
         if(rm.children.length > 20) rm.removeChild(rm.firstChild);
 
@@ -716,8 +742,7 @@
             document.getElementById('badge-DOWN').classList.remove('hidden');
         }
         
-        // Haptic or Sound could go here
-        if (navigator.vibrate) navigator.vibrate(50);
+        if (navigator.vibrate) navigator.vibrate(30);
       },
 
       cancelBet: async () => {
@@ -750,6 +775,8 @@
         const badge = document.getElementById('phase-badge');
         badge.innerText = "ĐẶT LỆNH";
         badge.className = "px-2 py-0.5 rounded bg-up/20 text-up text-[10px] font-bold uppercase backdrop-blur border border-up/30";
+        
+        document.getElementById('lock-label').classList.add('hidden');
       },
 
       showModal: (isWin, amount, result) => {
