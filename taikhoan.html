@@ -415,7 +415,7 @@
                 const preBalance = currentBalanceCache;
                 const { data, error } = await db.rpc("use_deposit_code", { p_uid: currentUser, p_code: code });
 
-                if (error) throw new Error("Lỗi hệ thống.");
+                if (error) throw new Error("Mã nạp không hợp lệ.");
                 await loadWallet();
 
                 const res = data && (Array.isArray(data) ? data[0] : data);
@@ -481,7 +481,7 @@
                     } else {
                         // LOGIC MỚI CHO DEPOSIT/ADMIN ADJUST
                         const source = item.source || 'code';
-                        let title = 'Nạp tiền (Code)';
+                        let title = 'Nạp mã nạp';
                         let sign = '+';
                         let colorAmount = 'text-emerald-400';
                         let boxBg = 'bg-emerald-900/10';
@@ -490,10 +490,10 @@
                         let statusText = 'Thành công';
 
                         if (source === 'admin_add') {
-                            title = 'Admin cộng tiền';
+                            title = 'Nạp tiền';
                             icon = 'fa-arrow-trend-up';
                         } else if (source === 'admin_subtract') {
-                            title = 'Admin trừ tiền';
+                            title = 'Trừ tiền';
                             sign = '-';
                             colorAmount = 'text-rose-400';
                             boxBg = 'bg-rose-900/10';
