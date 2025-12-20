@@ -12,7 +12,6 @@
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
         .font-mono { font-family: 'Space Mono', monospace; }
         
-        /* Glass Effect */
         .glass-card {
             background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
             backdrop-filter: blur(10px);
@@ -26,7 +25,6 @@
         select, input { transition: all 0.2s; outline: none; }
         select:focus, input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
         
-        /* Custom Select Arrow */
         select {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -37,14 +35,12 @@
             background-size: 1em;
         }
 
-        /* Tab Styles */
         .tab-btn { position: relative; overflow: hidden; }
         .tab-active { background-color: #2563eb; color: white; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
         .tab-inactive { background-color: rgba(30, 41, 59, 0.5); color: #94a3b8; border: 1px solid rgba(255,255,255,0.05); }
         
         .cursor-not-allowed { cursor: not-allowed !important; }
         
-        /* Loader */
         .loader {
             border: 2px solid rgba(255,255,255,0.1);
             border-top: 2px solid #fff;
@@ -329,7 +325,7 @@
                 currentBalanceCache = data.balance || 0;
             }
             document.getElementById("balance").innerText = currentBalanceCache.toLocaleString();
-            document.getElementById("wd-balance-display").innerText = currentBalanceCache.toLocaleString(); // Sync withdraw tab
+            document.getElementById("wd-balance-display").innerText = currentBalanceCache.toLocaleString(); 
         }
 
         window.forceRefresh = async () => {
@@ -368,19 +364,16 @@
                 const acc = document.getElementById("wd-account").value.trim();
 
                 if(!amount || isNaN(amount)) throw new Error("Vui lòng nhập số tiền!");
-                if(amount < 100000) throw new Error("Tối thiểu rút 100,000 Coin"); // Updated min limit
+                if(amount < 100000) throw new Error("Tối thiểu rút 100,000 Coin"); 
                 if(!bank) throw new Error("Vui lòng chọn ngân hàng");
                 if(!holder || !acc) throw new Error("Thiếu thông tin nhận tiền");
 
-                // Check Balance again
                 const { data: u } = await db.from("users").select("balance").eq("id", currentUser).single();
                 if(!u || u.balance < amount) throw new Error("Số dư không đủ!");
 
-                // 1. Deduct Balance
                 const { error: updateErr } = await db.from("users").update({ balance: u.balance - amount }).eq("id", currentUser);
                 if(updateErr) throw new Error("Lỗi cập nhật số dư");
 
-                // 2. Log Request
                 const { error: reqErr } = await db.from("withdraw_request").insert({
                     uid: currentUser, amount, bank_name: bank, holder_name: holder, bank_account: acc, status: 'pending'
                 });
@@ -393,8 +386,6 @@
                 showToast("Lệnh rút tiền đã gửi!", "success");
                 document.getElementById("wd-amount").value = "";
                 await loadWallet();
-                
-                // Auto switch to history to show proof
                 setTimeout(() => switchSubTab('history'), 1000);
 
             } catch (e) {
@@ -408,7 +399,7 @@
             }
         }
 
-        /* --- LOGIC NẠP TIỀN (AS BEFORE) --- */
+        /* --- LOGIC NẠP TIỀN --- */
         window.userDeposit = async () => {
             if (depositLock) return;
             depositLock = true;
@@ -445,7 +436,7 @@
             }
         }
 
-        /* --- LỊCH SỬ (AS BEFORE) --- */
+        /* --- LỊCH SỬ (UPDATED) --- */
         async function loadHistory() {
             const list = document.getElementById("history-list");
             list.innerHTML = '<div class="text-center text-slate-500 py-8"><span class="loader border-slate-500 border-t-transparent"></span></div>';
@@ -488,13 +479,44 @@
                                 </div>
                             </div>`;
                     } else {
+                        // LOGIC MỚI CHO DEPOSIT/ADMIN ADJUST
+                        const source = item.source || 'code';
+                        let title = 'Nạp tiền (Code)';
+                        let sign = '+';
+                        let colorAmount = 'text-emerald-400';
+                        let boxBg = 'bg-emerald-900/10';
+                        let borderCls = 'border-emerald-500/20';
+                        let icon = 'fa-ticket';
+                        let statusText = 'Thành công';
+
+                        if (source === 'admin_add') {
+                            title = 'Admin cộng tiền';
+                            icon = 'fa-arrow-trend-up';
+                        } else if (source === 'admin_subtract') {
+                            title = 'Admin trừ tiền';
+                            sign = '-';
+                            colorAmount = 'text-rose-400';
+                            boxBg = 'bg-rose-900/10';
+                            borderCls = 'border-rose-500/20';
+                            icon = 'fa-arrow-trend-down';
+                            statusText = 'Điều chỉnh (-)';
+                        }
+
                         list.innerHTML += `
-                            <div class="flex items-center justify-between bg-emerald-900/10 p-3 rounded-xl border border-emerald-500/20 hover:bg-emerald-900/20 transition">
+                            <div class="flex items-center justify-between ${boxBg} p-3 rounded-xl border ${borderCls} hover:bg-slate-800/70 transition">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-sm text-emerald-400"><i class="fa-solid fa-download"></i></div>
-                                    <div><div class="text-emerald-400 font-bold text-xs uppercase">Nạp Tiền</div><div class="text-[10px] text-emerald-600/70 font-mono">${timeStr}</div></div>
+                                    <div class="w-10 h-10 rounded-full bg-slate-900/60 flex items-center justify-center text-sm ${colorAmount}">
+                                        <i class="fa-solid ${icon}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="${colorAmount} font-bold text-xs uppercase">${title}</div>
+                                        <div class="text-[10px] text-slate-500 font-mono">${timeStr}</div>
+                                    </div>
                                 </div>
-                                <div class="text-right"><div class="text-emerald-400 font-bold text-sm">+${item.amount.toLocaleString()}</div><div class="text-[10px] text-emerald-600 font-medium">Thành công</div></div>
+                                <div class="text-right">
+                                    <div class="${colorAmount} font-bold text-sm">${sign}${item.amount.toLocaleString()}</div>
+                                    <div class="text-[10px] text-slate-400 font-medium">${statusText}</div>
+                                </div>
                             </div>`;
                     }
                 });
