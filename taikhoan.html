@@ -59,7 +59,6 @@
             background: #3b82f6;
         }
         
-        /* Disabled state styling */
         .cursor-not-allowed { cursor: not-allowed !important; }
     </style>
 </head>
@@ -230,7 +229,6 @@
                         <input type="text" id="wd-holder" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 uppercase placeholder-slate-600" placeholder="Chủ tài khoản">
                         <input type="text" id="wd-account" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 font-mono placeholder-slate-600" placeholder="Số tài khoản / SĐT Ví">
                         
-                        <!-- UPDATED: Added id="btn-withdraw" -->
                         <button id="btn-withdraw" onclick="userWithdraw()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-900/20 text-sm mt-2 active:scale-95 transition-transform">
                             GỬI YÊU CẦU
                         </button>
@@ -238,10 +236,19 @@
                 </div>
             </div>
 
-            <!-- Content: History (LỊCH SỬ) -->
+            <!-- Content: History (LỊCH SỬ - ĐÃ TÍCH HỢP NẠP) -->
             <div id="subview-history" class="hidden bg-slate-800 border border-slate-700 rounded-2xl p-4 min-h-[300px] animate-fade-in pb-10">
-                <h3 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-wider">Giao dịch gần đây</h3>
-                <div id="history-list" class="space-y-3"></div>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Lịch sử giao dịch</h3>
+                    <button onclick="loadHistory()" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-sync"></i></button>
+                </div>
+                <!-- Filter tabs (Optional) -->
+                <div class="flex gap-2 mb-4 overflow-x-auto no-scrollbar hidden">
+                    <span class="text-[10px] bg-blue-600 text-white px-2 py-1 rounded font-bold">Tất cả</span>
+                </div>
+                <div id="history-list" class="space-y-3">
+                    <!-- Javascript will inject here -->
+                </div>
             </div>
 
         </div>
@@ -259,12 +266,10 @@
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentUser = null;
-        
-        // --- 🔒 BIẾN KHÓA NÚT ---
         let depositLock = false; 
-        let withdrawLock = false; // NEW
+        let withdrawLock = false;
 
-        /* --- LOGIC KHỞI TẠO TRANG --- */
+        /* --- LOGIC KHỞI TẠO --- */
         window.onload = async () => {
             const savedUid = localStorage.getItem("my_wallet_uid");
             if(!savedUid) {
@@ -280,7 +285,6 @@
             await loadWallet();
         }
 
-        /* --- COPY TEXT --- */
         window.copyText = (elementId) => {
             const text = document.getElementById(elementId).innerText;
             navigator.clipboard.writeText(text).then(() => {
@@ -290,7 +294,6 @@
             });
         }
 
-        /* --- ĐIỀU HƯỚNG --- */
         window.goHome = () => {
             window.location.href = "home.html";
         }
@@ -305,7 +308,6 @@
             if(tab === 'history') loadHistory();
         }
 
-        /* --- LOGIC XỬ LÝ DỮ LIỆU --- */
         window.formatCurrency = (input) => {
             let val = input.value.replace(/\D/g, '');
             input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -322,11 +324,10 @@
             }
         }
 
-        /* --- NẠP CODE (ĐÃ CHẶN SPAM) --- */
+        /* --- XỬ LÝ NẠP --- */
         window.userDeposit = async () => {
             if (depositLock) return;
             depositLock = true;
-
             const btn = document.getElementById("btn-deposit");
             const oldText = btn.innerText;
 
@@ -336,28 +337,20 @@
 
             try {
                 const code = document.getElementById("dep-code").value.trim().toUpperCase();
-
                 if (!currentUser || !code) {
-                    showToast("Vui lòng nhập mã!", "error");
-                    return;
+                    showToast("Vui lòng nhập mã!", "error"); return;
                 }
 
-                const { data, error } = await db.rpc("use_deposit_code", {
-                    p_uid: currentUser,
-                    p_code: code
-                });
+                const { data, error } = await db.rpc("use_deposit_code", { p_uid: currentUser, p_code: code });
 
                 if (error) {
                     console.error(error);
-                    showToast("Lỗi hệ thống hoặc mã sai!", "error");
-                    return;
+                    showToast("Lỗi hệ thống hoặc mã sai!", "error"); return;
                 }
 
                 const res = data && (Array.isArray(data) ? data[0] : data);
-                
                 if (!res || res.status !== "OK") {
-                    showToast(res?.message || "Mã không hợp lệ hoặc hết lượt!", "error");
-                    return;
+                    showToast(res?.message || "Mã không hợp lệ hoặc hết lượt!", "error"); return;
                 }
 
                 showToast(`Nạp thành công +${Number(res.credited).toLocaleString()}`, "success");
@@ -377,23 +370,20 @@
             }
         }
 
-        /* --- RÚT TIỀN (UPDATED: CHẶN SPAM + LOCK 3S) --- */
+        /* --- XỬ LÝ RÚT --- */
         window.userWithdraw = async () => {
-            // 1. Chặn Spam Click + Khóa UI
             if (withdrawLock) return;
             withdrawLock = true;
-
             const btn = document.getElementById("btn-withdraw");
             const oldText = btn.innerText;
 
             btn.disabled = true;
             btn.classList.add("opacity-60", "cursor-not-allowed");
-            btn.innerText = "ĐANG XỬ LÝ..."; // Đổi text nút
+            btn.innerText = "ĐANG XỬ LÝ...";
 
             try {
                 const rawAmount = document.getElementById("wd-amount").value.replace(/,/g, '');
                 const amount = parseInt(rawAmount);
-                
                 const bank = document.getElementById("wd-bank").value; 
                 const holder = document.getElementById("wd-holder").value.trim();
                 const acc = document.getElementById("wd-account").value.trim();
@@ -406,19 +396,14 @@
                 const { data: u } = await db.from("users").select("balance").eq("id", currentUser).single();
                 if(!u || u.balance < amount) { showToast("Số dư không đủ!", "error"); return; }
 
-                // Trừ tiền
                 await db.from("users").update({ balance: u.balance - amount }).eq("id", currentUser);
-                
-                // Tạo yêu cầu rút
                 const { error: reqErr } = await db.from("withdraw_request").insert({
                     uid: currentUser, amount, bank_name: bank, holder_name: holder, bank_account: acc, status: 'pending'
                 });
 
                 if(reqErr) {
-                    // Rollback nếu lỗi
                     await db.from("users").update({ balance: u.balance }).eq("id", currentUser);
-                    showToast("Lỗi hệ thống", "error");
-                    return;
+                    showToast("Lỗi hệ thống", "error"); return;
                 }
                 
                 showToast("Đã gửi yêu cầu rút!", "success");
@@ -429,48 +414,116 @@
                 console.error(e);
                 showToast("Có lỗi xảy ra!", "error");
             } finally {
-                // 3. Mở khóa sau 3 giây
                 setTimeout(() => {
                     withdrawLock = false;
                     btn.disabled = false;
                     btn.classList.remove("opacity-60", "cursor-not-allowed");
-                    btn.innerText = oldText; // Trả lại text cũ
+                    btn.innerText = oldText;
                 }, 3000);
             }
         }
 
+        /* --- UPDATED: LỊCH SỬ GIAO DỊCH (NẠP + RÚT) --- */
         async function loadHistory() {
             const list = document.getElementById("history-list");
-            list.innerHTML = '<div class="text-center text-slate-500 text-xs py-4"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+            list.innerHTML = '<div class="text-center text-slate-500 text-xs py-4"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
             
-            const { data } = await db.from("withdraw_request").select("*").eq("uid", currentUser).order("time_request", {ascending: false}).limit(10);
-            
-            if(!data || data.length === 0) {
-                list.innerHTML = '<div class="text-center text-slate-500 text-xs italic py-4">Chưa có giao dịch</div>';
-                return;
-            }
-            
-            list.innerHTML = "";
-            data.forEach(item => {
-                let color = "text-yellow-500 bg-yellow-500/10"; let text = "Đang chờ"; let icon = "fa-clock";
-                if(item.status === 'approved') { color = "text-emerald-500 bg-emerald-500/10"; text = "Thành công"; icon = "fa-check"; }
-                if(item.status === 'rejected') { color = "text-rose-500 bg-rose-500/10"; text = "Từ chối"; icon = "fa-xmark"; }
+            try {
+                // 1. Lấy dữ liệu rút tiền
+                const reqWithdraw = db.from("withdraw_request").select("*").eq("uid", currentUser).order("time_request", {ascending: false}).limit(15);
                 
-                list.innerHTML += `
-                    <div class="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl border border-slate-700">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full ${color} flex items-center justify-center text-xs"><i class="fa-solid ${icon}"></i></div>
-                            <div>
-                                <div class="text-white font-bold text-xs">Rút tiền</div>
-                                <div class="text-[10px] text-slate-500 font-mono">${new Date(item.time_request).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-white font-bold text-sm">-${item.amount.toLocaleString()}</div>
-                            <div class="text-[10px] font-bold ${color.split(' ')[0]}">${text}</div>
-                        </div>
-                    </div>`;
-            });
+                // 2. Lấy dữ liệu nạp tiền (Giả định bảng deposit_history có cột created_at)
+                // Lưu ý: RPC 'use_deposit_code' nên insert vào bảng này.
+                const reqDeposit = db.from("deposit_history").select("*").eq("uid", currentUser).order("created_at", {ascending: false}).limit(15);
+
+                const [resW, resD] = await Promise.all([reqWithdraw, reqDeposit]);
+
+                let items = [];
+
+                // Xử lý dữ liệu Rút
+                if(resW.data) {
+                    resW.data.forEach(x => items.push({
+                        type: 'withdraw',
+                        amount: x.amount,
+                        date: new Date(x.time_request),
+                        status: x.status,
+                        desc: 'Rút về ' + x.bank_name
+                    }));
+                }
+
+                // Xử lý dữ liệu Nạp
+                if(resD.data) {
+                    resD.data.forEach(x => items.push({
+                        type: 'deposit',
+                        amount: x.amount,
+                        date: new Date(x.created_at),
+                        status: 'success', // Code thường nạp thành công ngay
+                        desc: 'Nạp Code: ' + (x.code || 'GIFTCODE')
+                    }));
+                }
+
+                if(items.length === 0) {
+                    list.innerHTML = '<div class="text-center text-slate-500 text-xs italic py-10 opacity-50"><i class="fa-solid fa-box-open text-2xl mb-2"></i><br>Chưa có giao dịch nào</div>';
+                    return;
+                }
+
+                // Sắp xếp giảm dần theo thời gian
+                items.sort((a, b) => b.date - a.date);
+
+                // Render
+                list.innerHTML = "";
+                items.forEach(item => {
+                    let html = "";
+                    const timeStr = item.date.toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
+
+                    if (item.type === 'withdraw') {
+                        // Style cho Rút tiền
+                        let color = "text-yellow-500 bg-yellow-500/10"; let statusText = "Đang chờ"; let icon = "fa-clock";
+                        if(item.status === 'approved') { color = "text-slate-400 bg-slate-500/10"; statusText = "Thành công"; icon = "fa-check"; }
+                        if(item.status === 'rejected') { color = "text-rose-500 bg-rose-500/10"; statusText = "Từ chối"; icon = "fa-xmark"; }
+
+                        html = `
+                            <div class="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl border border-slate-700 hover:bg-slate-800 transition">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full ${color} flex items-center justify-center text-xs shadow-sm">
+                                        <i class="fa-solid ${icon}"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-white font-bold text-xs">RÚT TIỀN</div>
+                                        <div class="text-[10px] text-slate-500 font-mono">${timeStr}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-rose-400 font-bold text-sm">-${item.amount.toLocaleString()}</div>
+                                    <div class="text-[10px] font-bold ${color.split(' ')[0]} uppercase">${statusText}</div>
+                                </div>
+                            </div>`;
+                    } else {
+                        // Style cho Nạp tiền
+                        html = `
+                            <div class="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl border border-slate-700 hover:bg-slate-800 transition">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full text-emerald-400 bg-emerald-500/10 flex items-center justify-center text-xs shadow-sm shadow-emerald-900/20">
+                                        <i class="fa-solid fa-money-bill-wave"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-white font-bold text-xs uppercase text-emerald-300">NẠP TIỀN</div>
+                                        <div class="text-[10px] text-slate-500 font-mono">${timeStr}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-emerald-400 font-bold text-sm">+${item.amount.toLocaleString()}</div>
+                                    <div class="text-[10px] text-slate-400 font-medium max-w-[100px] truncate">${item.desc}</div>
+                                </div>
+                            </div>`;
+                    }
+                    list.innerHTML += html;
+                });
+
+            } catch (e) {
+                console.error("History Error:", e);
+                list.innerHTML = '<div class="text-center text-rose-500 text-xs py-4">Không thể tải lịch sử</div>';
+            }
         }
 
         function showToast(msg, type) {
@@ -483,5 +536,4 @@
     </script>
 </body>
 </html>
-
 
