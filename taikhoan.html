@@ -25,6 +25,14 @@
         select, input { transition: all 0.2s; outline: none; }
         select:focus, input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
         
+        /* Disabled input style */
+        input:disabled, select:disabled {
+            background-color: rgba(15, 23, 42, 0.8);
+            color: #94a3b8;
+            border-color: rgba(255, 255, 255, 0.05);
+            cursor: not-allowed;
+        }
+
         select {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -63,7 +71,6 @@
             font-weight: 600;
         }
         
-        /* Animation fade-in cho tab */
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -195,10 +202,20 @@
                 </div>
 
                 <!-- Section 2: Thông tin nhận tiền -->
-                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 mb-4">
-                    <h3 class="text-sm font-bold text-white mb-6"><i class="fa-solid fa-address-card text-purple-500 mr-2"></i>Tài khoản nhận tiền</h3>
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 mb-4 relative">
+                    <h3 class="text-sm font-bold text-white mb-6 flex items-center justify-between">
+                        <span><i class="fa-solid fa-address-card text-purple-500 mr-2"></i>Tài khoản nhận tiền</span>
+                        <span id="bank-status-badge" class="hidden text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-300">Chưa liên kết</span>
+                    </h3>
                     
                     <div class="space-y-5">
+                        <!-- Tên chủ thẻ (AUTO FILL & LOCKED) -->
+                        <div class="relative group">
+                            <span class="input-group-label">Tên chủ tài khoản</span>
+                            <div class="absolute right-3 top-3 text-slate-500"><i class="fa-solid fa-lock text-xs"></i></div>
+                            <input type="text" id="wd-holder" class="w-full bg-slate-900 border border-slate-600 text-slate-400 rounded-xl px-4 py-3 text-sm uppercase font-bold cursor-not-allowed" readonly placeholder="LOADING...">
+                        </div>
+
                         <!-- Ngân hàng -->
                         <div class="relative group">
                             <span class="input-group-label">Ngân hàng / Ví</span>
@@ -222,10 +239,9 @@
                             <input type="text" id="wd-account" class="w-full bg-slate-900 border border-slate-600 text-white rounded-xl px-4 py-3 text-sm font-mono focus:border-blue-500" placeholder="Nhập số tài khoản">
                         </div>
 
-                        <!-- Tên chủ thẻ -->
-                        <div class="relative group">
-                            <span class="input-group-label">Tên chủ tài khoản</span>
-                            <input type="text" id="wd-holder" class="w-full bg-slate-900 border border-slate-600 text-white rounded-xl px-4 py-3 text-sm uppercase focus:border-blue-500" placeholder="VD: NGUYEN VAN A">
+                        <!-- Ghi chú khóa tài khoản -->
+                        <div id="bank-locked-note" class="hidden text-[10px] text-amber-500 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+                            <i class="fa-solid fa-circle-info mr-1"></i> Thông tin ngân hàng đã được khóa bảo mật. Liên hệ CSKH để thay đổi.
                         </div>
                     </div>
                 </div>
@@ -245,7 +261,7 @@
                 </div>
             </div>
 
-            <!-- TAB 3: HISTORY (LỊCH SỬ - THỐNG NHẤT GIAO DIỆN) -->
+            <!-- TAB 3: HISTORY (LỊCH SỬ) -->
             <div id="subview-history" class="hidden animate-fade-in pb-10">
                 <div class="flex justify-between items-center mb-4 px-1">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Biến động gần đây</h3>
@@ -277,6 +293,7 @@
         let depositLock = false; 
         let withdrawLock = false;
         let currentBalanceCache = 0;
+        let isBankLinked = false; // Trạng thái đã liên kết ngân hàng hay chưa
 
         /* --- INIT --- */
         window.onload = async () => {
@@ -319,13 +336,51 @@
         }
 
         window.loadWallet = async () => {
-            const { data, error } = await db.from("users").select("balance").eq("id", currentUser).maybeSingle();
+            const { data, error } = await db.from("users").select("balance, name, bank_name, bank_account").eq("id", currentUser).maybeSingle();
             if (error) return;
             if (!data) {
                 await db.from("users").insert({ id: currentUser, balance: 0 });
                 currentBalanceCache = 0;
             } else {
                 currentBalanceCache = data.balance || 0;
+                
+                // --- XỬ LÝ THÔNG TIN RÚT TIỀN ---
+                const holderInput = document.getElementById("wd-holder");
+                const bankInput = document.getElementById("wd-bank");
+                const accInput = document.getElementById("wd-account");
+                const badge = document.getElementById("bank-status-badge");
+                const note = document.getElementById("bank-locked-note");
+
+                // 1. Điền tên (Luôn khóa)
+                if(data.name) {
+                    holderInput.value = data.name.toUpperCase();
+                }
+
+                // 2. Kiểm tra ngân hàng
+                if(data.bank_account) {
+                    // Đã liên kết -> Điền & Khóa
+                    isBankLinked = true;
+                    bankInput.value = data.bank_name;
+                    accInput.value = data.bank_account;
+                    
+                    bankInput.disabled = true;
+                    accInput.disabled = true;
+                    
+                    badge.innerText = "Đã liên kết";
+                    badge.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20";
+                    badge.classList.remove("hidden");
+                    note.classList.remove("hidden");
+                } else {
+                    // Chưa liên kết -> Cho phép nhập
+                    isBankLinked = false;
+                    badge.innerText = "Chưa liên kết";
+                    badge.className = "text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-300";
+                    badge.classList.remove("hidden");
+                    note.classList.add("hidden");
+                    
+                    bankInput.disabled = false;
+                    accInput.disabled = false;
+                }
             }
             document.getElementById("balance").innerText = currentBalanceCache.toLocaleString();
             document.getElementById("wd-balance-display").innerText = currentBalanceCache.toLocaleString(); 
@@ -362,6 +417,8 @@
             try {
                 const rawAmount = document.getElementById("wd-amount").value.replace(/,/g, '');
                 const amount = parseInt(rawAmount);
+                
+                // Lấy thông tin ngân hàng (Có thể từ input nếu chưa khóa, hoặc value hiện tại)
                 const bank = document.getElementById("wd-bank").value; 
                 const holder = document.getElementById("wd-holder").value.trim();
                 const acc = document.getElementById("wd-account").value.trim();
@@ -369,26 +426,43 @@
                 if(!amount || isNaN(amount)) throw new Error("Vui lòng nhập số tiền!");
                 if(amount < 100000) throw new Error("Tối thiểu rút 100,000 Coin"); 
                 if(!bank) throw new Error("Vui lòng chọn ngân hàng");
-                if(!holder || !acc) throw new Error("Thiếu thông tin nhận tiền");
+                if(!acc) throw new Error("Vui lòng nhập số tài khoản");
 
                 const { data: u } = await db.from("users").select("balance").eq("id", currentUser).single();
                 if(!u || u.balance < amount) throw new Error("Số dư không đủ!");
 
+                // --- NẾU LÀ LẦN ĐẦU (Chưa liên kết) -> CẬP NHẬT DB ---
+                if (!isBankLinked) {
+                    const { error: updateBankErr } = await db.from("users").update({
+                        bank_name: bank,
+                        bank_account: acc
+                    }).eq("id", currentUser);
+                    
+                    if(updateBankErr) throw new Error("Lỗi lưu thông tin ngân hàng");
+                }
+
+                // --- TRỪ TIỀN ---
                 const { error: updateErr } = await db.from("users").update({ balance: u.balance - amount }).eq("id", currentUser);
                 if(updateErr) throw new Error("Lỗi cập nhật số dư");
 
+                // --- TẠO YÊU CẦU RÚT ---
                 const { error: reqErr } = await db.from("withdraw_request").insert({
-                    uid: currentUser, amount, bank_name: bank, holder_name: holder, bank_account: acc, status: 'pending'
+                    uid: currentUser, 
+                    amount, 
+                    bank_name: bank, 
+                    holder_name: holder, 
+                    bank_account: acc, 
+                    status: 'pending'
                 });
 
                 if(reqErr) {
-                    await db.from("users").update({ balance: u.balance }).eq("id", currentUser);
+                    await db.from("users").update({ balance: u.balance }).eq("id", currentUser); // Rollback
                     throw new Error("Lỗi hệ thống, đã hoàn tiền.");
                 }
                 
                 showToast("Lệnh rút tiền đã gửi!", "success");
                 document.getElementById("wd-amount").value = "";
-                await loadWallet();
+                await loadWallet(); // Reload để khóa ngân hàng
                 setTimeout(() => switchSubTab('history'), 1000);
 
             } catch (e) {
@@ -402,7 +476,7 @@
             }
         }
 
-        /* --- LOGIC NẠP TIỀN --- */
+        /* --- LOGIC NẠP TIỀN (UPDATED WITH COMMISSION) --- */
         window.userDeposit = async () => {
             if (depositLock) return;
             depositLock = true;
@@ -423,6 +497,22 @@
 
                 const res = data && (Array.isArray(data) ? data[0] : data);
                 if ((currentBalanceCache > preBalance) || (res && res.status === 'OK')) {
+                    
+                    // --- LOGIC HOA HỒNG ---
+                    const depositAmount = currentBalanceCache - preBalance;
+                    if (depositAmount > 0) {
+                        const { data: currentUserInfo } = await db.from("users").select("ref_by").eq("id", currentUser).single();
+                        if (currentUserInfo && currentUserInfo.ref_by) {
+                            const referrerId = currentUserInfo.ref_by;
+                            const commission = depositAmount * 0.1;
+                            const { data: referrer } = await db.from("users").select("commission_balance").eq("id", referrerId).single();
+                            if (referrer) {
+                                const currentComm = referrer.commission_balance || 0;
+                                await db.from("users").update({ commission_balance: currentComm + commission }).eq("id", referrerId);
+                            }
+                        }
+                    }
+
                     showToast(`Nạp thành công!`, "success");
                     document.getElementById("dep-code").value = "";
                 } else {
@@ -439,7 +529,7 @@
             }
         }
 
-        /* --- LỊCH SỬ (UNIFIED DESIGN) --- */
+        /* --- LỊCH SỬ --- */
         async function loadHistory() {
             const list = document.getElementById("history-list");
             list.innerHTML = '<div class="text-center text-slate-500 py-8"><span class="loader border-slate-500 border-t-transparent"></span></div>';
@@ -450,77 +540,24 @@
                     db.from("deposit_history").select("*").eq("uid", currentUser).order("created_at", {ascending: false}).limit(15)
                 ]);
 
-                // Normalize Data
                 let items = [];
-                
-                // Process Withdraws
                 if(resW.data) {
                     resW.data.forEach(x => {
                         let stt = { color: "text-amber-500", text: "Đang duyệt", bg: "bg-amber-500/10", icon: "fa-clock" };
                         if(x.status === 'approved') stt = { color: "text-blue-500", text: "Thành công", bg: "bg-blue-500/10", icon: "fa-check" };
                         if(x.status === 'rejected') stt = { color: "text-rose-500", text: "Đã hủy", bg: "bg-rose-500/10", icon: "fa-xmark" };
-
-                        items.push({
-                            date: new Date(x.time_request),
-                            title: "RÚT TIỀN",
-                            amount: x.amount,
-                            sign: "-",
-                            amountClass: "text-white", // Withdraw amount in white/neutral
-                            statusText: stt.text,
-                            statusClass: stt.color, // Status colored
-                            icon: stt.icon,
-                            iconBg: stt.bg,
-                            iconColor: stt.color
-                        });
+                        items.push({ date: new Date(x.time_request), title: "RÚT TIỀN", amount: x.amount, sign: "-", amountClass: "text-white", statusText: stt.text, statusClass: stt.color, icon: stt.icon, iconBg: stt.bg, iconColor: stt.color });
                     });
                 }
-
-                // Process Deposits / Admin Adjustments
                 if(resD.data) {
                     resD.data.forEach(x => {
                         const src = x.source || 'code';
-                        let cfg = { 
-                            title: "NẠP TIỀN", 
-                            sign: "+", 
-                            amountClass: "text-emerald-400", 
-                            status: "Thành công",
-                            statusClass: "text-slate-500", 
-                            icon: "fa-ticket", 
-                            iconBg: "bg-emerald-500/10", 
-                            iconColor: "text-emerald-400" 
-                        };
-
-                        if(src === 'admin_add' || src === 'admin_create') {
-                            cfg.title = "NẠP TIỀN (ADMIN)";
-                            cfg.icon = "fa-shield-halved";
-                        } else if(src === 'admin_sub' || src === 'admin_subtract') {
-                            cfg.title = "TRỪ TIỀN (ADMIN)";
-                            cfg.sign = "-";
-                            cfg.amountClass = "text-rose-400";
-                            cfg.icon = "fa-user-shield";
-                            cfg.iconBg = "bg-rose-500/10";
-                            cfg.iconColor = "text-rose-400";
-                            cfg.status = "Hoàn tất";
-                        } else if(src === 'withdraw_refund') {
-                            cfg.title = "HOÀN TIỀN RÚT";
-                            cfg.icon = "fa-rotate-left";
-                            cfg.iconBg = "bg-blue-500/10";
-                            cfg.iconColor = "text-blue-400";
-                            cfg.status = "Đã hoàn";
-                        }
-
-                        items.push({
-                            date: new Date(x.created_at),
-                            title: cfg.title,
-                            amount: x.amount,
-                            sign: cfg.sign,
-                            amountClass: cfg.amountClass,
-                            statusText: cfg.status,
-                            statusClass: cfg.statusClass,
-                            icon: cfg.icon,
-                            iconBg: cfg.iconBg,
-                            iconColor: cfg.iconColor
-                        });
+                        let cfg = { title: "NẠP TIỀN", sign: "+", amountClass: "text-emerald-400", status: "Thành công", statusClass: "text-slate-500", icon: "fa-ticket", iconBg: "bg-emerald-500/10", iconColor: "text-emerald-400" };
+                        if(src === 'admin_add' || src === 'admin_create') { cfg.title = "NẠP TIỀN (ADMIN)"; cfg.icon = "fa-shield-halved"; } 
+                        else if(src === 'admin_sub' || src === 'admin_subtract') { cfg.title = "TRỪ TIỀN (ADMIN)"; cfg.sign = "-"; cfg.amountClass = "text-rose-400"; cfg.icon = "fa-user-shield"; cfg.iconBg = "bg-rose-500/10"; cfg.iconColor = "text-rose-400"; cfg.status = "Hoàn tất"; } 
+                        else if(src === 'withdraw_refund') { cfg.title = "HOÀN TIỀN RÚT"; cfg.icon = "fa-rotate-left"; cfg.iconBg = "bg-blue-500/10"; cfg.iconColor = "text-blue-400"; cfg.status = "Đã hoàn"; } 
+                        else if (src === 'commission_withdraw') { cfg.title = "RÚT HOA HỒNG"; cfg.icon = "fa-sack-dollar"; cfg.iconBg = "bg-yellow-500/10"; cfg.iconColor = "text-yellow-400"; cfg.amountClass = "text-yellow-400"; cfg.status = "Thành công"; }
+                        items.push({ date: new Date(x.created_at), title: cfg.title, amount: x.amount, sign: cfg.sign, amountClass: cfg.amountClass, statusText: cfg.status, statusClass: cfg.statusClass, icon: cfg.icon, iconBg: cfg.iconBg, iconColor: cfg.iconColor });
                     });
                 }
 
@@ -528,49 +565,26 @@
                     list.innerHTML = `<div class="text-center py-10 opacity-50 flex flex-col items-center"><i class="fa-solid fa-clock-rotate-left text-4xl text-slate-600 mb-3"></i><span class="text-slate-500 text-xs">Chưa có giao dịch</span></div>`;
                     return;
                 }
-
-                // Sort by Date Descending
                 items.sort((a, b) => b.date - a.date);
-
-                // Render Unified List
                 list.innerHTML = items.map(item => {
                     const timeStr = item.date.toLocaleString('vi-VN', { hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' });
-                    return `
-                        <div class="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm ${item.iconBg} ${item.iconColor}">
-                                    <i class="fa-solid ${item.icon}"></i>
-                                </div>
-                                <div>
-                                    <div class="text-white font-bold text-xs uppercase">${item.title}</div>
-                                    <div class="text-[10px] text-slate-500 font-mono">${timeStr}</div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="${item.amountClass} font-bold text-sm font-mono">${item.sign}${item.amount.toLocaleString()}</div>
-                                <div class="text-[10px] font-medium ${item.statusClass}">${item.statusText}</div>
-                            </div>
-                        </div>`;
+                    return `<div class="flex items-center justify-between bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800 transition"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center text-sm ${item.iconBg} ${item.iconColor}"><i class="fa-solid ${item.icon}"></i></div><div><div class="text-white font-bold text-xs uppercase">${item.title}</div><div class="text-[10px] text-slate-500 font-mono">${timeStr}</div></div></div><div class="text-right"><div class="${item.amountClass} font-bold text-sm font-mono">${item.sign}${item.amount.toLocaleString()}</div><div class="text-[10px] font-medium ${item.statusClass}">${item.statusText}</div></div></div>`;
                 }).join('');
 
-            } catch (e) {
-                console.error(e);
-                list.innerHTML = '<div class="text-center text-rose-500 text-xs py-4">Lỗi tải dữ liệu</div>';
-            }
+            } catch (e) { list.innerHTML = '<div class="text-center text-rose-500 text-xs py-4">Lỗi tải dữ liệu</div>'; }
         }
 
         function showToast(msg, type) {
             const t = document.getElementById('toast');
             document.getElementById('toast-msg').innerText = msg;
             const icon = document.getElementById('toast-icon');
-            
             icon.className = type === 'error' ? "fa-solid fa-circle-exclamation text-rose-500" : "fa-solid fa-check text-emerald-500";
             t.className = `fixed top-5 left-1/2 -translate-x-1/2 bg-slate-900 border ${type === 'error' ? 'border-rose-500/50' : 'border-emerald-500/50'} text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 z-50 w-max max-w-[90%]`;
-            
             t.classList.remove('opacity-0', '-translate-y-20');
             setTimeout(() => t.classList.add('opacity-0', '-translate-y-20'), 3000);
         }
     </script>
 </body>
 </html>
+
 
