@@ -106,7 +106,7 @@
     <div class="absolute top-4 left-4 z-10 text-left pointer-events-none">
       <div class="flex flex-col items-start gap-1">
         <span id="phase-badge" class="px-2 py-0.5 rounded bg-up/20 text-up text-[10px] font-bold uppercase backdrop-blur border border-up/30">ĐẶT LỆNH</span>
-        <span class="font-oswald text-4xl font-bold text-white drop-shadow-md w-12" id="timer-display">30</span>
+        <span class="font-oswald text-4xl font-bold text-white drop-shadow-md w-12" id="timer-display">45</span>
         <span class="text-[9px] text-[#848e9c] uppercase font-bold tracking-wider">Giây còn lại</span>
       </div>
     </div>
@@ -201,11 +201,12 @@
   </div>
 
   <script>
-    // ===== 1. CONFIG =====
+    // ===== 1. CONFIG UPDATED =====
+    // Tổng phiên 60s
     const CONFIG = {
-      PHASE_BET: 30,    // 0-30s
-      PHASE_WAIT: 25,   // 30-55s
-      PHASE_RESULT: 5,  // 55-60s
+      PHASE_BET: 45,    // 0s - 45s: Đặt cược (3 nến 15s)
+      PHASE_WAIT: 12,   // 45s - 57s: Khóa & Chờ
+      PHASE_RESULT: 3,  // 57s - 60s: Kết quả
       CANDLE_TIME: 15000, 
       ODDS: 1.95,
       BASE_PRICE: 96500.00,
@@ -321,6 +322,7 @@
             chart.candles.push({...chart.currentCandle});
             if(chart.candles.length > 30) chart.candles.shift();
             
+            // Logic History (Nến thứ 4 chốt phiên - nay là mỗi 4 nến thì 1 nến chốt)
             if ((chart.serverCandleIndex + 1) % 4 === 0) {
                game.history.push(chart.currentCandle.close >= chart.currentCandle.open ? 'UP' : 'DOWN');
                game.renderHistory();
@@ -418,9 +420,7 @@
         app.user = { id: uid };
         
         await game.loadBalance();
-        // REMOVED REALTIME BALANCE LISTENER to avoid race conditions during fast betting
-        // game.setupRealtimeBalance(); 
-
+        
         chart.init();
         
         setInterval(() => {
@@ -450,11 +450,16 @@
             game.startNewRound();
         }
 
-        if (secInMin < 30) {
+        // --- NEW TIMING LOGIC ---
+        // 0s -> 45s: BET PHASE
+        if (secInMin < CONFIG.PHASE_BET) {
             if (game.phase !== 'BET') game.resetUI();
             game.phase = 'BET';
-            document.getElementById('timer-display').innerText = 30 - secInMin;
-            const pct = (secInMin / 30) * 100;
+            
+            const timeLeft = CONFIG.PHASE_BET - secInMin;
+            document.getElementById('timer-display').innerText = timeLeft;
+            
+            const pct = (secInMin / CONFIG.PHASE_BET) * 100;
             document.getElementById('phase-bar').style.width = (100 - pct) + '%';
             document.getElementById('phase-bar').className = "h-full bg-up w-full transition-all duration-300 ease-linear";
             game.resultProcessed = false;
@@ -467,12 +472,18 @@
             }
 
         } else {
-            const resTime = secInMin - 30;
-            if (resTime < 25) {
+            // 45s -> 60s: WAIT & RESULT
+            const resTime = secInMin - CONFIG.PHASE_BET; // 0s -> 15s
+            
+            if (resTime < CONFIG.PHASE_WAIT) {
+                // WAIT (LOCKED)
                 if (game.phase === 'BET') game.switchPhaseToWait();
                 game.phase = 'WAIT';
-                document.getElementById('timer-display').innerText = 30 - resTime;
-                const pct = (resTime / 25) * 100;
+                
+                const timeLeft = (CONFIG.PHASE_WAIT + CONFIG.PHASE_RESULT) - resTime;
+                document.getElementById('timer-display').innerText = timeLeft;
+                
+                const pct = (resTime / (CONFIG.PHASE_WAIT + CONFIG.PHASE_RESULT)) * 100;
                 document.getElementById('phase-bar').style.width = (100 - pct) + '%';
                 document.getElementById('phase-bar').className = "h-full bg-down w-full transition-all duration-300 ease-linear";
                 
@@ -484,6 +495,7 @@
                 }
 
             } else {
+                // RESULT (Last 3-5s)
                 game.phase = 'RESULT';
                 document.getElementById('timer-display').innerText = "0";
                 document.getElementById('phase-bar').style.width = '0%';
@@ -502,7 +514,6 @@
         game.betSide = null;
         game.resetUI();
         app.clearState();
-        // Sync balance strictly at start of round to correct any drift
         await game.loadBalance(); 
       },
 
@@ -533,8 +544,6 @@
                 profit = Math.floor(game.betAmount * CONFIG.ODDS);
                 app.balance += profit; 
                 game.updateBalanceUI();
-                
-                // IMPORTANT: Send update to server
                 await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
                 
                 confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
@@ -542,12 +551,9 @@
                 game.animateFloatingMoney(profit);
             } else { 
                 game.showModal(false, 0, result); 
-                // Ensure server knows we lost (balance already deducted during placeBet)
-                // Just in case, we sync one more time after a delay
             }
         }
 
-        // Final Sync to ensure Server matches Client perfectly
         setTimeout(() => { game.loadBalance(); }, 2000);
         app.clearState();
       },
@@ -609,39 +615,40 @@
         fly.innerText = `-${game.currentChip >= 1000 ? game.currentChip/1000 + 'k' : game.currentChip}`;
         document.body.appendChild(fly); setTimeout(() => fly.remove(), 800);
 
-        // Logic - OPTIMISTIC UPDATE
+        // Logic
         game.betSide = side; 
         game.betAmount += game.currentChip;
-        app.balance -= game.currentChip; // Deduct immediately locally
+        app.balance -= game.currentChip; 
         game.updateBalanceUI();
 
-        // Save State
         app.saveState(game.roundId, game.betSide, game.betAmount);
         game.restoreBetUI(side, game.betAmount);
         if (navigator.vibrate) navigator.vibrate(40);
 
-        // Send to Server (Async, don't wait for response to unblock UI)
         supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id).then(({ error }) => {
-            if (error) {
-                // Rollback if critical error (unlikely in this context but good practice)
-                console.error("Bet error", error);
-            }
+            if (error) console.error("Bet error", error);
         });
       },
 
+      // --- CRITICAL FIX: PREVENT CANCEL SPAM ---
       cancelBet: async () => {
         if (game.phase !== 'BET') return app.showToast("Không thể hủy!", 'error');
         if (game.betAmount === 0) return app.showToast("Chưa cược!", 'info');
         
-        app.balance += game.betAmount; // Refund local
+        // 1. NGAY LẬP TỨC lấy số tiền cần hoàn và reset biến cược về 0
+        const refundAmount = game.betAmount;
+        game.betAmount = 0; 
+        game.betSide = null;
+        app.clearState(); // Xóa trạng thái lưu trữ ngay lập tức
+        
+        // 2. Cập nhật giao diện và số dư cục bộ ngay lập tức
+        app.balance += refundAmount;
         game.updateBalanceUI();
-        
-        await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
-        
-        game.betAmount = 0; game.betSide = null;
         game.resetUI();
-        app.clearState();
         app.showToast("Đã hủy!", 'info');
+        
+        // 3. Sau đó mới gửi lên server (dù user có bấm nữa cũng vô dụng vì game.betAmount đã là 0)
+        await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
       },
 
       animateFloatingMoney: (amount) => {
