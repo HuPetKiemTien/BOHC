@@ -66,16 +66,9 @@
             border: 1px solid rgba(244, 114, 182, 0.3);
             box-shadow: 0 8px 32px rgba(236, 72, 153, 0.1);
         }
-
-        /* Bottom Nav Blur */
-        .bottom-nav-blur {
-            background: rgba(15, 5, 24, 0.85);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
     </style>
 </head>
-<body class="flex flex-col pb-24">
+<body class="flex flex-col pb-10">
 
     <!-- HEADER -->
     <header class="pt-6 pb-2 px-5 sticky top-0 z-20 bg-[#0f0518]/90 backdrop-blur-md border-b border-white/5">
@@ -202,28 +195,7 @@
 
     </main>
 
-    <!-- Bottom Navigation (Optional Mockup for full feel) -->
-    <nav class="fixed bottom-0 w-full bottom-nav-blur pb-safe pt-3 px-6 flex justify-between items-center z-50 rounded-t-2xl">
-        <a href="home.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-white transition">
-            <i class="fa-solid fa-house text-lg"></i>
-            <span class="text-[10px] font-medium">Trang chủ</span>
-        </a>
-        <a href="#" class="flex flex-col items-center gap-1 text-yellow-500 transition scale-110">
-            <div class="w-10 h-10 bg-gradient-to-tr from-yellow-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30 -mt-6 border-4 border-[#0f0518]">
-                <i class="fa-solid fa-piggy-bank text-white text-lg"></i>
-            </div>
-            <span class="text-[10px] font-bold">Đầu tư</span>
-        </a>
-        <a href="profile.html" class="flex flex-col items-center gap-1 text-slate-500 hover:text-white transition">
-            <i class="fa-solid fa-user text-lg"></i>
-            <span class="text-[10px] font-medium">Tài khoản</span>
-        </a>
-    </nav>
-
-    <style>
-        .pb-safe { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
-    </style>
-
 </body>
 </html>
+
 
