@@ -5,18 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hũ Sinh Lời - HeoCon88</title>
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
 
     <style>
+        /* Base Styles */
         body {
             font-family: 'Outfit', sans-serif;
             background-color: #0f172a;
             color: white;
             min-height: 100vh;
             overflow-x: hidden;
+            /* Nền sang trọng hơn với gradient */
             background-image: 
                 radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
                 radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
@@ -25,9 +31,11 @@
 
         .font-mono { font-family: 'Space Mono', monospace; }
 
+        /* Glassmorphism Classes */
         .glass-panel {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
         }
@@ -42,148 +50,222 @@
             box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
         }
 
+        /* Animations */
         @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
-            50% { box-shadow: 0 0 20px rgba(234, 179, 8, 0.6); }
+            0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(234, 179, 8, 0.4); border-color: rgba(234, 179, 8, 0.6); }
         }
         
-        .timer-box {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(234, 179, 8, 0.3);
+        .timer-active {
             animation: pulse-glow 2s infinite;
         }
-        
-        /* Disabled state styling */
-        .cursor-not-allowed { cursor: not-allowed !important; }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .float-icon { animation: float 4s ease-in-out infinite; }
+
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar hide */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="flex flex-col">
+<body class="flex flex-col relative selection:bg-yellow-500/30">
 
-    <!-- Header -->
-    <div class="pt-6 px-4 pb-2 flex justify-between items-center z-20 sticky top-0 bg-[#0f172a]/90 backdrop-blur-md">
-        <button onclick="window.location.href='home.html'" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 border border-white/10 transition">
-            <i class="fa-solid fa-chevron-left text-sm"></i>
-        </button>
-        <div class="text-center">
-            <h1 class="font-bold text-lg">Hũ Sinh Lời</h1>
-            <p class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider flex items-center justify-center gap-1">
-                <i class="fa-solid fa-bolt"></i> Siêu Lãi Suất 499%
-            </p>
+    <!-- Loading Overlay -->
+    <div id="loading-screen" class="fixed inset-0 bg-[#0f172a] z-50 flex items-center justify-center transition-opacity duration-500">
+        <div class="flex flex-col items-center">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-yellow-500 mb-4"></i>
+            <p class="text-sm font-bold tracking-widest text-slate-400">LOADING DATA...</p>
         </div>
-        <div class="w-10"></div>
     </div>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-4 pb-24 flex flex-col items-center w-full max-w-md mx-auto relative">
-
-        <!-- Status Icon -->
-        <div class="mb-6 mt-4 relative group">
-            <div class="absolute inset-0 bg-yellow-500/20 blur-3xl rounded-full group-hover:bg-yellow-500/30 transition duration-500"></div>
-            <i class="fa-solid fa-sack-dollar text-7xl text-yellow-400 relative z-10 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] transform transition hover:scale-110 duration-300"></i>
+    <!-- Header -->
+    <header class="pt-6 px-4 pb-2 flex justify-between items-center z-20 sticky top-0 bg-[#0f172a]/80 backdrop-blur-xl border-b border-white/5">
+        <button onclick="window.location.href='home.html'" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 active:scale-95 transition text-white">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div class="text-center">
+            <h1 class="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600">Hũ Sinh Lời</h1>
+            <p class="text-[10px] text-slate-400 font-medium">Lợi nhuận kép 48H</p>
         </div>
+        <!-- Help/Info Button -->
+        <button onclick="document.getElementById('info-modal').classList.remove('hidden')" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 text-yellow-500">
+            <i class="fa-solid fa-circle-info"></i>
+        </button>
+    </header>
 
-        <!-- Wallet Info Small -->
-        <div class="w-full flex justify-between items-center px-4 mb-2 text-xs text-slate-400">
-            <span>Ví chính của bạn:</span>
-            <span id="main-wallet-display" class="text-white font-bold font-mono">Loading...</span>
-        </div>
+    <!-- Main Scrollable Area -->
+    <main class="flex-1 p-5 pb-32 w-full max-w-md mx-auto relative overflow-y-auto no-scrollbar">
 
-        <!-- MAIN CARD: INFORMATION -->
-        <div class="w-full glass-panel rounded-3xl p-6 relative overflow-hidden mb-6 border-t border-yellow-500/20">
-            <div class="text-center relative z-10">
-                <p class="text-slate-400 text-xs uppercase tracking-widest mb-2">Tổng Giá Trị Hũ</p>
-                
-                <div class="flex items-baseline justify-center gap-1 mb-2">
-                    <span id="pot-total-display" class="text-4xl font-mono font-bold text-white tracking-tight drop-shadow-lg">0</span>
-                    <span class="text-xs font-bold text-yellow-500 align-top mt-2">Coin</span>
-                </div>
-
-                <div id="status-badge" class="inline-flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-full border border-white/10 mt-2">
-                    <!-- Javascript will inject status here -->
+        <!-- Available Balance Card -->
+        <div class="mb-6 flex justify-between items-end px-2">
+            <div>
+                <p class="text-xs text-slate-400 mb-1">Số dư khả dụng</p>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-wallet text-slate-500"></i>
+                    <span id="main-wallet-display" class="text-xl font-bold font-mono text-white tracking-tight">Loading...</span>
                 </div>
             </div>
-
-            <!-- Profit Stats -->
-            <div class="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-white/5">
-                <div class="text-center">
-                    <p class="text-[10px] text-slate-500">Lãi đang chạy</p>
-                    <p id="profit-display" class="text-sm font-bold text-green-400 mt-1">+0 đ</p>
-                </div>
-                <div class="text-center border-l border-white/5">
-                    <p class="text-[10px] text-slate-500">Chu kỳ</p>
-                    <p class="text-sm font-bold text-white mt-1">2 Ngày</p>
-                </div>
-            </div>
+            <button onclick="window.location.href='deposit.html'" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg text-xs font-bold text-yellow-400 transition border border-white/10">
+                + Nạp tiền
+            </button>
         </div>
 
-        <!-- LOGIC VIEW SWITCHER -->
-        
-        <!-- VIEW 1: RUNNING (COUNTDOWN) -->
-        <div id="view-running" class="w-full hidden animate-fade-in">
-            <div class="glass-panel p-5 rounded-2xl border border-yellow-500/30 bg-yellow-500/5">
-                <h3 class="text-center text-yellow-400 font-bold text-sm mb-4 uppercase">
-                    <i class="fa-regular fa-clock mr-1"></i> Thời gian còn lại
-                </h3>
-                
-                <div class="flex justify-center gap-2 mb-6 font-mono text-3xl font-bold text-white">
-                    <div class="timer-box p-3 rounded-lg w-16 text-center" id="cnt-h">00</div>
-                    <span class="self-center">:</span>
-                    <div class="timer-box p-3 rounded-lg w-16 text-center" id="cnt-m">00</div>
-                    <span class="self-center">:</span>
-                    <div class="timer-box p-3 rounded-lg w-16 text-center" id="cnt-s">00</div>
-                </div>
-
-                <div class="bg-slate-900/50 p-3 rounded-xl text-[11px] text-center text-slate-400 leading-relaxed">
-                    <i class="fa-solid fa-lock text-slate-500 mb-1 block text-lg"></i>
-                    Hũ đang trong quá trình sinh lời.<br>
-                    Hệ thống sẽ <span class="text-yellow-400 font-bold">tự động rút</span> cả gốc và lãi về ví chính khi đồng hồ đếm ngược kết thúc.
-                </div>
-            </div>
-        </div>
-
-        <!-- VIEW 2: DEPOSIT (INPUT) -->
-        <div id="view-deposit" class="w-full hidden animate-fade-in space-y-4">
-            <div class="glass-panel p-5 rounded-2xl">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-sm font-bold text-white">Nạp tiền vào hũ</span>
-                    <div class="text-[10px] bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20">Min: 50.000 - Max: 10.000.000</div>
-                </div>
-
-                <div class="relative mb-4">
-                    <input type="text" id="amount-input" oninput="formatCurrencyInput(this)" class="w-full glass-input rounded-xl py-4 pl-4 pr-16 text-xl font-bold text-white placeholder-slate-600 outline-none" placeholder="0">
-                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">Coin</span>
-                </div>
-
-                <!-- Quick Select -->
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                    <button onclick="setAmount(50000)" class="bg-white/5 hover:bg-white/10 py-2 rounded text-[11px] font-bold border border-white/5">50.000</button>
-                    <button onclick="setAmount(200000)" class="bg-white/5 hover:bg-white/10 py-2 rounded text-[11px] font-bold border border-white/5">200.000</button>
-                    <button onclick="setAmount(500000)" class="bg-white/5 hover:bg-white/10 py-2 rounded text-[11px] font-bold border border-white/5">500.000</button>
-                </div>
-
-                <!-- UPDATED: Added id="btn-pot-deposit" for locking -->
-                <button id="btn-pot-deposit" onclick="handleDeposit()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-extrabold py-4 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-rocket"></i>
-                    BẮT ĐẦU SINH LỜI NGAY
-                </button>
-            </div>
+        <!-- HERO SECTION: THE POT -->
+        <div class="relative w-full aspect-[4/3] glass-panel rounded-3xl p-6 flex flex-col items-center justify-center mb-6 overflow-hidden group">
+            <!-- Decorative Glow -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-yellow-500/20 blur-[60px] rounded-full group-hover:bg-yellow-500/30 transition-all duration-700"></div>
             
-            <p class="text-[10px] text-center text-emerald-400 font-bold italic">
-                *Lãi suất siêu khủng: 499%/Năm
-            </p>
+            <!-- Icon -->
+            <div class="relative z-10 mb-4 float-icon">
+                <i class="fa-solid fa-sack-dollar text-6xl text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-[0_10px_20px_rgba(234,179,8,0.3)]"></i>
+            </div>
+
+            <!-- Labels -->
+            <p class="relative z-10 text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng tài sản hũ</p>
+            
+            <!-- Big Number -->
+            <div class="relative z-10 flex items-baseline gap-1">
+                <span id="pot-total-display" class="text-4xl font-mono font-extrabold text-white tracking-tighter drop-shadow-md">0</span>
+                <span class="text-xs font-bold text-yellow-500">VND</span>
+            </div>
+
+            <!-- Badge Status -->
+            <div id="status-badge" class="relative z-10 mt-4 px-4 py-1.5 rounded-full bg-slate-800/50 border border-white/10 backdrop-blur-md">
+                <!-- Injected via JS -->
+                <span class="text-[10px] text-slate-300">Đang tải dữ liệu...</span>
+            </div>
+        </div>
+
+        <!-- LOGIC CONTAINER -->
+        <div id="logic-container" class="relative min-h-[200px]">
+            
+            <!-- VIEW 1: RUNNING STATE (Countdown & Live Profit) -->
+            <div id="view-running" class="hidden animate-fade-in">
+                <!-- Timer Row -->
+                <div class="glass-panel p-5 rounded-2xl mb-4 timer-active border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-transparent">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-bold text-yellow-500 uppercase flex items-center gap-2">
+                            <i class="fa-solid fa-bolt fa-beat-fade"></i> Đang sinh lãi
+                        </span>
+                        <span class="text-[10px] text-slate-400">Chu kỳ 48H</span>
+                    </div>
+
+                    <div class="flex justify-between items-center gap-2 font-mono text-3xl font-bold text-white mb-2">
+                        <div class="bg-black/30 w-full py-3 rounded-lg text-center border border-white/5 shadow-inner" id="cnt-h">00</div>
+                        <span class="text-yellow-500 pb-2">:</span>
+                        <div class="bg-black/30 w-full py-3 rounded-lg text-center border border-white/5 shadow-inner" id="cnt-m">00</div>
+                        <span class="text-yellow-500 pb-2">:</span>
+                        <div class="bg-black/30 w-full py-3 rounded-lg text-center border border-white/5 shadow-inner" id="cnt-s">00</div>
+                    </div>
+                    
+                    <div class="flex justify-between text-[10px] text-slate-500 px-2 uppercase font-bold tracking-wider">
+                        <span>Giờ</span>
+                        <span>Phút</span>
+                        <span>Giây</span>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass-panel p-4 rounded-2xl">
+                        <p class="text-[10px] text-slate-400 mb-1">Gốc ban đầu</p>
+                        <p id="principal-display" class="font-mono font-bold text-white">0</p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-2xl border-emerald-500/20 bg-emerald-500/5 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-12 h-12 bg-emerald-500/20 rounded-full blur-xl"></div>
+                        <p class="text-[10px] text-emerald-400 mb-1">Lãi thực tế</p>
+                        <p id="profit-display" class="font-mono font-bold text-emerald-400">+0</p>
+                    </div>
+                </div>
+
+                <p class="text-center text-[10px] text-slate-500 mt-6 px-4">
+                    <i class="fa-solid fa-shield-halved mr-1"></i>
+                    Hệ thống sẽ tự động hoàn trả (Gốc + Lãi) về ví chính khi thời gian kết thúc.
+                </p>
+            </div>
+
+            <!-- VIEW 2: DEPOSIT STATE (Input & Action) -->
+            <div id="view-deposit" class="hidden animate-fade-in">
+                <div class="glass-panel p-5 rounded-2xl">
+                    <label class="block text-xs font-bold text-slate-300 mb-3 ml-1">Nhập số tiền muốn đầu tư</label>
+                    
+                    <!-- Input Area -->
+                    <div class="relative mb-4">
+                        <input type="text" id="amount-input" oninput="formatCurrencyInput(this)" 
+                            class="w-full glass-input rounded-xl py-4 pl-4 pr-20 text-xl font-bold text-white placeholder-slate-600 outline-none font-mono" 
+                            placeholder="0">
+                        <button onclick="setMaxAmount()" class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-2 py-1 rounded transition">
+                            TỐI ĐA
+                        </button>
+                    </div>
+
+                    <!-- Quick Select Chips -->
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
+                        <button onclick="setAmount(50000)" class="whitespace-nowrap bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition">50K</button>
+                        <button onclick="setAmount(200000)" class="whitespace-nowrap bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition">200K</button>
+                        <button onclick="setAmount(500000)" class="whitespace-nowrap bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition">500K</button>
+                        <button onclick="setAmount(1000000)" class="whitespace-nowrap bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition">1M</button>
+                        <button onclick="setAmount(5000000)" class="whitespace-nowrap bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition">5M</button>
+                    </div>
+
+                    <!-- Action Button -->
+                    <button id="btn-pot-deposit" onclick="handleDeposit()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-extrabold py-4 rounded-xl shadow-[0_4px_20px_rgba(245,158,11,0.3)] active:scale-95 transition-all flex items-center justify-center gap-2 group">
+                        <span>BẮT ĐẦU SINH LỜI</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                    
+                    <div class="flex justify-between items-center mt-4 px-1">
+                        <span class="text-[10px] text-slate-500">Min: 50,000</span>
+                        <span class="text-[10px] text-slate-500">Max: 10,000,000</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-4 rounded-xl border border-dashed border-white/10 bg-white/5 text-center">
+                    <p class="text-xs text-slate-300">Lãi suất dự kiến</p>
+                    <p class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500">499% <span class="text-xs text-slate-500 font-normal">/ Năm</span></p>
+                    <p class="text-[10px] text-slate-500 mt-1">Lợi nhuận được cộng dồn theo từng giây</p>
+                </div>
+            </div>
+
         </div>
 
     </main>
 
+    <!-- Info Modal -->
+    <div id="info-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+        <div class="bg-[#1e293b] w-full max-w-xs rounded-2xl border border-white/10 p-6 relative shadow-2xl">
+            <button onclick="document.getElementById('info-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            <h3 class="text-lg font-bold text-white mb-4">Quy tắc Hũ</h3>
+            <ul class="space-y-3 text-sm text-slate-300 list-disc pl-4">
+                <li>Chu kỳ đầu tư kéo dài đúng <b class="text-yellow-400">48 tiếng</b>.</li>
+                <li>Trong thời gian chạy, bạn <b class="text-rose-400">không thể rút vốn</b>.</li>
+                <li>Lãi suất 499%/Năm được tính theo từng giây.</li>
+                <li>Khi kết thúc chu kỳ, hệ thống tự động cộng cả Gốc và Lãi về ví chính.</li>
+            </ul>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
-    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 -translate-y-20 z-50 w-max max-w-[90%]">
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur-md border border-slate-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 -translate-y-20 z-50 w-max max-w-[90%] pointer-events-none">
         <i id="toast-icon" class="fa-solid fa-check text-emerald-500"></i>
         <span id="toast-msg" class="text-sm font-medium">Thông báo</span>
     </div>
 
-    <!-- SCRIPT CẬP NHẬT -->
     <script>
         // --- CONFIGURATION ---
+        // Thay thế URL và Key bằng thông số dự án thực tế của bạn
         const SUPABASE_URL = "https://sfbaytcmpgceapdcdyer.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8";
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -191,113 +273,109 @@
         // Logic Constants
         const MIN_DEPOSIT = 50000;
         const MAX_DEPOSIT = 10000000;
-        const CYCLE_HOURS = 48; // 2 ngày
-        
-        // --- CẬP NHẬT LÃI SUẤT 499% / NĂM ---
-        const INTEREST_PER_MINUTE = 0.000009494; 
+        const CYCLE_HOURS = 48; 
+        const INTEREST_PER_MINUTE = 0.000009494; // ~499% / year
 
+        // Global State
         let currentUid = null;
         let mainBalance = 0;
         let investmentData = null;
         let timerInterval = null;
-        
-        // --- NEW: BIẾN KHÓA NÚT CHỐNG SPAM ---
         let potDepositLock = false;
 
         // --- INIT ---
         window.onload = async () => {
+            // Check Auth (Giả lập check local storage)
             const savedUid = localStorage.getItem("my_wallet_uid");
             if (!savedUid) {
-                alert("Vui lòng đăng nhập lại!");
-                window.location.href = "login.html";
+                // Redirect hoặc thông báo
+                window.location.href = "login.html"; 
                 return;
             }
             currentUid = savedUid;
             await loadData();
+            
+            // Tắt màn hình loading sau khi load xong
+            document.getElementById('loading-screen').classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => { document.getElementById('loading-screen').style.display = 'none'; }, 500);
         };
 
         // --- DATA LOADING ---
         async function loadData() {
             try {
-                // 1. Lấy số dư ví
+                // 1. Lấy Balance
                 const { data: user, error: userErr } = await db
                     .from("users")
                     .select("balance")
                     .eq("id", currentUid)
                     .maybeSingle();
 
-                if (userErr) {
-                    console.error("Lỗi load users:", userErr);
-                    showToast("Lỗi tải ví, thử lại sau!", "error");
-                } else if (user) {
+                if (user) {
                     mainBalance = user.balance || 0;
                     document.getElementById("main-wallet-display").innerText = formatCurrency(mainBalance);
                 }
 
-                // 2. Lấy trạng thái hũ
+                // 2. Lấy Investment
                 const { data: invest, error: invErr } = await db
                     .from("investment")
                     .select("*")
                     .eq("uid", currentUid)
                     .maybeSingle();
 
-                if (invErr && invErr.code !== "PGRST116") { // không phải lỗi "không có dòng"
-                    console.error("Lỗi load investment:", invErr);
-                    showToast("Lỗi tải dữ liệu hũ!", "error");
-                    investmentData = null;
-                } else {
-                    investmentData = invest || null;
-                }
-
+                investmentData = invest || null;
+                
                 renderUI();
             } catch (e) {
-                console.error("Lỗi tổng khi load:", e);
-                showToast("Lỗi hệ thống, vui lòng thử lại!", "error");
+                console.error("Lỗi load data:", e);
+                showToast("Kết nối không ổn định", "error");
             }
         }
 
-        // --- UI RENDERING & LOGIC LOOP ---
+        // --- UI RENDERING ---
         function renderUI() {
             const viewRunning = document.getElementById("view-running");
             const viewDeposit = document.getElementById("view-deposit");
             const statusBadge = document.getElementById("status-badge");
             const potTotalDisplay = document.getElementById("pot-total-display");
-            const profitDisplay = document.getElementById("profit-display");
 
-            // Clear previous timer if any
+            // Reset Timer
             if (timerInterval) clearInterval(timerInterval);
 
             if (investmentData && investmentData.status === 'running') {
-                // ĐANG CHẠY
+                // TRẠNG THÁI: ĐANG CHẠY
                 viewRunning.classList.remove("hidden");
                 viewDeposit.classList.add("hidden");
 
+                statusBadge.className = "relative z-10 mt-4 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-md flex items-center gap-2";
                 statusBadge.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    <span class="text-xs font-bold text-green-400">Đang sinh lời (499%)</span>`;
-                statusBadge.className = "inline-flex items-center gap-2 bg-green-500/10 px-4 py-1.5 rounded-full border border-green-500/20 mt-2";
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-xs font-bold text-emerald-400">ĐANG HOẠT ĐỘNG</span>
+                `;
 
+                // Hiển thị gốc
+                document.getElementById("principal-display").innerText = formatCurrency(investmentData.amount) + " đ";
+
+                // Bắt đầu loop
                 startRunningLoop();
             } else {
-                // CHƯA NẠP / ĐÃ KẾT THÚC
+                // TRẠNG THÁI: CHỜ NẠP / ĐÃ XONG
                 viewRunning.classList.add("hidden");
                 viewDeposit.classList.remove("hidden");
 
                 potTotalDisplay.innerText = "0";
-                profitDisplay.innerText = "+0 đ";
-
-                statusBadge.innerHTML = `
-                    <span class="w-2 h-2 rounded-full bg-slate-500"></span>
-                    <span class="text-xs font-bold text-slate-300">Sẵn sàng</span>`;
-                statusBadge.className = "inline-flex items-center gap-2 bg-slate-500/10 px-4 py-1.5 rounded-full border border-slate-500/20 mt-2";
+                
+                statusBadge.className = "relative z-10 mt-4 px-4 py-1.5 rounded-full bg-slate-700/50 border border-white/10 backdrop-blur-md";
+                statusBadge.innerHTML = `<span class="text-xs font-bold text-slate-400">SẴN SÀNG ĐẦU TƯ</span>`;
             }
         }
 
+        // --- TIMER & PROFIT LOOP ---
         function startRunningLoop() {
             const startTime = new Date(investmentData.start_time).getTime();
             const amount = investmentData.amount;
             const endTime = startTime + (CYCLE_HOURS * 60 * 60 * 1000);
 
+            // Chạy ngay lần đầu
             updateTick(startTime, endTime, amount);
 
             timerInterval = setInterval(async () => {
@@ -312,87 +390,96 @@
         function updateTick(startTime, endTime, amount) {
             const now = Date.now();
             const timeLeft = endTime - now;
-
-            // Đếm ngược
+            
+            // Elements
             const hEl = document.getElementById("cnt-h");
             const mEl = document.getElementById("cnt-m");
             const sEl = document.getElementById("cnt-s");
 
-            // Phòng trường hợp chuyển trang nhanh mà DOM chưa load
-            if(!hEl) return true;
+            if (!hEl) return true; // Safety check
 
             if (timeLeft <= 0) {
-                hEl.innerText = "00";
-                mEl.innerText = "00";
-                sEl.innerText = "00";
-                return true; // kết thúc
+                hEl.innerText = "00"; mEl.innerText = "00"; sEl.innerText = "00";
+                return true; // Finish
             }
 
-            // --- LOGIC MỚI ĐÃ SỬA ---
+            // Logic thời gian chuẩn (Hiển thị tổng giờ, kể cả > 24)
             const totalSeconds = Math.floor(timeLeft / 1000);
-            const hours = Math.floor(totalSeconds / 3600);                 // Tổng số giờ còn lại (có thể > 24)
+            const hours = Math.floor(totalSeconds / 3600); 
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
 
             hEl.innerText = String(hours).padStart(2, '0');
             mEl.innerText = String(minutes).padStart(2, '0');
             sEl.innerText = String(seconds).padStart(2, '0');
-            // -------------------------
 
-            // Tính lãi
+            // Tính lãi thời gian thực
             const minutesElapsed = (now - startTime) / 1000 / 60;
             const currentProfit = amount * INTEREST_PER_MINUTE * minutesElapsed;
             const total = amount + currentProfit;
 
+            // Update DOM
             document.getElementById("pot-total-display").innerText = formatCurrency(Math.floor(total));
-            document.getElementById("profit-display").innerText = "+" + formatCurrency(Math.floor(currentProfit)) + " đ";
+            document.getElementById("profit-display").innerText = "+" + formatCurrency(Math.floor(currentProfit));
 
             return false;
         }
 
-        // --- NẠP TIỀN VÀO HŨ (ĐÃ SỬA LOGIC KHÓA NÚT) ---
-        async function handleDeposit() {
-            // 1. Chặn Spam Click + Khóa UI
-            if (potDepositLock) return;
-            potDepositLock = true;
+        // --- ACTIONS ---
 
-            const btn = document.getElementById("btn-pot-deposit");
-            // Lưu lại nội dung gốc (bao gồm icon Rocket) để trả lại
-            const originContent = btn.innerHTML;
+        // Set Max
+        function setMaxAmount() {
+            // Giới hạn max deposit
+            let val = mainBalance > MAX_DEPOSIT ? MAX_DEPOSIT : mainBalance;
+            // Nhưng phải lớn hơn 0
+            if (val < 0) val = 0;
+            setAmount(val);
+        }
+
+        function setAmount(val) {
+            const input = document.getElementById("amount-input");
+            input.value = formatCurrency(val);
+            // Kích hoạt hiệu ứng visual focus
+            input.focus();
+        }
+
+        async function handleDeposit() {
+            if (potDepositLock) return;
             
-            btn.disabled = true;
-            btn.classList.add("opacity-60", "cursor-not-allowed");
+            const btn = document.getElementById("btn-pot-deposit");
+            const input = document.getElementById("amount-input");
+            const rawVal = input.value.replace(/,/g, ''); // Xóa dấu phẩy
+            const amount = parseInt(rawVal);
+
+            // Validation logic
+            if (isNaN(amount) || amount < MIN_DEPOSIT) {
+                showToast(`Tối thiểu ${formatCurrency(MIN_DEPOSIT)} đ`, "error");
+                return;
+            }
+            if (amount > MAX_DEPOSIT) {
+                showToast(`Tối đa ${formatCurrency(MAX_DEPOSIT)} đ`, "error");
+                return;
+            }
+            if (amount > mainBalance) {
+                showToast("Số dư không đủ!", "error");
+                return;
+            }
+
+            // UI Lock
+            potDepositLock = true;
+            const originalText = btn.innerHTML;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...`;
+            btn.classList.add("opacity-75", "cursor-not-allowed");
 
             try {
-                const input = document.getElementById("amount-input");
-                const rawVal = input.value.replace(/,/g, '');
-                const amount = parseInt(rawVal);
-
-                if (isNaN(amount) || amount < MIN_DEPOSIT || amount > MAX_DEPOSIT) {
-                    showToast(`Nạp từ ${formatCurrency(MIN_DEPOSIT)} đến ${formatCurrency(MAX_DEPOSIT)}`, "error");
-                    return;
-                }
-
-                if (amount > mainBalance) {
-                    showToast("Số dư không đủ!", "error");
-                    return;
-                }
-
-                // Nếu đã có hũ đang chạy thì không cho nạp
-                if (investmentData && investmentData.status === 'running') {
-                    showToast("Hũ hiện tại đang chạy, chờ hết 2 ngày rồi nạp tiếp!", "error");
-                    return;
-                }
-
-                // 1. Trừ tiền ví bằng hàm add_balance (RPC)
+                // 1. Trừ tiền (RPC Call)
                 const { error: balErr } = await db.rpc("add_balance", {
                     p_uid: currentUid,
                     p_amount: -amount
                 });
                 if (balErr) throw balErr;
 
-                // 2. Tạo/ghi đè hũ
+                // 2. Tạo Investment
                 const now = new Date().toISOString();
                 const { error: invErr } = await db.from("investment").upsert({
                     uid: currentUid,
@@ -404,47 +491,47 @@
                 });
                 if (invErr) throw invErr;
 
-                showToast("Nạp hũ thành công!", "success");
+                showToast("Đầu tư thành công!", "success");
                 input.value = "";
-                await loadData();
+                await loadData(); // Reload UI
 
             } catch (err) {
-                console.error("Deposit error:", err);
+                console.error("Deposit Error:", err);
                 if(err.message && err.message.includes("function add_balance does not exist")) {
-                     alert("LỖI CẤU HÌNH: Bạn chưa chạy lệnh SQL tạo hàm add_balance trong Supabase!");
+                    alert("Lỗi server: Chưa cấu hình hàm RPC add_balance");
                 } else {
-                     showToast(err.message || "Lỗi hệ thống, vui lòng thử lại", "error");
+                    showToast("Lỗi hệ thống, thử lại sau", "error");
                 }
             } finally {
-                // 3. Mở khóa sau 3 giây (Dù thành công hay thất bại)
+                // UI Unlock
                 setTimeout(() => {
                     potDepositLock = false;
-                    btn.disabled = false;
-                    btn.classList.remove("opacity-60", "cursor-not-allowed");
-                    btn.innerHTML = originContent; // Trả lại icon và text cũ
-                }, 3000);
+                    btn.innerHTML = originalText;
+                    btn.classList.remove("opacity-75", "cursor-not-allowed");
+                }, 1000);
             }
         }
 
-        // --- TỰ ĐỘNG RÚT SAU 3 NGÀY ---
         async function autoWithdraw() {
             if (!investmentData) return;
-
             try {
+                // Tính toán chốt sổ
                 const now = Date.now();
                 const start = new Date(investmentData.start_time).getTime();
                 const minutesElapsed = (now - start) / 1000 / 60;
+                
+                // Tính lãi lần cuối
                 const finalProfit = Math.floor(investmentData.amount * INTEREST_PER_MINUTE * minutesElapsed);
                 const totalReturn = investmentData.amount + finalProfit;
 
-                // 1. Cộng tiền về ví (RPC)
+                // 1. Cộng tiền
                 const { error: balErr } = await db.rpc("add_balance", {
                     p_uid: currentUid,
                     p_amount: totalReturn
                 });
                 if (balErr) throw balErr;
 
-                // 2. Cập nhật trạng thái hũ
+                // 2. Update status -> finished
                 const { error: invErr } = await db
                     .from("investment")
                     .update({
@@ -455,32 +542,24 @@
                     .eq("uid", currentUid);
                 if (invErr) throw invErr;
 
-                alert(
-                    `Chúc mừng! Chu kỳ 2 ngày đã kết thúc.\n` +
-                    `Tổng nhận: ${formatCurrency(totalReturn)} đ\n` +
-                    `(Gốc: ${formatCurrency(investmentData.amount)} + Lãi: ${formatCurrency(finalProfit)})`
-                );
-
+                showToast(`Đã nhận ${formatCurrency(totalReturn)}đ về ví!`, "success");
                 await loadData();
-            } catch (err) {
-                console.error("Auto withdraw error:", err);
-                showToast("Lỗi rút tự động, vui lòng liên hệ Admin!", "error");
+
+            } catch (e) {
+                console.error("Auto withdraw err:", e);
             }
         }
 
         // --- UTILS ---
         function formatCurrencyInput(input) {
+            // Chỉ giữ lại số
             let val = input.value.replace(/\D/g, '');
+            // Format 1,000,000
             input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
-        function setAmount(val) {
-            const input = document.getElementById("amount-input");
-            input.value = val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-
         function formatCurrency(num) {
-            return num.toLocaleString('vi-VN');
+            return new Intl.NumberFormat('en-US').format(num);
         }
 
         function showToast(msg, type) {
@@ -489,11 +568,17 @@
             const text = document.getElementById('toast-msg');
             
             text.innerText = msg;
-            icon.className = type === 'error'
-                ? "fa-solid fa-circle-exclamation text-rose-500"
-                : "fa-solid fa-check text-emerald-500";
             
+            if (type === 'error') {
+                icon.className = "fa-solid fa-circle-exclamation text-rose-500";
+                t.className = `fixed top-5 left-1/2 -translate-x-1/2 bg-rose-950/90 backdrop-blur-md border border-rose-500/50 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 z-50 w-max max-w-[90%] pointer-events-none`;
+            } else {
+                icon.className = "fa-solid fa-check text-emerald-500";
+                t.className = `fixed top-5 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur-md border border-emerald-500/50 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 z-50 w-max max-w-[90%] pointer-events-none`;
+            }
+
             t.classList.remove('opacity-0', '-translate-y-20');
+            
             setTimeout(() => {
                 t.classList.add('opacity-0', '-translate-y-20');
             }, 3000);
