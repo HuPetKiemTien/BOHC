@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VIP Club - HeoCon88</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f0518;
+            color: white;
+            min-height: 100vh;
+            background-image: radial-gradient(circle at 50% 0%, #2e1065 0%, #0f0518 70%);
+        }
+        
+        .font-mono { font-family: 'Space Mono', monospace; }
+
+        .vip-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .vip-active {
+            border-color: #fbbf24;
+            background: linear-gradient(145deg, rgba(251, 191, 36, 0.15) 0%, rgba(0,0,0,0) 100%);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .crown-icon { animation: float 3s ease-in-out infinite; }
+
+        .progress-bar {
+            background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+            background-size: 1rem 1rem;
+            animation: progress-move 1s linear infinite;
+        }
+        @keyframes progress-move { 0% { background-position: 1rem 0; } 100% { background-position: 0 0; } }
+    </style>
+</head>
+<body class="pb-10">
+
+    <!-- Header -->
+    <div class="pt-6 px-4 flex items-center justify-between relative z-10">
+        <button onclick="window.location.href='profile.html'" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-white border border-white/10">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div class="text-center">
+            <h1 class="font-bold text-lg uppercase tracking-wider text-amber-400">Đặc Quyền VIP</h1>
+            <p class="text-[9px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full mt-1">
+                <i class="fa-solid fa-coins text-yellow-500 mr-1"></i> 10.000 Coin = 1.000 VND
+            </p>
+        </div>
+        <div class="w-10"></div>
+    </div>
+
+    <main class="p-4 mt-2">
+        
+        <!-- Status Hero -->
+        <div class="text-center mb-8 relative">
+            <div class="absolute inset-0 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none"></div>
+            
+            <div class="crown-icon inline-block mb-2 relative">
+                <i class="fa-solid fa-crown text-6xl text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-amber-600 drop-shadow-lg"></i>
+                <div class="absolute -bottom-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-400 shadow-md">
+                    LV.<span id="current-vip-num">0</span>
+                </div>
+            </div>
+
+            <h2 id="current-vip-name" class="text-2xl font-black text-white mb-1">Thành Viên Mới</h2>
+            <p class="text-xs text-slate-400">Tích lũy Coin để mở khóa đặc quyền</p>
+        </div>
+
+        <!-- Progress Card -->
+        <div class="vip-card rounded-2xl p-5 mb-8 border-t border-white/10 relative overflow-hidden">
+            <!-- Coin Decor -->
+            <i class="fa-solid fa-coins absolute -right-3 -bottom-3 text-6xl text-white/5 rotate-12"></i>
+
+            <div class="flex justify-between text-[11px] font-bold mb-2">
+                <span class="text-slate-400">Đã tích lũy: <span id="current-deposited" class="text-white font-mono">0</span></span>
+                <span class="text-amber-400">Mục tiêu: <span id="next-goal" class="font-mono">3.000.000</span></span>
+            </div>
+            
+            <div class="h-3 bg-slate-800 rounded-full overflow-hidden relative border border-white/5">
+                <div id="vip-progress" class="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full progress-bar transition-all duration-1000" style="width: 0%"></div>
+            </div>
+            
+            <p id="progress-msg" class="text-center text-[11px] text-slate-400 mt-3">
+                Cần thêm <b id="missing-amount" class="text-white font-mono">3.000.000 Coin</b> để thăng hạng.
+            </p>
+
+            <button onclick="window.location.href='deposit.html'" class="w-full mt-4 bg-white/10 hover:bg-white/20 text-yellow-400 font-bold py-3 rounded-xl border border-yellow-500/20 active:scale-95 transition text-xs uppercase tracking-wide flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus-circle"></i> Nạp Coin Ngay
+            </button>
+        </div>
+
+        <!-- Tier List -->
+        <h3 class="text-xs font-bold text-white mb-4 pl-2 border-l-4 border-amber-500 uppercase">Hệ Thống Cấp Bậc (Coin)</h3>
+        
+        <div class="space-y-3">
+            
+            <!-- VIP 1 -->
+            <div id="card-vip-1" class="vip-card rounded-xl p-4 flex gap-4 items-center opacity-60">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-700 to-amber-900 flex items-center justify-center border border-amber-500/30 flex-shrink-0 shadow-lg">
+                    <span class="font-black text-amber-500 text-xs">V1</span>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-bold text-amber-500 text-sm">VIP 1 - Đồng</h4>
+                    <p class="text-[10px] text-slate-400 mb-1 font-mono">Tích lũy: 3.000.000 Coin</p>
+                    <div class="text-[10px] text-slate-300 bg-white/5 p-2 rounded mt-1">
+                        <i class="fa-solid fa-unlock text-emerald-400 mr-1"></i> Mở gói <b>1.8M & 2.8M Coin</b>
+                    </div>
+                </div>
+                <i class="fa-solid fa-lock text-slate-600 text-lg" id="lock-vip-1"></i>
+            </div>
+
+            <!-- VIP 2 -->
+            <div id="card-vip-2" class="vip-card rounded-xl p-4 flex gap-4 items-center opacity-60">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center border border-white/30 flex-shrink-0 shadow-lg">
+                    <span class="font-black text-white text-xs">V2</span>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-bold text-slate-200 text-sm">VIP 2 - Bạc</h4>
+                    <p class="text-[10px] text-slate-400 mb-1 font-mono">Tích lũy: 10.000.000 Coin</p>
+                    <div class="text-[10px] text-slate-300 bg-white/5 p-2 rounded mt-1">
+                        <i class="fa-solid fa-unlock text-emerald-400 mr-1"></i> Mở gói <b>5.8M Coin (Lãi Cao)</b>
+                    </div>
+                </div>
+                <i class="fa-solid fa-lock text-slate-600 text-lg" id="lock-vip-2"></i>
+            </div>
+
+            <!-- VIP 3 -->
+            <div id="card-vip-3" class="vip-card rounded-xl p-4 flex gap-4 items-center opacity-60">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 flex items-center justify-center border border-yellow-200/50 flex-shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.5)]">
+                    <span class="font-black text-yellow-900 text-xs">V3</span>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-bold text-yellow-400 text-sm">VIP 3 - Vàng</h4>
+                    <p class="text-[10px] text-slate-400 mb-1 font-mono">Tích lũy: 50.000.000 Coin</p>
+                     <div class="text-[10px] text-slate-300 bg-white/5 p-2 rounded mt-1">
+                        <i class="fa-solid fa-unlock text-emerald-400 mr-1"></i> Mở gói <b>10.8M Coin (Siêu Lãi)</b>
+                    </div>
+                </div>
+                <i class="fa-solid fa-lock text-slate-600 text-lg" id="lock-vip-3"></i>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const SUPABASE_URL = "https://sfbaytcmpgceapdcdyer.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8";
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- CẤU HÌNH COIN (x10 so với VND) ---
+        const VIP_LEVELS = [
+            { level: 0, name: "Thành Viên Mới", min: 0 },
+            { level: 1, name: "VIP 1 - Đồng", min: 3000000 },    // 3 Triệu Coin (300k VND)
+            { level: 2, name: "VIP 2 - Bạc", min: 10000000 },   // 10 Triệu Coin (1M VND)
+            { level: 3, name: "VIP 3 - Vàng", min: 50000000 }   // 50 Triệu Coin (5M VND)
+        ];
+
+        let currentUid = null;
+
+        window.onload = async () => {
+            const savedUid = localStorage.getItem("my_wallet_uid");
+            if (!savedUid) {
+                window.location.href = "login.html";
+                return;
+            }
+            currentUid = savedUid;
+            await loadVipData();
+        };
+
+        async function loadVipData() {
+            try {
+                const { data: user, error } = await db
+                    .from("users")
+                    .select("vip_level, total_deposited")
+                    .eq("id", currentUid)
+                    .single();
+
+                if (error) throw error;
+                const currentLvl = user.vip_level || 0;
+                const totalDep = user.total_deposited || 0;
+
+                updateUI(currentLvl, totalDep);
+                highlightActiveCards(currentLvl);
+
+            } catch (err) { console.error(err); }
+        }
+
+        function updateUI(level, total) {
+            document.getElementById("current-vip-num").innerText = level;
+            document.getElementById("current-vip-name").innerText = VIP_LEVELS[level] ? VIP_LEVELS[level].name : "VIP Cao Cấp";
+            document.getElementById("current-deposited").innerText = formatCurrency(total);
+
+            let nextLvl = VIP_LEVELS.find(v => v.level === level + 1);
+            
+            if (!nextLvl) {
+                document.getElementById("next-goal").innerText = "MAX";
+                document.getElementById("vip-progress").style.width = "100%";
+                document.getElementById("progress-msg").innerHTML = "<span class='text-emerald-400 font-bold'>Đỉnh cao danh vọng!</span>";
+            } else {
+                document.getElementById("next-goal").innerText = formatCurrency(nextLvl.min);
+                const prevLvlMin = VIP_LEVELS[level].min;
+                const gap = nextLvl.min - prevLvlMin;
+                const currentProgressInGap = total - prevLvlMin;
+                
+                let percent = (currentProgressInGap / gap) * 100;
+                if (percent < 0) percent = 0; if (percent > 100) percent = 100;
+
+                document.getElementById("vip-progress").style.width = `${percent}%`;
+                document.getElementById("missing-amount").innerText = formatCurrency(nextLvl.min - total);
+            }
+        }
+
+        function highlightActiveCards(level) {
+            for (let i = 1; i <= 3; i++) {
+                const card = document.getElementById(`card-vip-${i}`);
+                const lock = document.getElementById(`lock-vip-${i}`);
+                if (i <= level) {
+                    card.classList.remove("opacity-60");
+                    card.classList.add("vip-active");
+                    lock.className = "fa-solid fa-circle-check text-emerald-400 text-xl";
+                } else {
+                    card.classList.add("opacity-60");
+                    card.classList.remove("vip-active");
+                    lock.className = "fa-solid fa-lock text-slate-500 text-lg";
+                }
+            }
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('de-DE').format(num) + " Coin";
+        }
+    </script>
+</body>
+</html>
+
