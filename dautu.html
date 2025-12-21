@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gói Đầu Tư - HeoCon88</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: white;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            padding-bottom: 80px;
+        }
+
+        .font-mono { font-family: 'Space Mono', monospace; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* VIP Gradients */
+        .bg-vip-0 { background: linear-gradient(135deg, #64748b 0%, #334155 100%); }
+        .bg-vip-1 { background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%); }
+        .bg-vip-2 { background: linear-gradient(135deg, #94a3b8 0%, #475569 100%); border: 1px solid #cbd5e1; }
+        .bg-vip-3 { background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%); border: 1px solid #fcd34d; }
+
+        .card-glow:hover {
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.15);
+            border-color: rgba(234, 179, 8, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Disabled State for Cards */
+        .card-disabled {
+            opacity: 0.6;
+            filter: grayscale(0.8);
+            pointer-events: none;
+        }
+
+        /* Animations */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .animate-shimmer {
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        .progress-bar-striped {
+            background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+            background-size: 1rem 1rem;
+        }
+    </style>
+</head>
+<body class="flex flex-col relative">
+
+    <!-- Loading -->
+    <div id="loading-screen" class="fixed inset-0 bg-[#0f172a] z-50 flex items-center justify-center transition-opacity duration-500">
+        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-yellow-500"></i>
+    </div>
+
+    <!-- Header -->
+    <div class="pt-6 px-4 pb-4 sticky top-0 bg-[#0f172a]/90 backdrop-blur-md z-30 border-b border-white/5">
+        <div class="flex justify-between items-center mb-4">
+            <button onclick="window.location.href='home.html'" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 border border-white/10 transition">
+                <i class="fa-solid fa-chevron-left text-sm text-white"></i>
+            </button>
+            <h1 class="font-bold text-lg text-white">Gói Đầu Tư</h1>
+            <div class="w-10"></div>
+        </div>
+
+        <!-- User Info Mini -->
+        <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+            <div class="flex items-center gap-3">
+                <div id="user-vip-badge" class="w-10 h-10 rounded-full bg-vip-0 flex items-center justify-center font-bold text-[10px] border border-white/20 shadow-lg">
+                    VIP 0
+                </div>
+                <div>
+                    <p class="text-[10px] text-slate-400">Số dư khả dụng</p>
+                    <p id="user-balance" class="text-sm font-bold font-mono text-emerald-400">0 đ</p>
+                </div>
+            </div>
+            <button onclick="window.location.reload()" class="text-slate-400 hover:text-white p-2">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <main class="p-4 space-y-6">
+
+        <!-- SECTION 1: ACTIVE INVESTMENTS -->
+        <div id="active-investments-container" class="hidden">
+            <div class="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-xl mb-3 flex items-start gap-3">
+                <i class="fa-solid fa-triangle-exclamation text-yellow-500 mt-1"></i>
+                <p class="text-[11px] text-slate-300 leading-tight">
+                    Bạn đang có gói đầu tư đang chạy. Vui lòng chờ gói hiện tại kết thúc để mua gói mới.
+                </p>
+            </div>
+
+            <h2 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-clock-rotate-left text-yellow-500"></i> Đang hoạt động
+            </h2>
+            <div id="active-list" class="space-y-3">
+                <!-- JS will inject active cards here -->
+            </div>
+            <div class="h-px w-full bg-white/10 my-6"></div>
+        </div>
+
+        <!-- SECTION 2: PACKAGES LIST -->
+        <div>
+            <h2 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-blue-400"></i> Danh sách gói
+            </h2>
+            
+            <div id="packages-list" class="grid grid-cols-1 gap-4">
+                <!-- JS will inject package cards here -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden animate-fade-in p-4">
+        <div class="bg-[#1e293b] w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+            <div class="p-6">
+                <h3 class="text-lg font-bold text-white text-center mb-1">Xác nhận đầu tư</h3>
+                <p id="modal-pkg-name" class="text-xs text-center text-yellow-500 font-bold uppercase tracking-wider mb-6">Gói Trải Nghiệm</p>
+                
+                <div class="space-y-3 bg-black/20 p-4 rounded-xl mb-6">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Số tiền nạp:</span>
+                        <span id="modal-cost" class="text-white font-mono font-bold">30.000</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Lợi nhuận dự kiến:</span>
+                        <span id="modal-profit" class="text-emerald-400 font-mono font-bold">+10.000</span>
+                    </div>
+                    <div class="flex justify-between text-sm border-t border-white/10 pt-2 mt-2">
+                        <span class="text-slate-400">Tổng nhận về:</span>
+                        <span id="modal-total" class="text-yellow-400 font-mono font-bold text-lg">40.000</span>
+                    </div>
+                     <div class="flex justify-between text-xs">
+                        <span class="text-slate-400">Thời gian:</span>
+                        <span id="modal-duration" class="text-white font-bold">3 Giờ</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="closeModal()" class="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm">Hủy</button>
+                    <button id="btn-confirm-buy" onclick="processBuy()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-bold text-sm shadow-lg shadow-amber-500/20">Xác nhận</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 -translate-y-20 z-50 w-max max-w-[90%] pointer-events-none">
+        <i id="toast-icon" class="fa-solid fa-check text-emerald-500"></i>
+        <span id="toast-msg" class="text-sm font-medium">Thông báo</span>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const SUPABASE_URL = "https://sfbaytcmpgceapdcdyer.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8";
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- PACKAGE DATA DEFINITION ---
+        const PACKAGES = [
+            { id: 1, name: "Gói Trải Nghiệm", cost: 30000, return_amount: 40000, duration_min: 180, roi_text: "33%", vip_req: 0, limit: 1, tag: "HOT", color: "from-blue-500 to-blue-600" },
+            { id: 2, name: "VIP 1 Khởi Động", cost: 180000, return_amount: 250000, duration_min: 4320, roi_text: "38.8%", vip_req: 1, limit: 1, tag: "LIMITED", color: "from-rose-500 to-red-600" },
+            { id: 3, name: "VIP 1 Trung Hạn", cost: 280000, return_amount: 420000, duration_min: 10080, roi_text: "50%", vip_req: 1, limit: 999, tag: null, color: "from-purple-500 to-indigo-600" },
+            { id: 4, name: "VIP 2 Tăng Tốc", cost: 580000, return_amount: 1000000, duration_min: 21600, roi_text: "72.4%", vip_req: 2, limit: 999, tag: "RECOMMEND", color: "from-amber-500 to-orange-600" },
+            { id: 5, name: "VIP 3 Dài Hạn", cost: 1080000, return_amount: 2500000, duration_min: 43200, roi_text: "131%", vip_req: 3, limit: 999, tag: "BEST VALUE", color: "from-emerald-500 to-teal-600" }
+        ];
+
+        // --- STATE ---
+        let currentUid = null;
+        let userData = { balance: 0, vip_level: 0 }; 
+        let activeInvestments = [];
+        let purchaseHistory = {}; 
+        let selectedPkg = null;
+        let intervalId = null;
+
+        // --- INIT ---
+        window.onload = async () => {
+            const savedUid = localStorage.getItem("my_wallet_uid");
+            if (!savedUid) {
+                window.location.href = "login.html";
+                return;
+            }
+            currentUid = savedUid;
+            await loadData();
+            
+            document.getElementById("loading-screen").classList.add("opacity-0", "pointer-events-none");
+            setTimeout(() => document.getElementById("loading-screen").style.display = 'none', 500);
+
+            intervalId = setInterval(updateTimers, 1000);
+        };
+
+        // --- LOAD DATA ---
+        async function loadData() {
+            try {
+                // 1. Get User
+                const { data: user } = await db.from("users").select("balance, vip_level").eq("id", currentUid).single();
+                if (user) {
+                    userData = { balance: user.balance || 0, vip_level: user.vip_level || 0 };
+                    updateUserHeader();
+                }
+
+                // 2. Get Investments
+                const { data: investments } = await db.from("package_investments").select("*").eq("uid", currentUid);
+
+                activeInvestments = [];
+                purchaseHistory = {};
+
+                if (investments) {
+                    investments.forEach(inv => {
+                        // History Count
+                        if (!purchaseHistory[inv.package_id]) purchaseHistory[inv.package_id] = 0;
+                        purchaseHistory[inv.package_id]++;
+
+                        // Active Filter
+                        if (inv.status === 'running') {
+                            activeInvestments.push(inv);
+                        }
+                    });
+                }
+
+                renderActiveInvestments();
+                renderPackages();
+
+            } catch (err) {
+                console.error("Load Error:", err);
+            }
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function updateUserHeader() {
+            document.getElementById("user-balance").innerText = formatCurrency(userData.balance);
+            const badge = document.getElementById("user-vip-badge");
+            badge.className = `w-10 h-10 rounded-full flex items-center justify-center font-bold text-[10px] border border-white/20 shadow-lg bg-vip-${Math.min(userData.vip_level, 3)}`;
+            badge.innerText = `VIP ${userData.vip_level}`;
+        }
+
+        function renderPackages() {
+            const container = document.getElementById("packages-list");
+            container.innerHTML = "";
+            
+            // --- NEW LOGIC: CHECK IF ANY PACKAGE IS RUNNING ---
+            const hasRunningPackage = activeInvestments.length > 0;
+
+            PACKAGES.forEach(pkg => {
+                const isVipEnough = userData.vip_level >= pkg.vip_req;
+                const boughtCount = purchaseHistory[pkg.id] || 0;
+                const isLimitReached = boughtCount >= pkg.limit;
+                
+                let btnState = "";
+                let btnText = "Đầu Tư Ngay";
+                let btnClass = "bg-white text-black hover:bg-gray-200";
+                let cardOverlayClass = "";
+
+                // Logic Phân Tầng Điều Kiện
+                if (hasRunningPackage) {
+                    // ƯU TIÊN 1: Nếu đang có gói chạy -> Disable All
+                    btnState = "disabled";
+                    btnText = "Đang chạy gói khác";
+                    btnClass = "bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5";
+                    cardOverlayClass = "opacity-60 grayscale-[0.8]"; // Làm tối thẻ
+                } else if (!isVipEnough) {
+                    // ƯU TIÊN 2: Chưa đủ VIP
+                    btnState = "disabled";
+                    btnText = `Cần VIP ${pkg.vip_req}`;
+                    btnClass = "bg-slate-700 text-slate-400 cursor-not-allowed border border-white/5";
+                    cardOverlayClass = "opacity-70";
+                } else if (isLimitReached) {
+                    // ƯU TIÊN 3: Hết lượt mua
+                    btnState = "disabled";
+                    btnText = "Đã Dùng Hết Lượt";
+                    btnClass = "bg-slate-800 text-slate-500 cursor-not-allowed";
+                    cardOverlayClass = "opacity-50";
+                } else {
+                    // MỞ KHÓA
+                    btnClass = `bg-gradient-to-r ${pkg.color} text-white shadow-lg shadow-indigo-500/20 active:scale-95`;
+                }
+
+                const durationText = formatDurationText(pkg.duration_min);
+
+                const html = `
+                <div class="glass-panel rounded-2xl p-5 relative overflow-hidden transition-all duration-300 card-glow border border-white/5 ${cardOverlayClass}">
+                    <!-- Tag -->
+                    ${pkg.tag && !isLimitReached && !hasRunningPackage ? `<div class="absolute top-0 right-0 bg-yellow-500 text-black text-[9px] font-bold px-3 py-1 rounded-bl-xl shadow-lg">${pkg.tag}</div>` : ''}
+                    
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-base font-bold text-white">${pkg.name}</h3>
+                            <div class="flex gap-2 mt-1">
+                                <span class="bg-white/10 px-2 py-0.5 rounded text-[10px] text-slate-300 border border-white/5">
+                                    <i class="fa-solid fa-clock mr-1"></i> ${durationText}
+                                </span>
+                                ${pkg.vip_req > 0 ? `<span class="bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded text-[10px] border border-amber-500/30 font-bold">VIP ${pkg.vip_req}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-slate-900/50 rounded-xl p-3 border border-white/5">
+                            <p class="text-[10px] text-slate-400">Vốn đầu tư</p>
+                            <p class="text-sm font-mono font-bold text-white">${formatCurrency(pkg.cost)}</p>
+                        </div>
+                        <div class="bg-slate-900/50 rounded-xl p-3 border border-emerald-500/20 relative overflow-hidden">
+                            <p class="text-[10px] text-emerald-400 font-bold">Tổng nhận về</p>
+                            <p class="text-sm font-mono font-bold text-emerald-400">${formatCurrency(pkg.return_amount)}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] text-slate-400 mb-4 px-1">
+                        <span>Lợi nhuận: <b class="text-white">+${formatCurrency(pkg.return_amount - pkg.cost)}</b></span>
+                        <span class="text-yellow-500 font-bold">ROI: ${pkg.roi_text}</span>
+                    </div>
+
+                    <button onclick="openConfirmModal(${pkg.id})" ${btnState} class="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${btnClass}">
+                        ${hasRunningPackage ? '<i class="fa-solid fa-hourglass-half"></i>' : (isLimitReached ? '<i class="fa-solid fa-ban"></i>' : (isVipEnough ? '<i class="fa-solid fa-rocket"></i>' : '<i class="fa-solid fa-lock"></i>'))}
+                        ${btnText}
+                    </button>
+                </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function renderActiveInvestments() {
+            const container = document.getElementById("active-list");
+            const wrapper = document.getElementById("active-investments-container");
+            
+            container.innerHTML = "";
+            
+            if (activeInvestments.length === 0) {
+                wrapper.classList.add("hidden");
+                return;
+            }
+
+            wrapper.classList.remove("hidden");
+
+            activeInvestments.forEach(inv => {
+                const pkg = PACKAGES.find(p => p.id === inv.package_id) || { name: "Gói cũ", return_amount: inv.return_amount };
+                
+                const html = `
+                <div class="glass-panel p-4 rounded-xl border-l-4 border-yellow-500 relative bg-slate-800/50">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-bold text-sm text-white">${pkg.name}</h4>
+                        <span class="text-[10px] font-mono text-emerald-400 font-bold">+${formatCurrency(pkg.return_amount)}</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                            <div id="prog-${inv.id}" class="h-full bg-yellow-500 progress-bar-striped animate-shimmer" style="width: 0%"></div>
+                        </div>
+                        <span id="timer-${inv.id}" class="text-[11px] font-mono text-white font-bold w-16 text-right">--:--:--</span>
+                    </div>
+                </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        // --- TIMER & ACTIONS ---
+        function updateTimers() {
+            const now = new Date().getTime();
+            
+            activeInvestments.forEach(async (inv) => {
+                const start = new Date(inv.start_time).getTime();
+                const end = new Date(inv.end_time).getTime();
+                const total = end - start;
+                const left = end - now;
+
+                const timerEl = document.getElementById(`timer-${inv.id}`);
+                const progEl = document.getElementById(`prog-${inv.id}`);
+
+                if (!timerEl) return;
+
+                if (left <= 0) {
+                    timerEl.innerText = "XONG";
+                    progEl.style.width = "100%";
+                    progEl.classList.remove("bg-yellow-500");
+                    progEl.classList.add("bg-emerald-500");
+                    
+                    if (inv.status === 'running') {
+                         await handleClaim(inv);
+                    }
+                } else {
+                    const percent = Math.max(0, Math.min(100, 100 - (left / total * 100)));
+                    progEl.style.width = `${percent}%`;
+
+                    const h = Math.floor(left / (1000 * 60 * 60));
+                    const m = Math.floor((left % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((left % (1000 * 60)) / 1000);
+                    
+                    let timeStr = "";
+                    if (h > 24) {
+                        const d = Math.floor(h / 24);
+                        timeStr = `${d} ngày`;
+                    } else {
+                        timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                    }
+                    timerEl.innerText = timeStr;
+                }
+            });
+        }
+
+        async function handleClaim(inv) {
+            if (inv.processing) return;
+            inv.processing = true;
+            try {
+                const { error } = await db.rpc("claim_package", { p_investment_id: inv.id });
+                if (!error) {
+                    showToast("Gói đầu tư đã hoàn thành!", "success");
+                    setTimeout(loadData, 2000);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function openConfirmModal(id) {
+            // Safety check client side
+            if (activeInvestments.length > 0) {
+                showToast("Đang có gói chạy, không thể mua thêm!", "error");
+                return;
+            }
+
+            selectedPkg = PACKAGES.find(p => p.id === id);
+            if (!selectedPkg) return;
+
+            document.getElementById("modal-pkg-name").innerText = selectedPkg.name;
+            document.getElementById("modal-cost").innerText = formatCurrency(selectedPkg.cost);
+            document.getElementById("modal-profit").innerText = "+" + formatCurrency(selectedPkg.return_amount - selectedPkg.cost);
+            document.getElementById("modal-total").innerText = formatCurrency(selectedPkg.return_amount);
+            document.getElementById("modal-duration").innerText = formatDurationText(selectedPkg.duration_min);
+
+            document.getElementById("confirm-modal").classList.remove("hidden");
+        }
+
+        function closeModal() {
+            document.getElementById("confirm-modal").classList.add("hidden");
+            selectedPkg = null;
+        }
+
+        async function processBuy() {
+            if (!selectedPkg) return;
+            
+            // Double Check Security
+            if (activeInvestments.length > 0) {
+                showToast("Bạn đang có gói chạy, vui lòng chờ!", "error");
+                closeModal();
+                return;
+            }
+
+            const btn = document.getElementById("btn-confirm-buy");
+            
+            if (userData.balance < selectedPkg.cost) {
+                showToast("Số dư không đủ!", "error");
+                closeModal();
+                return;
+            }
+
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const now = new Date();
+                const endTime = new Date(now.getTime() + selectedPkg.duration_min * 60000);
+
+                const { error: balErr } = await db.rpc("add_balance", { p_uid: currentUid, p_amount: -selectedPkg.cost });
+                if (balErr) throw balErr;
+
+                const { error: invErr } = await db.from("package_investments").insert({
+                    uid: currentUid,
+                    package_id: selectedPkg.id,
+                    amount: selectedPkg.cost,
+                    return_amount: selectedPkg.return_amount,
+                    start_time: now.toISOString(),
+                    end_time: endTime.toISOString(),
+                    status: 'running'
+                });
+                if (invErr) throw invErr;
+
+                showToast("Đầu tư thành công!", "success");
+                closeModal();
+                await loadData();
+
+            } catch (err) {
+                console.error("Buy Error:", err);
+                showToast("Lỗi hệ thống!", "error");
+            } finally {
+                btn.innerHTML = 'Xác nhận';
+                btn.disabled = false;
+            }
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('vi-VN').format(num);
+        }
+
+        function formatDurationText(mins) {
+            if (mins < 60) return `${mins} Phút`;
+            if (mins < 1440) return `${Math.floor(mins/60)} Giờ`;
+            return `${Math.floor(mins/1440)} Ngày`;
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            
+            document.getElementById('toast-msg').innerText = msg;
+            icon.className = type === 'error' ? "fa-solid fa-xmark text-rose-500" : "fa-solid fa-check text-emerald-500";
+            
+            t.classList.remove('opacity-0', '-translate-y-20');
+            setTimeout(() => t.classList.add('opacity-0', '-translate-y-20'), 3000);
+        }
+    </script>
+</body>
+</html>
+
