@@ -87,17 +87,28 @@
         <!-- User Info Mini -->
         <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
             <div class="flex items-center gap-3">
-                <div id="user-vip-badge" class="w-10 h-10 rounded-full bg-vip-0 flex items-center justify-center font-bold text-[10px] border border-white/20 shadow-lg">
-                    VIP 0
+                <!-- Badge Clickable to VIP -->
+                <div onclick="window.location.href='vip.html'" class="relative group cursor-pointer">
+                    <div id="user-vip-badge" class="w-10 h-10 rounded-full bg-vip-0 flex items-center justify-center font-bold text-[10px] border border-white/20 shadow-lg group-hover:scale-110 transition">
+                        VIP 0
+                    </div>
                 </div>
+                
                 <div>
                     <p class="text-[10px] text-slate-400">Số dư khả dụng</p>
-                    <p id="user-balance" class="text-sm font-bold font-mono text-emerald-400">0 đ</p>
+                    <p id="user-balance" class="text-sm font-bold font-mono text-emerald-400">0 Coin</p>
                 </div>
             </div>
-            <button onclick="window.location.reload()" class="text-slate-400 hover:text-white p-2">
-                <i class="fa-solid fa-rotate-right"></i>
-            </button>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <button onclick="window.location.href='vip.html'" class="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-yellow-500/30 transition flex items-center gap-1">
+                    <i class="fa-solid fa-crown"></i> Nâng VIP
+                </button>
+                <button onclick="window.location.reload()" class="text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -143,16 +154,16 @@
                 
                 <div class="space-y-3 bg-black/20 p-4 rounded-xl mb-6">
                     <div class="flex justify-between text-sm">
-                        <span class="text-slate-400">Số tiền nạp:</span>
-                        <span id="modal-cost" class="text-white font-mono font-bold">30.000</span>
+                        <span class="text-slate-400">Vốn đầu tư:</span>
+                        <span id="modal-cost" class="text-white font-mono font-bold">300.000</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-slate-400">Lợi nhuận dự kiến:</span>
-                        <span id="modal-profit" class="text-emerald-400 font-mono font-bold">+10.000</span>
+                        <span id="modal-profit" class="text-emerald-400 font-mono font-bold">+100.000</span>
                     </div>
                     <div class="flex justify-between text-sm border-t border-white/10 pt-2 mt-2">
                         <span class="text-slate-400">Tổng nhận về:</span>
-                        <span id="modal-total" class="text-yellow-400 font-mono font-bold text-lg">40.000</span>
+                        <span id="modal-total" class="text-yellow-400 font-mono font-bold text-lg">400.000</span>
                     </div>
                      <div class="flex justify-between text-xs">
                         <span class="text-slate-400">Thời gian:</span>
@@ -180,13 +191,68 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8";
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- PACKAGE DATA DEFINITION ---
+        // --- PACKAGE DATA DEFINITION (UPDATED TO COIN: x10 Value) ---
         const PACKAGES = [
-            { id: 1, name: "Gói Trải Nghiệm", cost: 30000, return_amount: 40000, duration_min: 180, roi_text: "33%", vip_req: 0, limit: 1, tag: "HOT", color: "from-blue-500 to-blue-600" },
-            { id: 2, name: "VIP 1 Khởi Động", cost: 180000, return_amount: 250000, duration_min: 4320, roi_text: "38.8%", vip_req: 1, limit: 1, tag: "LIMITED", color: "from-rose-500 to-red-600" },
-            { id: 3, name: "VIP 1 Trung Hạn", cost: 280000, return_amount: 420000, duration_min: 10080, roi_text: "50%", vip_req: 1, limit: 999, tag: null, color: "from-purple-500 to-indigo-600" },
-            { id: 4, name: "VIP 2 Tăng Tốc", cost: 580000, return_amount: 1000000, duration_min: 21600, roi_text: "72.4%", vip_req: 2, limit: 999, tag: "RECOMMEND", color: "from-amber-500 to-orange-600" },
-            { id: 5, name: "VIP 3 Dài Hạn", cost: 1080000, return_amount: 2500000, duration_min: 43200, roi_text: "131%", vip_req: 3, limit: 999, tag: "BEST VALUE", color: "from-emerald-500 to-teal-600" }
+            { 
+                id: 1, 
+                name: "Gói Trải Nghiệm", 
+                cost: 300000,           // 30k VND -> 300k Coin
+                return_amount: 400000,  // 40k VND -> 400k Coin
+                duration_min: 180, 
+                roi_text: "33%", 
+                vip_req: 0, 
+                limit: 1, 
+                tag: "HOT", 
+                color: "from-blue-500 to-blue-600" 
+            },
+            { 
+                id: 2, 
+                name: "VIP 1 Khởi Động", 
+                cost: 1800000,          // 180k VND -> 1.8M Coin
+                return_amount: 2500000, // 250k VND -> 2.5M Coin
+                duration_min: 4320, 
+                roi_text: "38.8%", 
+                vip_req: 1, 
+                limit: 1, 
+                tag: "LIMITED", 
+                color: "from-rose-500 to-red-600" 
+            },
+            { 
+                id: 3, 
+                name: "VIP 1 Trung Hạn", 
+                cost: 2800000,          // 280k VND -> 2.8M Coin
+                return_amount: 4200000, // 420k VND -> 4.2M Coin
+                duration_min: 10080, 
+                roi_text: "50%", 
+                vip_req: 1, 
+                limit: 999, 
+                tag: null, 
+                color: "from-purple-500 to-indigo-600" 
+            },
+            { 
+                id: 4, 
+                name: "VIP 2 Tăng Tốc", 
+                cost: 5800000,          // 580k VND -> 5.8M Coin
+                return_amount: 10000000,// 1M VND -> 10M Coin
+                duration_min: 21600, 
+                roi_text: "72.4%", 
+                vip_req: 2, 
+                limit: 999, 
+                tag: "RECOMMEND", 
+                color: "from-amber-500 to-orange-600" 
+            },
+            { 
+                id: 5, 
+                name: "VIP 3 Dài Hạn", 
+                cost: 10800000,         // 1.08M VND -> 10.8M Coin
+                return_amount: 25000000,// 2.5M VND -> 25M Coin
+                duration_min: 43200, 
+                roi_text: "131%", 
+                vip_req: 3, 
+                limit: 999, 
+                tag: "BEST VALUE", 
+                color: "from-emerald-500 to-teal-600" 
+            }
         ];
 
         // --- STATE ---
@@ -231,11 +297,9 @@
 
                 if (investments) {
                     investments.forEach(inv => {
-                        // History Count
                         if (!purchaseHistory[inv.package_id]) purchaseHistory[inv.package_id] = 0;
                         purchaseHistory[inv.package_id]++;
 
-                        // Active Filter
                         if (inv.status === 'running') {
                             activeInvestments.push(inv);
                         }
@@ -262,7 +326,6 @@
             const container = document.getElementById("packages-list");
             container.innerHTML = "";
             
-            // --- NEW LOGIC: CHECK IF ANY PACKAGE IS RUNNING ---
             const hasRunningPackage = activeInvestments.length > 0;
 
             PACKAGES.forEach(pkg => {
@@ -275,27 +338,22 @@
                 let btnClass = "bg-white text-black hover:bg-gray-200";
                 let cardOverlayClass = "";
 
-                // Logic Phân Tầng Điều Kiện
                 if (hasRunningPackage) {
-                    // ƯU TIÊN 1: Nếu đang có gói chạy -> Disable All
                     btnState = "disabled";
                     btnText = "Đang chạy gói khác";
                     btnClass = "bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5";
-                    cardOverlayClass = "opacity-60 grayscale-[0.8]"; // Làm tối thẻ
+                    cardOverlayClass = "opacity-60 grayscale-[0.8]";
                 } else if (!isVipEnough) {
-                    // ƯU TIÊN 2: Chưa đủ VIP
                     btnState = "disabled";
                     btnText = `Cần VIP ${pkg.vip_req}`;
                     btnClass = "bg-slate-700 text-slate-400 cursor-not-allowed border border-white/5";
                     cardOverlayClass = "opacity-70";
                 } else if (isLimitReached) {
-                    // ƯU TIÊN 3: Hết lượt mua
                     btnState = "disabled";
                     btnText = "Đã Dùng Hết Lượt";
                     btnClass = "bg-slate-800 text-slate-500 cursor-not-allowed";
                     cardOverlayClass = "opacity-50";
                 } else {
-                    // MỞ KHÓA
                     btnClass = `bg-gradient-to-r ${pkg.color} text-white shadow-lg shadow-indigo-500/20 active:scale-95`;
                 }
 
@@ -437,7 +495,6 @@
         }
 
         function openConfirmModal(id) {
-            // Safety check client side
             if (activeInvestments.length > 0) {
                 showToast("Đang có gói chạy, không thể mua thêm!", "error");
                 return;
@@ -463,7 +520,6 @@
         async function processBuy() {
             if (!selectedPkg) return;
             
-            // Double Check Security
             if (activeInvestments.length > 0) {
                 showToast("Bạn đang có gói chạy, vui lòng chờ!", "error");
                 closeModal();
@@ -513,7 +569,8 @@
         }
 
         function formatCurrency(num) {
-            return new Intl.NumberFormat('vi-VN').format(num);
+            // Định dạng 1.000.000 (dấu chấm)
+            return new Intl.NumberFormat('de-DE').format(num) + " Coin";
         }
 
         function formatDurationText(mins) {
