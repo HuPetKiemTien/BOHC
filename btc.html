@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>BTC Pro Persistent - HC88</title>
+  <title>BTC Pro Volatile - HC88</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Roboto:wght@400;500;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
@@ -201,12 +201,11 @@
   </div>
 
   <script>
-    // ===== 1. CONFIG UPDATED =====
-    // Tổng phiên 60s
+    // ===== 1. CONFIG =====
     const CONFIG = {
-      PHASE_BET: 45,    // 0s - 45s: Đặt cược (3 nến 15s)
-      PHASE_WAIT: 12,   // 45s - 57s: Khóa & Chờ
-      PHASE_RESULT: 3,  // 57s - 60s: Kết quả
+      PHASE_BET: 45,    
+      PHASE_WAIT: 12,   
+      PHASE_RESULT: 3,  
       CANDLE_TIME: 15000, 
       ODDS: 1.95,
       BASE_PRICE: 96500.00,
@@ -217,26 +216,48 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmYmF5dGNtcGdjZWFwZGNkeWVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NDQ2MzYsImV4cCI6MjA4MTEyMDYzNn0.DeXO91pcCzQJHMcXTk9Eilcsk9IoGIPzOM-Ube4zRb8';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ===== 2. MARKET LOGIC =====
+    // ===== 2. MARKET LOGIC (VOLATILE & CHOPPY) =====
     function seededRandom(seed) { var x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
 
     function getFairPrice(candleIndex) {
-        const longTrend = Math.sin(candleIndex / 40) * 150; 
-        const shortTrend = Math.sin(candleIndex / 8) * 50;
+        // 1. Giảm chu kỳ trend chính (Long Trend) từ 40 xuống 12 để đảo chiều nhanh hơn (~3 phút)
+        const longTrend = Math.sin(candleIndex / 12) * 120; 
+        
+        // 2. Tăng cường độ trend ngắn (Short Trend) và làm nó nhanh hơn (tạo hình răng cưa mạnh)
+        const shortTrend = Math.cos(candleIndex / 2.5) * 90;
+
+        // 3. Thêm yếu tố Chaos (hỗn loạn) để phá vỡ sóng hình sin mượt mà
+        const chaos = Math.sin(candleIndex * 1.7) * 45;
+
         const seed = candleIndex;
         const rand = seededRandom(seed);
-        const noise = (rand - 0.5) * 15; 
-        return CONFIG.BASE_PRICE + longTrend + shortTrend + noise;
+        
+        // 4. Noise (Nhiễu) ngẫu nhiên mạnh hơn
+        const noise = (rand - 0.5) * 65; 
+        
+        return CONFIG.BASE_PRICE + longTrend + shortTrend + chaos + noise;
     }
 
     function generateCandleData(candleIndex) {
         const close = getFairPrice(candleIndex);
         const open = getFairPrice(candleIndex - 1);
+        
         const seed = candleIndex * 1.1;
-        const volatility = Math.abs(close - open) + 5; 
-        const randHigh = seededRandom(seed) * volatility;
-        const randLow = seededRandom(seed + 0.1) * volatility;
-        return { open, close, high: Math.max(open, close) + randHigh, low: Math.min(open, close) - randLow, type: close >= open ? 'UP' : 'DOWN' };
+        // Tăng volatility cơ bản (độ dài nến)
+        const baseVol = Math.abs(close - open);
+        const volatility = Math.max(baseVol * 0.6, 20); // Tối thiểu biến động 20 giá
+        
+        // Râu nến dài hơn để nhìn "nguy hiểm" hơn
+        const randHigh = seededRandom(seed) * (volatility + 30);
+        const randLow = seededRandom(seed + 0.1) * (volatility + 30);
+        
+        return { 
+            open, 
+            close, 
+            high: Math.max(open, close) + randHigh, 
+            low: Math.min(open, close) - randLow, 
+            type: close >= open ? 'UP' : 'DOWN' 
+        };
     }
 
     // ===== 3. APP STATE & PERSISTENCE =====
@@ -276,7 +297,7 @@
       canvas: document.getElementById('candle-chart'),
       ctx: null, width: 0, height: 0,
       candles: [], currentCandle: null, serverCandleIndex: 0, 
-      displayPrice: 0, smoothedPrice: 0,
+      displayPrice: 0, smoothedPrice: 0, visualPrice: 0,
 
       init: () => {
         chart.ctx = chart.canvas.getContext('2d');
@@ -322,7 +343,6 @@
             chart.candles.push({...chart.currentCandle});
             if(chart.candles.length > 30) chart.candles.shift();
             
-            // Logic History (Nến thứ 4 chốt phiên - nay là mỗi 4 nến thì 1 nến chốt)
             if ((chart.serverCandleIndex + 1) % 4 === 0) {
                game.history.push(chart.currentCandle.close >= chart.currentCandle.open ? 'UP' : 'DOWN');
                game.renderHistory();
@@ -341,7 +361,8 @@
         const targetClose = chart.currentCandle.targetClose;
         const linearPrice = chart.currentCandle.open + (targetClose - chart.currentCandle.open) * progress;
         
-        const noise = Math.sin(progress * Math.PI * 4) * 0.5; 
+        // Hiệu ứng giật (Jitter) mạnh hơn
+        const noise = Math.sin(progress * Math.PI * 12) * 2 + (Math.random() - 0.5) * 4;
         let rawPrice = linearPrice + noise;
         
         if (progress > 0.95) {
@@ -349,7 +370,8 @@
             rawPrice = (rawPrice * (1-blend)) + (targetClose * blend);
         }
         
-        chart.visualPrice += (rawPrice - chart.visualPrice) * 0.02; 
+        // Giảm smoothing một chút để cảm giác giá nhảy nhanh hơn
+        chart.visualPrice += (rawPrice - chart.visualPrice) * 0.08; 
         
         chart.currentCandle.close = chart.visualPrice;
         if(chart.visualPrice > chart.currentCandle.high) chart.currentCandle.high = chart.visualPrice;
@@ -372,7 +394,8 @@
         if (game.phase !== 'BET' && game.lockPrice > 0) { if(game.lockPrice > maxVal) maxVal = game.lockPrice; if(game.lockPrice < minVal) minVal = game.lockPrice; }
 
         const range = maxVal - minVal || 1;
-        const padding = height * 0.2;
+        // Tăng padding để nến không chạm sát mép khi dao động mạnh
+        const padding = height * 0.25; 
         const getY = (val) => height - padding - ((val - minVal) / range) * (height - 2*padding);
 
         ctx.strokeStyle = '#2b3139'; ctx.lineWidth = 1; ctx.beginPath();
@@ -450,8 +473,7 @@
             game.startNewRound();
         }
 
-        // --- NEW TIMING LOGIC ---
-        // 0s -> 45s: BET PHASE
+        // --- TIMING ---
         if (secInMin < CONFIG.PHASE_BET) {
             if (game.phase !== 'BET') game.resetUI();
             game.phase = 'BET';
@@ -472,11 +494,8 @@
             }
 
         } else {
-            // 45s -> 60s: WAIT & RESULT
-            const resTime = secInMin - CONFIG.PHASE_BET; // 0s -> 15s
-            
+            const resTime = secInMin - CONFIG.PHASE_BET; 
             if (resTime < CONFIG.PHASE_WAIT) {
-                // WAIT (LOCKED)
                 if (game.phase === 'BET') game.switchPhaseToWait();
                 game.phase = 'WAIT';
                 
@@ -495,7 +514,6 @@
                 }
 
             } else {
-                // RESULT (Last 3-5s)
                 game.phase = 'RESULT';
                 document.getElementById('timer-display').innerText = "0";
                 document.getElementById('phase-bar').style.width = '0%';
@@ -630,24 +648,20 @@
         });
       },
 
-      // --- CRITICAL FIX: PREVENT CANCEL SPAM ---
       cancelBet: async () => {
         if (game.phase !== 'BET') return app.showToast("Không thể hủy!", 'error');
         if (game.betAmount === 0) return app.showToast("Chưa cược!", 'info');
         
-        // 1. NGAY LẬP TỨC lấy số tiền cần hoàn và reset biến cược về 0
         const refundAmount = game.betAmount;
         game.betAmount = 0; 
         game.betSide = null;
-        app.clearState(); // Xóa trạng thái lưu trữ ngay lập tức
+        app.clearState(); 
         
-        // 2. Cập nhật giao diện và số dư cục bộ ngay lập tức
         app.balance += refundAmount;
         game.updateBalanceUI();
         game.resetUI();
         app.showToast("Đã hủy!", 'info');
         
-        // 3. Sau đó mới gửi lên server (dù user có bấm nữa cũng vô dụng vì game.betAmount đã là 0)
         await supabaseClient.from('users').update({ balance: app.balance }).eq('id', app.user.id);
       },
 
