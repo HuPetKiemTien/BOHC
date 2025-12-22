@@ -251,7 +251,7 @@
                 <!-- Quy định & Nút gửi -->
                 <div class="mb-4">
                     <ul class="text-[10px] text-slate-500 list-disc pl-4 mb-4 space-y-1">
-                        <li>Tối thiểu rút: <span class="text-yellow-400">50,000 Coin</span></li>
+                        <li>Tối thiểu rút: <span class="text-yellow-400">1,000,000 Coin</span></li>
                         <li>Tỷ giá quy đổi: <span class="text-white">10,000 Coin = 1,000 VND</span></li>
                         <li>Thời gian xử lý: <span class="text-white">11h và 22h hàng ngày</span> (24/7)</li>
                     </ul>
@@ -426,7 +426,7 @@
                 const acc = document.getElementById("wd-account").value.trim();
 
                 if(!amount || isNaN(amount)) throw new Error("Vui lòng nhập số tiền!");
-                if(amount < 50000) throw new Error("Tối thiểu rút 50,000 Coin"); 
+                if(amount < 1000000) throw new Error("Tối thiểu rút 1,000,000 Coin"); 
                 if(!bank) throw new Error("Vui lòng chọn ngân hàng");
                 if(!acc) throw new Error("Vui lòng nhập số tài khoản");
 
